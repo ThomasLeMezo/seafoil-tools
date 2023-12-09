@@ -1,0 +1,18 @@
+#!/bin/zsh
+DIRECTORY=`pwd`
+script_file=$HOME/seafoil/seafoil-tools/seafoil-log-analyzer/seafoil_log_analyzer.py
+
+START_DATE=""
+for entry in $@; do
+	if [[ "$entry" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9]{2}:[0-9]{2}:[0-9]{2}$ ]]; then
+		START_DATE="$entry"
+		echo "Starting date = " $START_DATE
+	fi
+done
+
+for entry in $@; do
+	if [[ "$entry" != "$START_DATE" ]]; then
+		ros2 bag reindex $DIRECTORY/$entry -s 'mcap'
+		python3 $script_file $DIRECTORY/$entry $START_DATE
+	fi
+done

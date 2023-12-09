@@ -1,0 +1,10 @@
+#!/bin/zsh
+
+DIRECTORY=`pwd`
+echo $DIRECTORY
+
+for entry in $@; do
+	FILE=$DIRECTORY/$entry
+	echo $FILE
+	ros2 bag reindex $FILE -s 'mcap'
+done

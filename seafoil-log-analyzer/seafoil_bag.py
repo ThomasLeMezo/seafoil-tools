@@ -1,0 +1,30 @@
+#!/bin/python3
+
+from msg.seafoil_gps_fix import SeafoilGpsFix
+from msg.seafoil_profile import SeafoilProfile
+from msg.seafoil_log import SeafoilLog
+
+import datetime
+import numpy as np
+
+class SeafoilBag():
+	def __init__(self, bag_path="", offset_date=datetime.datetime(2019, 1, 1, 0, 0)):
+		self.file_name = bag_path
+		self.offset_date = offset_date
+
+		# Driver
+		self.gps_fix = SeafoilGpsFix(bag_path, "/driver/fix", offset_date)
+		self.profile = SeafoilProfile(bag_path, "/driver/profile", offset_date)
+
+		# Info
+		self.log = SeafoilLog(bag_path, "/rosout", offset_date)
+		self.rosout = SeafoilLog(bag_path, "/rosout", offset_date)
+
+		# Get seafoil name
+		self.seafoil_id = ""
+		# idx = np.where(self.log_parameter.param_name == "/hostname")
+		# if len(idx) > 0:
+		# 	if len(self.log_parameter.value[idx[0]]) > 0:
+		# 		self.seafoil_id = str(self.log_parameter.value[idx[0]][0].string_value)
+		print("Seafoil id: " + self.seafoil_id)
+		
