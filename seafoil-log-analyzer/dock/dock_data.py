@@ -8,21 +8,23 @@ from pyqtgraph.dockarea import *
 from .seafoil_dock import SeafoilDock
 import numpy as np
 from scipy import signal, interpolate
+import copy
 
 class DockData(SeafoilDock):
     def __init__(self, seafoil_bag, tabWidget):
         SeafoilDock.__init__(self, seafoil_bag)
         tabWidget.addTab(self, "Raw Data")
-
         self.add_profile()
         self.add_profile2()
+        self.add_profile_one()
+
 
         print("DockData initialized")
 
     def add_profile(self):
         dock_profile = Dock("Profile (default)")
         self.addDock(dock_profile, position='below')
-        data = self.sfb.profile
+        data = copy.copy(self.sfb.profile)
 
         if not data.is_empty():
 
@@ -51,7 +53,7 @@ class DockData(SeafoilDock):
     def add_profile2(self):
         dock_profile = Dock("Profile (zero)")
         self.addDock(dock_profile, position='below')
-        data = self.sfb.profile
+        data = copy.copy(self.sfb.profile)
 
         if not data.is_empty():
 
@@ -84,3 +86,15 @@ class DockData(SeafoilDock):
             )
             bar.setImageItem( i2, insert_in=p2 )
             dock_profile.addWidget(pg_profile)
+
+    def add_profile_one(self):
+        dock_profile_one = Dock("Profile analysis")
+        self.addDock(dock_profile_one, position='below')
+        data = self.sfb.profile
+        i = 10
+
+        if not data.is_empty():
+            pg_profile = pg.PlotWidget()
+            pg_profile.plot(np.arange(128), data.profile[i,:-1], pen=(255, 0, 0), name="signal", stepMode=True)
+            pg_profile.setLabel('left', "status")
+            dock_profile_one.addWidget(pg_profile)

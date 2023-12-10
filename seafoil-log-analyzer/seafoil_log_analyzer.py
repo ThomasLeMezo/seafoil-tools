@@ -10,6 +10,7 @@ from seafoil_bag import SeafoilBag
 from dock.dock_data import DockData
 from dock.dock_log import DockLog
 from dock.dock_gnss import DockGnss
+from dock.dock_observer import DockDataObserver
 
 import datetime
 
@@ -27,7 +28,6 @@ if len(sys.argv)>=3:
 
 ## Load ros2 bag
 sfb = SeafoilBag(filename, offset_date)
-
 ## Display
 
 app = QtWidgets.QApplication([])
@@ -40,6 +40,7 @@ win.setCentralWidget(tab)
 
 ## Data
 dock_data = DockData(sfb, tab)
+dock_data_observer = DockDataObserver(sfb, tab)
 dock_log = DockLog(sfb, tab)
 data_gnss = DockGnss(sfb, tab, win)
 

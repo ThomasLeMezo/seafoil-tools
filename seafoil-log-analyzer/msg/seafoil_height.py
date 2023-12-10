@@ -8,12 +8,12 @@ from seafoil_data import SeafoilData
 sys.path.append('..')
 
 
-class SeafoilProfile(SeafoilData):
+class SeafoilHeight(SeafoilData):
     def __init__(self, bag_path="", topic_name="", start_date=datetime.datetime(2019, 1, 1)):
         SeafoilData.__init__(self, bag_path, topic_name, start_date)
         self.start_date = start_date
         
-        self.profile = np.empty([self.nb_elements, 128], dtype='ubyte')
+        self.height = np.empty([self.nb_elements], dtype='float')
 
         self.load_message()
         self.resize_data_array()
@@ -22,12 +22,13 @@ class SeafoilProfile(SeafoilData):
             self.save_data()
 
     def process_message(self, msg):
-        self.profile[self.k, :] = np.array(msg.profile, dtype='ubyte')
+        
+        self.height[self.k] = msg.height
         return
 
     def resize_data_array(self):
         
-        self.profile = np.resize(self.profile, [self.k, 128])
+        self.height = np.resize(self.height, self.k)
         return
         
     def save_data(self):
@@ -39,11 +40,11 @@ class SeafoilProfile(SeafoilData):
         if not os.path.exists(self.topic_full_dir):
             np.savez_compressed(self.topic_full_dir,
                                 time=self.time,
-                                profile=self.profile,)
+                                height=self.height,)
 
     def load_message_from_file(self):
         data = np.load(self.topic_name_dir + "/" + self.topic_name_file, allow_pickle=True)
         self.time = data['time']
-        self.profile = data['profile']
+        self.height = data['height']
         self.k = len(self.time)
     

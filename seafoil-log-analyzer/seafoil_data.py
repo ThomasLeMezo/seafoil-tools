@@ -29,6 +29,8 @@ class SeafoilData(object):
         self.time = np.empty([self.nb_elements])
         self.k = 0
 
+        self.was_loaded_from_file = False
+
         ## Topic directory for save
         self.topic_name_dir = self.topic_name
         # split topic name and keep only part before last /
@@ -78,6 +80,7 @@ class SeafoilData(object):
         if os.path.exists(self.topic_full_dir):
             print("Load (saved)", self.topic_name)
             self.load_message_from_file()
+            self.was_loaded_from_file = True
         else:
             print("Load ", self.topic_name)
             ## Open the file
