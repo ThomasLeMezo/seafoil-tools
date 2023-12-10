@@ -1,0 +1,29 @@
+#!/bin/zsh
+
+DIRECTORY=`pwd`
+USER=pi
+IP=192.168.1.30
+
+# Ask for bags in ~/log and sort by time
+FILES=($(ssh $USER@$IP ls -t /home/$USER/log))
+
+# Display bags and ask user to choose one
+COUNTER=0
+for f in $FILES; do
+        echo $COUNTER $f
+        ((COUNTER++))
+done
+
+echo -n "Enter file number (default 0) : "
+read USERINPUT
+
+if [[ $USERINPUT == "" ]]; then
+	USERINPUT=0
+fi
+
+# Download the bag
+((USERINPUT++))
+FILE=($FILES[$USERINPUT])
+echo "Download " $FILE " from Seabot" $SEABOT 
+
+scp -r $USER@$IP$SEABOT:~/log/$FILE $DIRECTORY
