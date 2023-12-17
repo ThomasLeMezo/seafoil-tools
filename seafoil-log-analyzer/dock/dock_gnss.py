@@ -44,7 +44,7 @@ class DockGnss(SeafoilDock):
             return
 
         for i in range(len(data_gnss.latitude)):
-            if data_gnss.mode[i] > 1:
+            if data_gnss.mode[i] > 0:
                 if not is_fix_mode:
                     gpx_segments.append(gpxpy.gpx.GPXTrackSegment())
                     is_fix_mode = True
@@ -78,7 +78,7 @@ class DockGnss(SeafoilDock):
 
         if (not data.is_empty()):
             pg_position = pg.PlotWidget()
-            mask = np.where(data.mode == 3)
+            mask = np.where(data.mode > 0)
             pg_position.plot(data.latitude[mask], data.longitude[mask][:-1], pen=(255, 0, 0), name="position",
                              stepMode=True)
 

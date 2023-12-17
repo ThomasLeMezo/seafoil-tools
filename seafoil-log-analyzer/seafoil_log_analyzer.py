@@ -44,7 +44,7 @@ dock_data_observer = DockDataObserver(sfb, tab)
 dock_log = DockLog(sfb, tab)
 data_gnss = DockGnss(sfb, tab, win)
 
-tab.setCurrentWidget(dock_data)
+tab.setCurrentWidget(dock_data_observer)
 
 win.show()
 
