@@ -5,6 +5,8 @@ from msg.seafoil_profile import SeafoilProfile
 from msg.seafoil_log import SeafoilLog
 from msg.seafoil_height import SeafoilHeight
 from msg.seafoil_height_debug import SeafoilHeightDebug
+from msg.seafoil_raw_data import SeafoilRawData
+from msg.seafoil_r_p_y import SeafoilRPY
 
 import datetime
 import numpy as np
@@ -17,6 +19,8 @@ class SeafoilBag():
 		# Driver
 		self.gps_fix = SeafoilGpsFix(bag_path, "/driver/fix", offset_date)
 		self.profile = SeafoilProfile(bag_path, "/driver/profile", offset_date)
+		self.raw_data = SeafoilRawData(bag_path, "/driver/raw_data", offset_date)
+		self.rpy = SeafoilRPY(bag_path, "/driver/rpy", offset_date)
 
 		# Observer
 		self.height = SeafoilHeight(bag_path, "/observer/height", offset_date)

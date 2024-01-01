@@ -64,6 +64,7 @@ class DockDataObserver(SeafoilDock):
             pg_profile.plot(pixel_times, data.height_unfiltered/idx_to_height, pen=pg.mkPen('g', width=5), name="height_unfiltered")
             pg_profile.plot(pixel_times, data.height_unfiltered[:-1]/idx_to_height+(data.interval_diam[:-1]/2.), pen=(0, 0, 255), name="interval max", stepMode=True)
             pg_profile.plot(pixel_times, data.height_unfiltered[:-1]/idx_to_height-(data.interval_diam[:-1]/2.), pen=(0, 0, 255), name="interval min", stepMode=True)
+            pg_profile.showGrid(x=False, y=True)
             dock_profile.addWidget(pg_profile)
 
     def add_profile_one(self):

@@ -27,3 +27,5 @@ FILE=($FILES[$USERINPUT])
 echo "Download " $FILE " from Seabot" $SEABOT 
 
 scp -r $USER@$IP$SEABOT:~/log/$FILE $DIRECTORY
+
+seafoil_log $FILE

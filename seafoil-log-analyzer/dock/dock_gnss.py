@@ -30,12 +30,21 @@ class DockGnss(SeafoilDock):
         import gpxpy.gpx
 
         data_gnss = self.sfb.gps_fix
+        data_height = self.sfb.height
 
         gpx = gpxpy.gpx.GPX()
         is_fix_mode = False
 
         gpx_track = gpxpy.gpx.GPXTrack()
         gpx_segments = []
+
+        # interpolate data_height to data_gnss.time_gnss
+        f_height = interpolate.interp1d(data_height.time, data_height.height, bounds_error=False, kind="zero")
+        height = f_height(data_gnss.time)
+        print(height)
+
+        # remplace nan by 0
+        height[np.isnan(height)] = 0
 
         print(self.sfb.seafoil_id)
         filepath = QFileDialog.getSaveFileName(self.win, "Save file", str(data_gnss.bag_path) + "_" + self.sfb.seafoil_id + ".gpx", "GPX (*.gpx)")
@@ -51,7 +60,7 @@ class DockGnss(SeafoilDock):
 
                 gpx_segments[-1].points.append(gpxpy.gpx.GPXTrackPoint(latitude=data_gnss.latitude[i],
                                                                        longitude=data_gnss.longitude[i],
-                                                                       elevation=data_gnss.altitude[i],
+                                                                       elevation=height[i],
                                                                        time=datetime.datetime.fromtimestamp(
                                                                            data_gnss.time_gnss[i]),
                                                                        horizontal_dilution=data_gnss.hdop[i],
@@ -94,23 +103,35 @@ class DockGnss(SeafoilDock):
         data = self.sfb.gps_fix
 
         if (not data.is_empty()):
-            pg_status = pg.PlotWidget()
-            pg_status.plot(data.time, data.status[:-1], pen=(255, 0, 0), name="status", stepMode=True)
-            pg_status.setLabel('left', "status")
-            dock_fix.addWidget(pg_status)
+            # pg_status = pg.PlotWidget()
+            # pg_status.plot(data.time, data.status[:-1], pen=(255, 0, 0), name="status", stepMode=True)
+            # pg_status.setLabel('left', "status")
+            # dock_fix.addWidget(pg_status)
 
             pg_mode = pg.PlotWidget()
             pg_mode.plot(data.time, data.mode[:-1], pen=(255, 0, 0), name="mode", stepMode=True)
             pg_mode.setLabel('left', "mode")
             dock_fix.addWidget(pg_mode)
-            pg_mode.setXLink(pg_status)
+            # pg_mode.setXLink(pg_status)
 
-            pg_nb_sat = pg.PlotWidget()
-            pg_nb_sat.plot(data.time, data.satellites_visible[:-1], pen=(255, 0, 0), name="satellites_visible",
-                           stepMode=True)
-            pg_nb_sat.setLabel('left', "satellites visible")
-            dock_fix.addWidget(pg_nb_sat)
-            pg_nb_sat.setXLink(pg_status)
+            pg_speed = pg.PlotWidget()
+            pg_speed.plot(data.time, data.speed[:-1]*1.94384, pen=(255, 0, 0), name="speed", stepMode=True)
+            pg_speed.setLabel('left', "speed (kt)")
+            dock_fix.addWidget(pg_speed)
+            pg_speed.setXLink(pg_mode)
+
+            pg_track = pg.PlotWidget()
+            pg_track.plot(data.time, data.track[:-1], pen=(255, 0, 0), name="track", stepMode=True)
+            pg_track.setLabel('left', "track")
+            dock_fix.addWidget(pg_track)
+            pg_track.setXLink(pg_mode)
+
+            # pg_nb_sat = pg.PlotWidget()
+            # pg_nb_sat.plot(data.time, data.satellites_visible[:-1], pen=(255, 0, 0), name="satellites_visible",
+            #                stepMode=True)
+            # pg_nb_sat.setLabel('left', "satellites visible")
+            # dock_fix.addWidget(pg_nb_sat)
+            # pg_nb_sat.setXLink(pg_mode)
 
     def add_time(self):
         dock_time = Dock("Time")

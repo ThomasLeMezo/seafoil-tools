@@ -95,6 +95,10 @@ class Seafoil{{ class_name }}(SeafoilData):
                     new_fields[item] = [item, "ubyte", item]
                 else:
                     new_fields[item] = [item, "object", item]
+        elif fields[item] == "geometry_msgs/Vector3":
+            new_fields[item + "_x"] = [item + "_x", "float", item + ".x"]
+            new_fields[item + "_y"] = [item + "_x", "float", item + ".y"]
+            new_fields[item + "_z"] = [item + "_x", "float", item + ".z"]
         else:
             new_fields[item] = [item, fields[item], item]
     print(new_fields)
