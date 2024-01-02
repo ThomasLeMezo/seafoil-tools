@@ -9,6 +9,7 @@ from .seafoil_dock import SeafoilDock
 import numpy as np
 from scipy import signal, interpolate
 import copy
+import pyqtgraph.opengl as gl
 
 class DockData(SeafoilDock):
     def __init__(self, seafoil_bag, tabWidget):
@@ -18,8 +19,11 @@ class DockData(SeafoilDock):
         self.add_profile2()
         self.add_profile_one()
         self.add_imu()
+        self.add_imu_calibrated()
         self.add_corr_acc()
         self.add_euler()
+        self.add_magnetic_3Dplot()
+
 
         print("DockData initialized")
 
@@ -243,3 +247,68 @@ class DockData(SeafoilDock):
             pg_acc_z.setLabel('left', "corr_acc")
             dock_corr_acc.addWidget(pg_acc_z)
             pg_acc_z.setXLink(pg_acc_x)
+
+    def add_imu_calibrated(self):
+        dock_imu = Dock("IMU CALIBRATED")
+        self.addDock(dock_imu, position='below')
+        data = self.sfb.calibrated_data
+
+        if not data.is_empty():
+            pg_acceleration = pg.PlotWidget()
+            self.set_plot_options(pg_acceleration)
+            pg_acceleration.plot(data.time, data.accel_x, pen=(255, 0, 0), name="x")
+            pg_acceleration.plot(data.time, data.accel_y, pen=(0, 255, 0), name="y")
+            pg_acceleration.plot(data.time, data.accel_z, pen=(0, 0, 255), name="z")
+            pg_acceleration.plot(data.time, np.sqrt(data.accel_x**2 + data.accel_y**2 + data.accel_z**2), pen=(255, 255, 255), name="norm")
+            pg_acceleration.setLabel('left', "acceleration")
+            dock_imu.addWidget(pg_acceleration)
+
+            pg_gyro = pg.PlotWidget()
+            self.set_plot_options(pg_gyro)
+            pg_gyro.plot(data.time, data.gyro_x, pen=(255, 0, 0), name="x")
+            pg_gyro.plot(data.time, data.gyro_y, pen=(0, 255, 0), name="y")
+            pg_gyro.plot(data.time, data.gyro_z, pen=(0, 0, 255), name="z")
+            pg_gyro.setLabel('left', "gyro")
+            dock_imu.addWidget(pg_gyro)
+            pg_gyro.setXLink(pg_acceleration)
+
+            pg_mag = pg.PlotWidget()
+            self.set_plot_options(pg_mag)
+            pg_mag.plot(data.time, data.mag_x, pen=(255, 0, 0), name="x")
+            pg_mag.plot(data.time, data.mag_y, pen=(0, 255, 0), name="y")
+            pg_mag.plot(data.time, data.mag_z, pen=(0, 0, 255), name="z")
+            pg_mag.plot(data.time, np.sqrt(data.mag_x**2 + data.mag_y**2 + data.mag_z**2), pen=(255, 255, 255), name="norm")
+            pg_mag.setLabel('left', "mag")
+            dock_imu.addWidget(pg_mag)
+            pg_mag.setXLink(pg_acceleration)
+
+    def add_magnetic_3Dplot(self):
+        dock_imu = Dock("MAG 3D")
+        self.addDock(dock_imu, position='below')
+        data = self.sfb.calibrated_data
+
+        if not data.is_empty():
+            w = gl.GLViewWidget()
+            w.setCameraPosition(distance=200)
+
+            gx = gl.GLGridItem()
+            gx.rotate(90, 0, 1, 0)
+            gx.translate(-10, 0, 0)
+            w.addItem(gx)
+            gy = gl.GLGridItem()
+            gy.rotate(90, 1, 0, 0)
+            gy.translate(0, -10, 0)
+            w.addItem(gy)
+            gz = gl.GLGridItem()
+            gz.translate(0, 0, -10)
+            w.addItem(gz)
+
+            axisitem = gl.GLAxisItem()
+            axisitem.setSize(100., 100., 100.)
+            w.addItem(axisitem)
+
+            pi = gl.GLScatterPlotItem(pos=np.vstack((data.mag_x, data.mag_y, data.mag_z)).T, color=(1, 0, 0, 1), size=1)
+            pi.setGLOptions('opaque')
+            w.addItem(pi)
+            dock_imu.addWidget(w)
+

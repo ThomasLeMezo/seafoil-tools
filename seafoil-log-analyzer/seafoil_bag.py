@@ -20,6 +20,7 @@ class SeafoilBag():
 		self.gps_fix = SeafoilGpsFix(bag_path, "/driver/fix", offset_date)
 		self.profile = SeafoilProfile(bag_path, "/driver/profile", offset_date)
 		self.raw_data = SeafoilRawData(bag_path, "/driver/raw_data", offset_date)
+		self.calibrated_data = SeafoilRawData(bag_path, "/driver/calibrated_data", offset_date)
 		self.rpy = SeafoilRPY(bag_path, "/driver/rpy", offset_date)
 
 		# Observer
