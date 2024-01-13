@@ -16,8 +16,9 @@ class DockDataObserver(SeafoilDock):
         tabWidget.addTab(self, "Observer")
 
         self.add_profile()
-        self.add_profile_one()
+        # self.add_profile_one()
         self.add_profile_filter()
+        self.add_height_velocity()
 
         print("DockDataObserver initialized")
 
@@ -92,3 +93,37 @@ class DockDataObserver(SeafoilDock):
             pg_profile.plot(data_debug.time, data_debug.height_unfiltered[:-1], pen=(0, 255, 0), name="height unfiltered", stepMode=True)
             pg_profile.setLabel('left', "status")
             dock_profile_filter.addWidget(pg_profile)
+
+    def add_height_velocity(self):
+        dock_height_velocity = Dock("Height velocity")
+        self.addDock(dock_height_velocity, position='below')
+        data_debug = copy.copy(self.sfb.height_debug)
+        data = copy.copy(self.sfb.height)
+        data_gnss = copy.copy(self.sfb.gps_fix)
+        data_imu = copy.copy(self.sfb.rpy)
+
+        if not data.is_empty():
+            pg_profile = pg.PlotWidget()
+            self.set_plot_options(pg_profile)
+            pg_profile.plot(data_debug.time, data_debug.height_unfiltered[:-1], pen=(0, 255, 0), name="height unfiltered", stepMode=True)
+            window_size = 25
+            pg_profile.plot(data.time, np.convolve(data.height[:-1], np.ones(window_size)/window_size, mode='same'), pen=(0, 0, 255), name="height filter", stepMode=True)
+            pg_profile.setLabel('left', "status")
+            pg_profile.showGrid(x=False, y=True)
+            dock_height_velocity.addWidget(pg_profile)
+
+            pg_speed = pg.PlotWidget()
+            self.set_plot_options(pg_speed)
+            pg_speed.plot(data_gnss.time, data_gnss.speed[:-1]*1.94384, pen=(255, 0, 0), name="speed", stepMode=True)
+            pg_speed.setLabel('left', "speed (kt)")
+            pg_speed.showGrid(x=False, y=True)
+            dock_height_velocity.addWidget(pg_speed)
+            pg_speed.setXLink(pg_profile)
+
+            pg_imu = pg.PlotWidget()
+            self.set_plot_options(pg_imu)
+            pg_imu.plot(data_imu.time, data_imu.roll[:-1], pen=(255, 0, 0), name="roll", stepMode=True)
+            pg_imu.plot(data_imu.time, data_imu.pitch[:-1], pen=(0, 255, 0), name="pitch", stepMode=True)
+            pg_speed.showGrid(x=False, y=True)
+            dock_height_velocity.addWidget(pg_imu)
+            pg_imu.setXLink(pg_profile)

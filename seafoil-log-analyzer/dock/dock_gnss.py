@@ -58,16 +58,18 @@ class DockGnss(SeafoilDock):
                     gpx_segments.append(gpxpy.gpx.GPXTrackSegment())
                     is_fix_mode = True
 
-                gpx_segments[-1].points.append(gpxpy.gpx.GPXTrackPoint(latitude=data_gnss.latitude[i],
-                                                                       longitude=data_gnss.longitude[i],
-                                                                       elevation=height[i],
-                                                                       time=datetime.datetime.fromtimestamp(
-                                                                           data_gnss.time_gnss[i]),
-                                                                       horizontal_dilution=data_gnss.hdop[i],
-                                                                       vertical_dilution=data_gnss.vdop[i],
-                                                                       speed=data_gnss.speed[i],
-                                                                       comment=str(data_gnss.mode[i])
-                                                                       ))
+                pt = gpxpy.gpx.GPXTrackPoint(latitude=data_gnss.latitude[i],
+                                        longitude=data_gnss.longitude[i],
+                                        elevation=height[i],
+                                        time=datetime.datetime.fromtimestamp(
+                                            data_gnss.time_gnss[i]),
+                                        horizontal_dilution=data_gnss.hdop[i],
+                                        vertical_dilution=data_gnss.vdop[i],
+                                        speed=data_gnss.speed[i],
+                                        comment=str(data_gnss.mode[i])
+                                        )
+                pt.course = data_gnss.track[i]
+                gpx_segments[-1].points.append(pt)
             else:
                 is_fix_mode = False
 
@@ -76,7 +78,7 @@ class DockGnss(SeafoilDock):
         gpx.tracks.append(gpx_track)
 
         file = open(filepath[0], "w")
-        file.write(gpx.to_xml())
+        file.write(gpx.to_xml(version='1.1'))
         file.close()
         print("start date", data_gnss.time_gnss[0])
 
@@ -88,8 +90,8 @@ class DockGnss(SeafoilDock):
         if (not data.is_empty()):
             pg_position = pg.PlotWidget()
             mask = np.where(data.mode > 0)
-            pg_position.plot(data.latitude[mask], data.longitude[mask][:-1], pen=(255, 0, 0), name="position",
-                             stepMode=True)
+            pg_position.plot(data.longitude[mask], data.latitude[mask][:-1], pen=(255, 0, 0), name="position",
+                             stepMode=True, symbol='+')
 
             dock_position.addWidget(pg_position)
 
@@ -110,7 +112,8 @@ class DockGnss(SeafoilDock):
 
             pg_mode = pg.PlotWidget()
             pg_mode.plot(data.time, data.mode[:-1], pen=(255, 0, 0), name="mode", stepMode=True)
-            pg_mode.setLabel('left', "mode")
+            pg_mode.plot(data.time, data.status[:-1], pen=(0, 255, 0), name="status", stepMode=True)
+            pg_mode.setLabel('left', "mode & status")
             dock_fix.addWidget(pg_mode)
             # pg_mode.setXLink(pg_status)
 
