@@ -106,24 +106,27 @@ class DockDataObserver(SeafoilDock):
             pg_profile = pg.PlotWidget()
             self.set_plot_options(pg_profile)
             pg_profile.plot(data_debug.time, data_debug.height_unfiltered[:-1], pen=(0, 255, 0), name="height unfiltered", stepMode=True)
-            window_size = 25
-            pg_profile.plot(data.time, np.convolve(data.height[:-1], np.ones(window_size)/window_size, mode='same'), pen=(0, 0, 255), name="height filter", stepMode=True)
+            window_size = 50
+            pg_profile.plot(data.time, np.convolve(data.height[:-1], np.ones(window_size)/window_size, mode='same'), pen=(0, 0, 255), name="height filter (2s)", stepMode=True)
             pg_profile.setLabel('left', "status")
-            pg_profile.showGrid(x=False, y=True)
+            pg_profile.showGrid(x=True, y=True)
             dock_height_velocity.addWidget(pg_profile)
 
             pg_speed = pg.PlotWidget()
             self.set_plot_options(pg_speed)
             pg_speed.plot(data_gnss.time, data_gnss.speed[:-1]*1.94384, pen=(255, 0, 0), name="speed", stepMode=True)
             pg_speed.setLabel('left', "speed (kt)")
-            pg_speed.showGrid(x=False, y=True)
+            pg_speed.showGrid(x=True, y=True)
             dock_height_velocity.addWidget(pg_speed)
             pg_speed.setXLink(pg_profile)
 
             pg_imu = pg.PlotWidget()
+            window_size = 100
             self.set_plot_options(pg_imu)
             pg_imu.plot(data_imu.time, data_imu.roll[:-1], pen=(255, 0, 0), name="roll", stepMode=True)
             pg_imu.plot(data_imu.time, data_imu.pitch[:-1], pen=(0, 255, 0), name="pitch", stepMode=True)
-            pg_speed.showGrid(x=False, y=True)
+            pg_imu.plot(data_imu.time, np.convolve(data_imu.roll[:-1], np.ones(window_size)/window_size, mode='same'), pen=(0, 0, 255), name="roll filter (2s)", stepMode=True)
+            pg_imu.plot(data_imu.time, np.convolve(data_imu.pitch[:-1], np.ones(window_size)/window_size, mode='same'), pen=(255, 0, 255), name="pitch filter (2s)", stepMode=True)
+            pg_imu.showGrid(x=True, y=True)
             dock_height_velocity.addWidget(pg_imu)
             pg_imu.setXLink(pg_profile)

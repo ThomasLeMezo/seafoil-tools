@@ -11,7 +11,7 @@ from scipy import signal, interpolate
 from pyqtgraph.Qt import QtGui, QtCore
 from PyQt5.QtWidgets import QFileDialog, QInputDialog
 import datetime
-from scipy import ndimage
+import copy
 
 
 class DockGnss(SeafoilDock):
@@ -31,6 +31,7 @@ class DockGnss(SeafoilDock):
 
         data_gnss = self.sfb.gps_fix
         data_height = self.sfb.height
+        data_imu = copy.copy(self.sfb.rpy)
 
         gpx = gpxpy.gpx.GPX()
         is_fix_mode = False
@@ -43,11 +44,36 @@ class DockGnss(SeafoilDock):
         height = f_height(data_gnss.time)
         print(height)
 
+        f_imu_roll = interpolate.interp1d(data_imu.time, data_imu.roll, bounds_error=False, kind="zero")
+        roll = f_imu_roll(data_gnss.time)
+
+        f_imu_pitch = interpolate.interp1d(data_imu.time, data_imu.pitch, bounds_error=False, kind="zero")
+        pitch = f_imu_pitch(data_gnss.time)
+
         # remplace nan by 0
         height[np.isnan(height)] = 0
 
+        # Set roll and pitch to 0 when they are too high, too low or nan
+        roll[np.isnan(roll)] = 0
+        roll[roll > 70.] = 70.
+        roll[roll < -70.] = -70.
+
+        pitch[np.isnan(pitch)] = 0
+        pitch[pitch > 70.] = 70.
+        pitch[pitch < -70.] = -70.
+
+        # smooth data
+        window_size = 100
+        height = np.convolve(height, np.ones(window_size)/window_size, mode='same')
+        roll = np.convolve(roll, np.ones(window_size)/window_size, mode='same')
+
+        window_size = 100
+        height = np.convolve(height, np.ones(window_size)/window_size, mode='same')
+
         print(self.sfb.seafoil_id)
-        filepath = QFileDialog.getSaveFileName(self.win, "Save file", str(data_gnss.bag_path) + "_" + self.sfb.seafoil_id + ".gpx", "GPX (*.gpx)")
+        filepath = QFileDialog.getSaveFileName(self.win, "Save file",
+                                               str(data_gnss.bag_path) + "_" + self.sfb.seafoil_id + ".gpx",
+                                               "GPX (*.gpx)")
         print(filepath)
         if filepath[0] == '':
             return
@@ -59,15 +85,15 @@ class DockGnss(SeafoilDock):
                     is_fix_mode = True
 
                 pt = gpxpy.gpx.GPXTrackPoint(latitude=data_gnss.latitude[i],
-                                        longitude=data_gnss.longitude[i],
-                                        elevation=height[i],
-                                        time=datetime.datetime.fromtimestamp(
-                                            data_gnss.time_gnss[i]),
-                                        horizontal_dilution=data_gnss.hdop[i],
-                                        vertical_dilution=data_gnss.vdop[i],
-                                        speed=data_gnss.speed[i],
-                                        comment=str(data_gnss.mode[i])
-                                        )
+                                             longitude=data_gnss.longitude[i],
+                                             elevation=height[i],
+                                             time=datetime.datetime.fromtimestamp(
+                                                 data_gnss.time_gnss[i]),
+                                             horizontal_dilution=roll[i],
+                                             vertical_dilution=pitch[i],
+                                             speed=data_gnss.speed[i],
+                                             comment=str(data_gnss.mode[i])
+                                             )
                 pt.course = data_gnss.track[i]
                 gpx_segments[-1].points.append(pt)
             else:
@@ -111,6 +137,7 @@ class DockGnss(SeafoilDock):
             # dock_fix.addWidget(pg_status)
 
             pg_mode = pg.PlotWidget()
+            self.set_plot_options(pg_mode)
             pg_mode.plot(data.time, data.mode[:-1], pen=(255, 0, 0), name="mode", stepMode=True)
             pg_mode.plot(data.time, data.status[:-1], pen=(0, 255, 0), name="status", stepMode=True)
             pg_mode.setLabel('left', "mode & status")
@@ -118,12 +145,14 @@ class DockGnss(SeafoilDock):
             # pg_mode.setXLink(pg_status)
 
             pg_speed = pg.PlotWidget()
-            pg_speed.plot(data.time, data.speed[:-1]*1.94384, pen=(255, 0, 0), name="speed", stepMode=True)
+            self.set_plot_options(pg_speed)
+            pg_speed.plot(data.time, data.speed[:-1] * 1.94384, pen=(255, 0, 0), name="speed", stepMode=True)
             pg_speed.setLabel('left', "speed (kt)")
             dock_fix.addWidget(pg_speed)
             pg_speed.setXLink(pg_mode)
 
             pg_track = pg.PlotWidget()
+            self.set_plot_options(pg_track)
             pg_track.plot(data.time, data.track[:-1], pen=(255, 0, 0), name="track", stepMode=True)
             pg_track.setLabel('left', "track")
             dock_fix.addWidget(pg_track)
@@ -142,7 +171,6 @@ class DockGnss(SeafoilDock):
         data = self.sfb.gps_fix
 
         if (not data.is_empty()):
-
             pg_time = pg.PlotWidget()
             pg_time.plot(data.time, ((data.starting_time.timestamp() + data.time) - data.time_gnss)[:-1],
                          pen=(255, 0, 0), name="time offset", stepMode=True)
