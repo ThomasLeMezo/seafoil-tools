@@ -118,6 +118,7 @@ class DockDataObserver(SeafoilDock):
             pg_speed.setLabel('left', "speed (kt)")
             pg_speed.showGrid(x=True, y=True)
             dock_height_velocity.addWidget(pg_speed)
+
             pg_speed.setXLink(pg_profile)
 
             pg_imu = pg.PlotWidget()
@@ -130,3 +131,5 @@ class DockDataObserver(SeafoilDock):
             pg_imu.showGrid(x=True, y=True)
             dock_height_velocity.addWidget(pg_imu)
             pg_imu.setXLink(pg_profile)
+
+            self.add_label_time([pg_speed, pg_profile, pg_imu], data_gnss.starting_time)
