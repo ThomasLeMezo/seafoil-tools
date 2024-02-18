@@ -34,9 +34,11 @@ class DockGnss(SeafoilDock):
         data_imu = copy.copy(self.sfb.rpy)
 
         gpx = gpxpy.gpx.GPX()
+        gpx.creator = "SeaFoil"
         is_fix_mode = False
 
         gpx_track = gpxpy.gpx.GPXTrack()
+        gpx_track.name = "Windfoil session"
         gpx_segments = []
 
         # interpolate data_height to data_gnss.time_gnss
@@ -79,20 +81,20 @@ class DockGnss(SeafoilDock):
             return
 
         for i in range(len(data_gnss.latitude)):
-            if data_gnss.mode[i] > 0:
+            if data_gnss.mode[i] >= 2: # Fix mode
                 if not is_fix_mode:
                     gpx_segments.append(gpxpy.gpx.GPXTrackSegment())
                     is_fix_mode = True
 
                 pt = gpxpy.gpx.GPXTrackPoint(latitude=data_gnss.latitude[i],
                                              longitude=data_gnss.longitude[i],
-                                             elevation=height[i],
+                                             #elevation=height[i],
                                              time=datetime.datetime.fromtimestamp(
                                                  data_gnss.time_gnss[i]),
-                                             horizontal_dilution=roll[i],
-                                             vertical_dilution=pitch[i],
+                                             # horizontal_dilution=roll[i],
+                                             # vertical_dilution=pitch[i],
                                              speed=data_gnss.speed[i],
-                                             comment=str(data_gnss.mode[i])
+                                             # comment=str(data_gnss.mode[i])
                                              )
                 pt.course = data_gnss.track[i]
                 gpx_segments[-1].points.append(pt)
@@ -121,7 +123,7 @@ class DockGnss(SeafoilDock):
 
             dock_position.addWidget(pg_position)
 
-            saveBtn = QtGui.QPushButton('Export GPX')
+            saveBtn = QtGui.QPushButton('Export GPX (for BaseDeVitesse)')
             saveBtn.clicked.connect(self.save_gpx)
             dock_position.addWidget(saveBtn, row=1, col=0)
 

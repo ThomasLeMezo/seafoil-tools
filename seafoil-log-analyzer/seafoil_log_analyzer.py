@@ -11,6 +11,7 @@ from dock.dock_data import DockData
 from dock.dock_log import DockLog
 from dock.dock_gnss import DockGnss
 from dock.dock_observer import DockDataObserver
+from dock.dock_analysis import DockAnalysis
 
 import datetime
 
@@ -43,8 +44,9 @@ dock_data = DockData(sfb, tab)
 dock_data_observer = DockDataObserver(sfb, tab)
 dock_log = DockLog(sfb, tab)
 data_gnss = DockGnss(sfb, tab, win)
+data_analysis = DockAnalysis(sfb, tab)
 
-tab.setCurrentWidget(dock_data_observer)
+tab.setCurrentWidget(data_analysis)
 
 win.show()
 
