@@ -51,17 +51,16 @@ class DockAnalysis(SeafoilDock):
         self.speed_v1852 = compute_speed_for_distance(self.sfb.distance, 1852)
 
         self.add_height_velocity()
+        self.add_heading()
         self.add_speed_for_distance()
 
         print("DockAnalysis initialized")
 
-    def add_height_velocity(self):
-        dock_height_velocity = Dock("Height velocity")
-        self.addDock(dock_height_velocity, position='below')
+
+    def plot_height_velocity(self, dock):
         data_debug = copy.copy(self.sfb.height_debug)
         data = copy.copy(self.sfb.height)
         data_gnss = copy.copy(self.sfb.gps_fix)
-        data_imu = copy.copy(self.sfb.rpy)
 
         if not data.is_empty():
             # interp speed to height
@@ -75,21 +74,39 @@ class DockAnalysis(SeafoilDock):
             window_size = 50
             pg_profile.plot(data.time,
                             np.convolve(data.height[:-1], np.ones(window_size) / window_size, mode='same') * (
-                                    data_speed[:-1] > 4.0), pen=(0, 0, 255), name="height filter (2s)",
+                                    data_speed[:-1] > 4.0) + (data_speed[:-1] <= 4.0)*0.28, pen=(0, 0, 255), name="height filter (2s)",
+                            stepMode=True)
+            window_size = 100
+            pg_profile.plot(data.time,
+                            np.convolve(data.height[:-1], np.ones(window_size) / window_size, mode='same') * (
+                                    data_speed[:-1] > 4.0) + (data_speed[:-1] <= 4.0)*0.28, pen=(255, 0, 255), name="height filter (4s)",
                             stepMode=True)
             pg_profile.setLabel('left', "status")
             pg_profile.showGrid(x=True, y=True)
-            dock_height_velocity.addWidget(pg_profile)
+            dock.addWidget(pg_profile)
 
             pg_speed = pg.PlotWidget()
             self.set_plot_options(pg_speed)
             pg_speed.plot(data_gnss.time, data_gnss.speed[:-1] * 1.94384, pen=(255, 0, 0), name="speed", stepMode=True)
             pg_speed.setLabel('left', "speed (kt)")
             pg_speed.showGrid(x=True, y=True)
-            dock_height_velocity.addWidget(pg_speed)
+            dock.addWidget(pg_speed)
 
             pg_speed.setXLink(pg_profile)
 
+            return pg_profile, pg_speed
+
+    def add_height_velocity(self):
+        dock_height_velocity = Dock("Height velocity")
+        self.addDock(dock_height_velocity, position='below')
+
+        pg_profile, pg_speed = self.plot_height_velocity(dock_height_velocity)
+
+        data = copy.copy(self.sfb.height)
+        data_gnss = copy.copy(self.sfb.gps_fix)
+        data_imu = copy.copy(self.sfb.rpy)
+
+        if not data.is_empty():
             pg_imu = pg.PlotWidget()
             window_size = 100
             self.set_plot_options(pg_imu)
@@ -105,6 +122,22 @@ class DockAnalysis(SeafoilDock):
             pg_imu.setXLink(pg_profile)
 
             self.add_label_time([pg_speed, pg_profile, pg_imu], data_gnss.starting_time, dock_height_velocity)
+
+    def add_heading(self):
+        dock_heading = Dock("Heading")
+        self.addDock(dock_heading, position='below')
+        data_gnss = copy.copy(self.sfb.gps_fix)
+
+        pg_profile, pg_speed = self.plot_height_velocity(dock_heading)
+
+        pg_track = pg.PlotWidget()
+        self.set_plot_options(pg_track)
+        pg_track.plot(data_gnss.time, data_gnss.track[:-1], pen=(255, 0, 0), name="track", stepMode=True)
+        pg_track.setLabel('left', "track")
+        dock_heading.addWidget(pg_track)
+        pg_track.setXLink(pg_profile)
+
+        self.add_label_time([pg_speed, pg_profile, pg_track], data_gnss.starting_time, dock_heading)
 
     def add_speed_for_distance(self):
         dock_height_velocity = Dock("Speed for a distance")
