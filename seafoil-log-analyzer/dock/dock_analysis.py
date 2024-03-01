@@ -163,32 +163,36 @@ class DockAnalysis(SeafoilDock):
 
             pg_speed_distance = pg.PlotWidget()
             self.set_plot_options(pg_speed_distance)
-            pg_speed_distance.plot(data_distance.time, self.speed_v500[:-1] * 1.94384, pen=(0, 255, 0),
+            if(np.size(self.speed_v500)>5):
+                pg_speed_distance.plot(data_distance.time, self.speed_v500[:-1] * 1.94384, pen=(0, 255, 0),
                                    name="speed 500m", stepMode=True)
-            pg_speed_distance.plot(data_distance.time, self.speed_v1852[:-1] * 1.94384, pen=(0, 0, 255),
+            if(np.size(self.speed_v1852)>5):
+                pg_speed_distance.plot(data_distance.time, self.speed_v1852[:-1] * 1.94384, pen=(0, 0, 255),
                                    name="speed 1852m", stepMode=True)
 
             # Get idx and value of max speed for v500
-            idx_max_speed_v500 = np.argmax(self.speed_v500)
-            max_speed_v500 = self.speed_v500[idx_max_speed_v500]
-            idx_start_v500 = get_starting_index_for_distance_from_last_point(data_distance, 500, idx_max_speed_v500)
-            pg_speed_distance.plot([data_distance.time[idx_max_speed_v500]], [max_speed_v500 * 1.94384], pen=None,
-                                   symbol='o', symbolBrush=(255, 0, 0), symbolPen='w', symbolSize=10,
-                                   name="end speed 500m")
-            pg_speed_distance.plot([data_distance.time[idx_start_v500]], [self.speed_v500[idx_start_v500] * 1.94384], pen=None,
-                                      symbol='o', symbolBrush=(0, 255, 0), symbolPen='w', symbolSize=10,
-                                      name="start speed 500m")
+            if(np.size(self.speed_v500)>5):
+                idx_max_speed_v500 = np.argmax(self.speed_v500)
+                max_speed_v500 = self.speed_v500[idx_max_speed_v500]
+                idx_start_v500 = get_starting_index_for_distance_from_last_point(data_distance, 500, idx_max_speed_v500)
+                pg_speed_distance.plot([data_distance.time[idx_max_speed_v500]], [max_speed_v500 * 1.94384], pen=None,
+                                       symbol='o', symbolBrush=(255, 0, 0), symbolPen='w', symbolSize=10,
+                                       name="end speed 500m")
+                pg_speed_distance.plot([data_distance.time[idx_start_v500]], [self.speed_v500[idx_start_v500] * 1.94384], pen=None,
+                                          symbol='o', symbolBrush=(0, 255, 0), symbolPen='w', symbolSize=10,
+                                          name="start speed 500m")
 
             # Get idx and value of max speed for v1852
-            idx_max_speed_v1852 = np.argmax(self.speed_v1852)
-            max_speed_v1852 = self.speed_v1852[idx_max_speed_v1852]
-            idx_start_v1852 = get_starting_index_for_distance_from_last_point(data_distance, 1852, idx_max_speed_v1852)
-            pg_speed_distance.plot([data_distance.time[idx_max_speed_v1852]], [max_speed_v1852 * 1.94384], pen=None,
-                                   symbol='o', symbolBrush=(255, 0, 0), symbolPen='w', symbolSize=10,
-                                   name="end speed 1852m")
-            pg_speed_distance.plot([data_distance.time[idx_start_v1852]], [self.speed_v1852[idx_start_v1852] * 1.94384], pen=None,
-                                      symbol='o', symbolBrush=(0, 255, 0), symbolPen='w', symbolSize=10,
-                                      name="start speed 1852m")
+            if(np.size(self.speed_v1852)>5):
+                idx_max_speed_v1852 = np.argmax(self.speed_v1852)
+                max_speed_v1852 = self.speed_v1852[idx_max_speed_v1852]
+                idx_start_v1852 = get_starting_index_for_distance_from_last_point(data_distance, 1852, idx_max_speed_v1852)
+                pg_speed_distance.plot([data_distance.time[idx_max_speed_v1852]], [max_speed_v1852 * 1.94384], pen=None,
+                                       symbol='o', symbolBrush=(255, 0, 0), symbolPen='w', symbolSize=10,
+                                       name="end speed 1852m")
+                pg_speed_distance.plot([data_distance.time[idx_start_v1852]], [self.speed_v1852[idx_start_v1852] * 1.94384], pen=None,
+                                          symbol='o', symbolBrush=(0, 255, 0), symbolPen='w', symbolSize=10,
+                                          name="start speed 1852m")
 
             pg_speed_distance.setLabel('left', "speed of distance (kt)")
             dock_height_velocity.addWidget(pg_speed_distance)
@@ -196,6 +200,8 @@ class DockAnalysis(SeafoilDock):
             pg_speed_distance.setXLink(pg_speed)
 
             self.add_label_time([pg_speed, pg_speed_distance], data_gnss.starting_time, dock_height_velocity)
-            self.add_label_with_text(dock_height_velocity, "Max speed for 500m: " + str(round(max_speed_v500 * 1.94384, 2)) + " kt")
-            self.add_label_with_text(dock_height_velocity, "Max speed for 1852m: " + str(round(max_speed_v1852 * 1.94384, 2)) + " kt")
+            if(np.size(self.speed_v1852)>5):
+                self.add_label_with_text(dock_height_velocity, "Max speed for 500m: " + str(round(max_speed_v500 * 1.94384, 2)) + " kt")
+            if(np.size(self.speed_v1852)>5):
+                self.add_label_with_text(dock_height_velocity, "Max speed for 1852m: " + str(round(max_speed_v1852 * 1.94384, 2)) + " kt")
             self.add_label_with_text(dock_height_velocity, "Max speed: " + str(round(speed_max, 2)) + " kt")

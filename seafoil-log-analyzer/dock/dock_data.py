@@ -24,6 +24,8 @@ class DockData(SeafoilDock):
         self.add_corr_acc()
         self.add_euler()
         self.add_magnetic_3Dplot()
+        self.add_ahrs_error_acc()
+        self.add_ahrs_error_mag()
 
         print("DockData initialized")
 
@@ -223,6 +225,7 @@ class DockData(SeafoilDock):
         dock_euler = Dock("Euler")
         self.addDock(dock_euler, position='below')
         data = self.sfb.rpy
+        data_debug = self.sfb.debug_fusion
 
         if not data.is_empty():
             pg_roll = pg.PlotWidget()
@@ -241,6 +244,111 @@ class DockData(SeafoilDock):
             pg_yaw.plot(data.time, data.yaw, pen=(0, 0, 255), name="yaw")
             dock_euler.addWidget(pg_yaw)
             pg_yaw.setXLink(pg_roll)
+
+    def add_ahrs_error_acc(self):
+        dock_ahrs_error_acc = Dock("AHRS error (Acc)")
+        self.addDock(dock_ahrs_error_acc, position='below')
+        data_debug = self.sfb.debug_fusion
+        data = self.sfb.calibrated_data
+        pg_acc = None
+        data_rpy = self.sfb.rpy
+
+        if not data.is_empty():
+            pg_acc = pg.PlotWidget()
+            self.set_plot_options(pg_acc)
+            pg_acc.plot(data.time, data.accel_x, pen=(255, 0, 0), name="x")
+            pg_acc.plot(data.time, data.accel_y, pen=(0, 255, 0), name="y")
+            pg_acc.plot(data.time, data.accel_z, pen=(0, 0, 255), name="z")
+            pg_acc.plot(data.time, np.sqrt(data.accel_x ** 2 + data.accel_y ** 2 + data.accel_z ** 2),
+                                 pen=(255, 255, 255), name="norm")
+            pg_acc.setLabel('left', "acceleration")
+            dock_ahrs_error_acc.addWidget(pg_acc)
+
+        if not data_rpy.is_empty():
+            pg_pitch_roll = pg.PlotWidget()
+            pg_pitch_roll.plot(data_rpy.time, data_rpy.roll, pen=(255, 0, 0), name="roll")
+            pg_pitch_roll.plot(data_rpy.time, data_rpy.pitch, pen=(0, 255, 0), name="pitch")
+            pg_pitch_roll.setLabel('left', "roll/pitch")
+            dock_ahrs_error_acc.addWidget(pg_pitch_roll)
+            pg_pitch_roll.setXLink(pg_acc)
+
+        if not data_debug.is_empty():
+            # Acceleration error
+            pg_acceleration_error = pg.PlotWidget()
+            self.set_plot_options(pg_acceleration_error)
+            pg_acceleration_error.plot(data_debug.time, data_debug.acceleration_error, pen=(255, 0, 0), name="acceleration_error")
+            dock_ahrs_error_acc.addWidget(pg_acceleration_error)
+            pg_acceleration_error.setXLink(pg_acc)
+
+            # Acceleration recovery trigger
+            pg_acceleration_recovery_trigger = pg.PlotWidget()
+            self.set_plot_options(pg_acceleration_recovery_trigger)
+            pg_acceleration_recovery_trigger.plot(data_debug.time, data_debug.acceleration_recovery_trigger, pen=(0, 0, 255), name="acceleration_recovery_trigger")
+            dock_ahrs_error_acc.addWidget(pg_acceleration_recovery_trigger)
+            pg_acceleration_recovery_trigger.setXLink(pg_acc)
+
+            # Acceleration recovery
+            pg_acc_bool = pg.PlotWidget()
+            self.set_plot_options(pg_acc_bool)
+            pg_acc_bool.plot(data_debug.time, data_debug.angular_rate_recovery, pen=(0, 0, 255), name="angular_rate_recovery")
+            pg_acc_bool.plot(data_debug.time, data_debug.acceleration_recovery, pen=(255, 0, 0), name="acceleration_recovery")
+            pg_acc_bool.plot(data_debug.time, data_debug.accelerometer_ignored, pen=(0, 255, 0), name="accelerometer_ignored")
+            pg_acc_bool.plot(data_debug.time, data_debug.initialising, pen=(255, 0, 255), name="initialising")
+
+            dock_ahrs_error_acc.addWidget(pg_acc_bool)
+            pg_acc_bool.setXLink(pg_acc)
+
+    def add_ahrs_error_mag(self):
+        dock_ahrs_error_mag = Dock("AHRS error (Mag)")
+        self.addDock(dock_ahrs_error_mag, position='below')
+        data_debug = self.sfb.debug_fusion
+        data = self.sfb.calibrated_data
+
+        pg_mag = None
+
+        if not data.is_empty():
+            pg_mag = pg.PlotWidget()
+            self.set_plot_options(pg_mag)
+            pg_mag.plot(data.time, data.mag_x, pen=(255, 0, 0), name="x")
+            pg_mag.plot(data.time, data.mag_y, pen=(0, 255, 0), name="y")
+            pg_mag.plot(data.time, data.mag_z, pen=(0, 0, 255), name="z")
+            pg_mag.plot(data.time, np.sqrt(data.mag_x ** 2 + data.mag_y ** 2 + data.mag_z ** 2),
+                                 pen=(255, 255, 255), name="norm")
+            pg_mag.setLabel('left', "magnetic")
+            dock_ahrs_error_mag.addWidget(pg_mag)
+
+        if not data_debug.is_empty():
+
+            # Magnetic error
+            pg_magnetic_error = pg.PlotWidget()
+            self.set_plot_options(pg_magnetic_error)
+            pg_magnetic_error.plot(data_debug.time, data_debug.magnetic_error, pen=(255, 0, 0), name="magnetic_error")
+            dock_ahrs_error_mag.addWidget(pg_magnetic_error)
+            pg_magnetic_error.setXLink(pg_mag)
+
+            # Magnetometer ignored
+            pg_magnetometer_ignored = pg.PlotWidget()
+            self.set_plot_options(pg_magnetometer_ignored)
+            pg_magnetometer_ignored.plot(data_debug.time, data_debug.magnetometer_ignored, pen=(0, 255, 0), name="magnetometer_ignored")
+            dock_ahrs_error_mag.addWidget(pg_magnetometer_ignored)
+            pg_magnetometer_ignored.setXLink(pg_mag)
+
+            # Magnetic recovery trigger
+            pg_magnetic_recovery_trigger = pg.PlotWidget()
+            self.set_plot_options(pg_magnetic_recovery_trigger)
+            pg_magnetic_recovery_trigger.plot(data_debug.time, data_debug.magnetic_recovery_trigger, pen=(0, 0, 255), name="magnetic_recovery_trigger")
+            dock_ahrs_error_mag.addWidget(pg_magnetic_recovery_trigger)
+            pg_magnetic_recovery_trigger.setXLink(pg_mag)
+
+            # Magnetometer limit reached
+            pg_mag_bool = pg.PlotWidget()
+            self.set_plot_options(pg_mag_bool)
+            pg_mag_bool.plot(data_debug.time, data_debug.magnetic_recovery, pen=(0, 0, 255), name="magnetic_recovery")
+            pg_mag_bool.plot(data_debug.time, data_debug.magnetometer_limit_reached, pen=(0, 255, 0), name="magnetometer_limit_reached")
+            pg_mag_bool.plot(data_debug.time, data_debug.magnetometer_data_skipped, pen=(255, 0, 0), name="magnetometer_data_skipped")
+            pg_mag_bool.plot(data_debug.time, data_debug.magnetometer_data_is_ready, pen=(255, 0, 255), name="magnetometer_data_is_ready")
+            dock_ahrs_error_mag.addWidget(pg_mag_bool)
+            pg_mag_bool.setXLink(pg_mag)
 
     def add_corr_acc(self):
         dock_corr_acc = Dock("Correlation acceleration")
