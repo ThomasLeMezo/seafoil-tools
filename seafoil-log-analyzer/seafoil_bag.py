@@ -24,6 +24,7 @@ class SeafoilBag():
 		self.raw_data = SeafoilRawData(bag_path, "/driver/raw_data", offset_date)
 		self.calibrated_data = SeafoilRawData(bag_path, "/driver/calibrated_data", offset_date)
 		self.rpy = SeafoilRPY(bag_path, "/driver/rpy", offset_date)
+		self.rpy.yaw = (self.rpy.yaw + 180) % 360
 		self.debug_fusion = SeafoilDebugFusion(bag_path, "/driver/debug_fusion", offset_date)
 
 		# Observer

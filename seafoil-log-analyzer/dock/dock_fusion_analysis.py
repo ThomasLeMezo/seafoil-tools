@@ -113,7 +113,7 @@ class DockFusionAnalysis(SeafoilDock):
         self.analysis_time -= self.sfb.rosout.starting_time.timestamp()
         self.analysis_euler_angle_roll = data['euler_angle_roll'].to_numpy()
         self.analysis_euler_angle_pitch = data['euler_angle_pitch'].to_numpy()
-        self.analysis_euler_angle_yaw = data['euler_angle_yaw'].to_numpy()
+        self.analysis_euler_angle_yaw = (data['euler_angle_yaw'].to_numpy()+180)%360.0
         self.analysis_lin_acc_axis_x = data['lin_acc_axis_x'].to_numpy()
         self.analysis_lin_acc_axis_y = data['lin_acc_axis_y'].to_numpy()
         self.analysis_lin_acc_axis_z = data['lin_acc_axis_z'].to_numpy()

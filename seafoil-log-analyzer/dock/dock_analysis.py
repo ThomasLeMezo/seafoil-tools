@@ -10,6 +10,10 @@ import numpy as np
 from scipy import signal, interpolate
 import copy
 
+from PyQt5.QtWidgets import QFileDialog, QInputDialog
+import datetime
+import gpxpy.gpx
+
 
 def compute_speed_for_distance(data_distance, distance):
     speed_distance = None
@@ -43,9 +47,11 @@ def get_starting_index_for_distance_from_last_point(data_distance, distance, end
     return starting_idx
 
 class DockAnalysis(SeafoilDock):
-    def __init__(self, seafoil_bag, tabWidget):
+    def __init__(self, seafoil_bag, tabWidget, windows):
         SeafoilDock.__init__(self, seafoil_bag)
         tabWidget.addTab(self, "Analysis")
+
+        self.win = windows
 
         self.list_pg_yaw = []
         self.list_pg_roll_pitch = []
@@ -143,7 +149,7 @@ class DockAnalysis(SeafoilDock):
         pg_track = pg.PlotWidget()
         self.set_plot_options(pg_track)
         pg_track.plot(data_gnss.time, data_gnss.track[:-1], pen=(255, 0, 0), name="track (gnss)", stepMode=True)
-        pg_track.plot(data_imu.time, (-data_imu.yaw[:-1]-180.0)%360.0, pen=(0, 255, 0), name="yaw (imu)", stepMode=True)
+        pg_track.plot(data_imu.time, data_imu.yaw[:-1], pen=(0, 255, 0), name="yaw (imu)", stepMode=True)
         pg_track.setLabel('left', "track")
         dock_heading.addWidget(pg_track)
         pg_track.setXLink(pg_profile)
@@ -226,7 +232,7 @@ class DockAnalysis(SeafoilDock):
             dock_height_velocity.addWidget(saveBtn, row=dock_height_velocity.currentRow+1, col=0)
 
     def save_gpx(self):
-        import gpxpy.gpx
+
 
         data_gnss = self.sfb.gps_fix
         data_height = self.sfb.height

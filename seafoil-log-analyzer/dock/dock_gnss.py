@@ -9,8 +9,6 @@ from .seafoil_dock import SeafoilDock
 import numpy as np
 from scipy import signal, interpolate
 from pyqtgraph.Qt import QtGui, QtCore
-from PyQt5.QtWidgets import QFileDialog, QInputDialog
-import datetime
 import copy
 
 
