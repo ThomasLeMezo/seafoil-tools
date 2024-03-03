@@ -26,89 +26,6 @@ class DockGnss(SeafoilDock):
 
         print("DockGnss initialized")
 
-    def save_gpx(self):
-        import gpxpy.gpx
-
-        data_gnss = self.sfb.gps_fix
-        data_height = self.sfb.height
-        data_imu = copy.copy(self.sfb.rpy)
-
-        gpx = gpxpy.gpx.GPX()
-        gpx.creator = "SeaFoil"
-        is_fix_mode = False
-
-        gpx_track = gpxpy.gpx.GPXTrack()
-        gpx_track.name = "Windfoil session"
-        gpx_segments = []
-
-        # interpolate data_height to data_gnss.time_gnss
-        f_height = interpolate.interp1d(data_height.time, data_height.height, bounds_error=False, kind="zero")
-        height = f_height(data_gnss.time)
-        print(height)
-
-        f_imu_roll = interpolate.interp1d(data_imu.time, data_imu.roll, bounds_error=False, kind="zero")
-        roll = f_imu_roll(data_gnss.time)
-
-        f_imu_pitch = interpolate.interp1d(data_imu.time, data_imu.pitch, bounds_error=False, kind="zero")
-        pitch = f_imu_pitch(data_gnss.time)
-
-        # remplace nan by 0
-        height[np.isnan(height)] = 0
-
-        # Set roll and pitch to 0 when they are too high, too low or nan
-        roll[np.isnan(roll)] = 0
-        roll[roll > 70.] = 70.
-        roll[roll < -70.] = -70.
-
-        pitch[np.isnan(pitch)] = 0
-        pitch[pitch > 70.] = 70.
-        pitch[pitch < -70.] = -70.
-
-        # smooth data
-        window_size = 100
-        height = np.convolve(height, np.ones(window_size)/window_size, mode='same')
-        roll = np.convolve(roll, np.ones(window_size)/window_size, mode='same')
-
-        window_size = 100
-        height = np.convolve(height, np.ones(window_size)/window_size, mode='same')
-
-        print(self.sfb.seafoil_id)
-        filepath = QFileDialog.getSaveFileName(self.win, "Save file",
-                                               str(data_gnss.bag_path) + "_" + self.sfb.seafoil_id + ".gpx",
-                                               "GPX (*.gpx)")
-        print(filepath)
-        if filepath[0] == '':
-            return
-
-        for i in range(len(data_gnss.latitude)):
-            if data_gnss.mode[i] >= 2: # Fix mode
-                if not is_fix_mode:
-                    gpx_segments.append(gpxpy.gpx.GPXTrackSegment())
-                    is_fix_mode = True
-
-                pt = gpxpy.gpx.GPXTrackPoint(latitude=data_gnss.latitude[i],
-                                             longitude=data_gnss.longitude[i],
-                                             #elevation=height[i],
-                                             time=datetime.datetime.fromtimestamp(
-                                                 data_gnss.time_gnss[i]),
-                                             # horizontal_dilution=roll[i],
-                                             # vertical_dilution=pitch[i],
-                                             speed=data_gnss.speed[i],
-                                             # comment=str(data_gnss.mode[i])
-                                             )
-                pt.course = data_gnss.track[i]
-                gpx_segments[-1].points.append(pt)
-            else:
-                is_fix_mode = False
-
-        for seg in gpx_segments:
-            gpx_track.segments.append(seg)
-        gpx.tracks.append(gpx_track)
-
-        file = open(filepath[0], "w")
-        file.write(gpx.to_xml(version='1.1'))
-        file.close()
-        print("start date", data_gnss.time_gnss[0])
 
     def add_position(self):
         dock_position = Dock("GNSS")
@@ -122,10 +39,6 @@ class DockGnss(SeafoilDock):
                              stepMode=True, symbol='+')
 
             dock_position.addWidget(pg_position)
-
-            saveBtn = QtGui.QPushButton('Export GPX (for BaseDeVitesse)')
-            saveBtn.clicked.connect(self.save_gpx)
-            dock_position.addWidget(saveBtn, row=1, col=0)
 
     def add_fix(self):
         dock_fix = Dock("Fix")

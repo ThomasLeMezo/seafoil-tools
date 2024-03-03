@@ -416,6 +416,7 @@ class DockData(SeafoilDock):
         dock_imu = Dock("MAG 3D")
         self.addDock(dock_imu, position='below')
         data = self.sfb.calibrated_data
+        data_raw = self.sfb.raw_data
 
         if not data.is_empty():
             w = gl.GLViewWidget()
@@ -440,4 +441,8 @@ class DockData(SeafoilDock):
             pi = gl.GLScatterPlotItem(pos=np.vstack((data.mag_x, data.mag_y, data.mag_z)).T, color=(1, 0, 0, 1), size=1)
             pi.setGLOptions('opaque')
             w.addItem(pi)
+            pi2 = gl.GLScatterPlotItem(pos=np.vstack((data_raw.mag_x, data_raw.mag_y, data_raw.mag_z)).T, color=(0, 1, 0, 1), size=1)
+            pi2.setGLOptions('opaque')
+            w.addItem(pi2)
+
             dock_imu.addWidget(w)

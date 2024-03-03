@@ -46,7 +46,7 @@ dock_data_observer = DockDataObserver(sfb, tab)
 dock_log = DockLog(sfb, tab)
 data_gnss = DockGnss(sfb, tab, win)
 data_analysis = DockAnalysis(sfb, tab)
-data_fusion_analysis = DockFusionAnalysis(sfb, tab)
+data_fusion_analysis = DockFusionAnalysis(sfb, tab, data_analysis)
 
 tab.setCurrentWidget(data_analysis)
 

@@ -13,10 +13,11 @@ import pyqtgraph.opengl as gl
 
 
 class DockFusionAnalysis(SeafoilDock):
-    def __init__(self, seafoil_bag, tabWidget):
+    def __init__(self, seafoil_bag, tabWidget, dock_analysis):
         SeafoilDock.__init__(self, seafoil_bag)
         tabWidget.addTab(self, "Fusion Analysis")
 
+        self.dock_analysis = dock_analysis
         self.fusion_gain_ = 0.5
         self.acceleration_rejection_ = 10.0
         self.magnetic_rejection_ = 10.0
@@ -189,6 +190,10 @@ class DockFusionAnalysis(SeafoilDock):
         self.replay_pitch.setData(self.analysis_time, self.analysis_euler_angle_pitch)
         self.replay_yaw.setData(self.analysis_time, self.analysis_euler_angle_yaw)
 
+        self.dock_analysis_replay_pitch.setData(self.analysis_time, self.analysis_euler_angle_pitch)
+        self.dock_analysis_replay_roll.setData(self.analysis_time, self.analysis_euler_angle_roll)
+        self.dock_analysis_replay_yaw.setData(self.analysis_time, self.analysis_euler_angle_yaw)
+
     def add_replay_euler(self):
         dock_euler = Dock("Euler")
         self.addDock(dock_euler, position='above')
@@ -215,3 +220,7 @@ class DockFusionAnalysis(SeafoilDock):
             self.replay_yaw = pg_yaw.plot(self.analysis_time, self.analysis_euler_angle_yaw, pen=(0, 255, 0), name="yaw [recomputed]")
             dock_euler.addWidget(pg_yaw)
             pg_yaw.setXLink(pg_roll)
+
+            self.dock_analysis_replay_pitch = self.dock_analysis.list_pg_roll_pitch[0].plot(self.analysis_time, self.analysis_euler_angle_pitch, pen=(255, 0, 0), name="pitch [recomputed]")
+            self.dock_analysis_replay_roll = self.dock_analysis.list_pg_roll_pitch[0].plot(self.analysis_time, self.analysis_euler_angle_roll, pen=(0, 0, 255), name="roll [recomputed]")
+            self.dock_analysis_replay_yaw = self.dock_analysis.list_pg_yaw[0].plot(self.analysis_time, self.analysis_euler_angle_yaw, pen=(0, 255, 0), name="yaw [recomputed]")
