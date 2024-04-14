@@ -1,5 +1,5 @@
 #!/bin/python3
-
+import os
 import sys
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtWidgets
@@ -168,58 +168,12 @@ class DockData(SeafoilDock):
 
     def calibrate_mag(self):
         print("Start magnetic calibration")
-        from .ellipsoid_fit import ellipsoid_fit, ellipsoid_plot, data_regularize
-        data_raw_mag = self.sfb.raw_data
-        print(data_raw_mag.mag_x)
-        data = np.column_stack((data_raw_mag.mag_x, data_raw_mag.mag_y, data_raw_mag.mag_z))
-        print(data)
-        print("Regularizing data")
-        data2 = data_regularize(data, divs=256)
 
-        print("Computing ellipsoid fit")
-        center, radii, evecs, v = ellipsoid_fit(data2)
-        dataC = data - center.T
-        dataC2 = data2 - center.T
-        a, b, c = radii
-        r = (a * b * c) ** (1. / 3.)  # preserve volume?
-        D = np.array([[r / a, 0., 0.], [0., r / b, 0.], [0., 0., r / c]])
-        # http://www.cs.brandeis.edu/~cs155/Lecture_07_6.pdf
-        # affine transformation from ellipsoid to sphere (translation excluded)
-        TR = evecs.dot(D).dot(evecs.T)
-        dataE = TR.dot(dataC2.T).T
-
-        print('ellipsoid_offset: [', center[0][0], ', ', center[1][0], ', ', center[2][0], ']')
-        print('ellipsoid_matrix0: [', TR[0][0], ', ', TR[0][1], ', ', TR[0][2], ']')
-        print('ellipsoid_matrix1: [', TR[1][0], ', ', TR[1][1], ', ', TR[1][2], ']')
-        print('ellipsoid_matrix2: [', TR[2][0], ', ', TR[2][1], ', ', TR[2][2], ']')
-
-        np.savetxt('magcal_ellipsoid.txt', np.vstack((center.T, TR)))
-        #
-        import matplotlib.pyplot as plt
-        from mpl_toolkits.mplot3d import Axes3D
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        #
-        # hack  for equal axes
-        ax.set_aspect('auto')
-        MAX = 50
-        for direction in (-1, 1):
-            for point in np.diag(direction * MAX * np.array([1, 1, 1])):
-                ax.plot([point[0]], [point[1]], [point[2]], 'w')
-
-        ax.scatter(dataC[:, 0], dataC[:, 1], dataC[:, 2], marker='o', color='g')
-        ax.scatter(dataC2[:, 0], dataC2[:, 1], dataC2[:, 2], marker='o', color='b')
-        ax.scatter(dataE[:, 0], dataE[:, 1], dataE[:, 2], marker='o', color='r')
-        # ax.scatter(data_raw_mag.mag_x, data_raw_mag.mag_y, data_raw_mag.mag_z, marker='o', color='k')
-
-        ellipsoid_plot([0, 0, 0], radii, evecs, ax=ax, plotAxes=True, cageColor='g')
-        ellipsoid_plot([0, 0, 0], [r, r, r], evecs, ax=ax, plotAxes=True, cageColor='orange')
-
-        ax.plot([r], [0], [0], color='r', marker='o')
-        ax.plot([radii[0]], [0], [0], color='b', marker='o')
-        # print (np.array([radii[0],0,0]).dot(transform)[0], r)
-
-        plt.show()
+        ## Call ros2 run icm20948_driver magnetic_calibration
+        ## with parameters:
+        ## bag_path: the path to the bag file
+        ## topic_raw_imu_name: "/driver/raw_data"
+        os.system("ros2 run icm20948_driver magnetic_calibration --ros-args -p bag_path:=" + self.sfb.file_name + " -p topic_raw_imu_name:=/driver/raw_data")
 
     def add_euler(self):
         dock_euler = Dock("Euler")

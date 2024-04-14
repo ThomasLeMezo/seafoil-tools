@@ -92,6 +92,8 @@ class DockAnalysis(SeafoilDock):
                             np.convolve(data.height[:-1], np.ones(window_size) / window_size, mode='same') * (
                                     data_speed[:-1] > 4.0) + (data_speed[:-1] <= 4.0)*0.28, pen=(255, 0, 255), name="height filter (4s)",
                             stepMode=True)
+            #pg_profile.plot(data_gnss.time, data_gnss.altitude[:-1], pen=(255, 0, 0), name="height gnss", stepMode=True)
+
             pg_profile.setLabel('left', "status")
             pg_profile.showGrid(x=True, y=True)
             # dock.addWidget(pg_profile)
@@ -105,6 +107,8 @@ class DockAnalysis(SeafoilDock):
             pg_speed.setXLink(pg_profile)
 
             return pg_profile, pg_speed
+        else:
+            return None, None
 
     def add_height_velocity(self):
         dock_height_velocity = Dock("Height velocity")
