@@ -26,6 +26,7 @@ class DockData(SeafoilDock):
         self.add_magnetic_3Dplot()
         self.add_ahrs_error_acc()
         self.add_ahrs_error_mag()
+        self.add_battery()
 
         print("DockData initialized")
 
@@ -105,6 +106,33 @@ class DockData(SeafoilDock):
             pg_profile.plot(np.arange(128), data.profile[i, :-1], pen=(255, 0, 0), name="signal", stepMode=True)
             pg_profile.setLabel('left', "status")
             dock_profile_one.addWidget(pg_profile)
+
+    def add_battery(self):
+        dock_battery = Dock("Battery")
+        self.addDock(dock_battery, position='below')
+        data = self.sfb.battery
+
+        if not data.is_empty():
+            pg_voltage = pg.PlotWidget()
+            self.set_plot_options(pg_voltage)
+            pg_voltage.plot(data.time, data.voltage, pen=(255, 0, 0), name="voltage")
+            pg_voltage.setLabel('left', "voltage")
+            dock_battery.addWidget(pg_voltage)
+
+            pg_state_of_charge = pg.PlotWidget()
+            self.set_plot_options(pg_state_of_charge)
+            pg_state_of_charge.plot(data.time, data.state_of_charge, pen=(0, 255, 0), name="state_of_charge")
+            pg_state_of_charge.setLabel('left', "state_of_charge")
+            dock_battery.addWidget(pg_state_of_charge)
+            pg_state_of_charge.setXLink(pg_voltage)
+
+            pg_average_current = pg.PlotWidget()
+            self.set_plot_options(pg_average_current)
+            pg_average_current.plot(data.time, data.average_current, pen=(0, 0, 255), name="average_current")
+            pg_average_current.setLabel('left', "average_current")
+            dock_battery.addWidget(pg_average_current)
+            pg_average_current.setXLink(pg_voltage)
+
 
     def add_imu(self):
         dock_imu = Dock("IMU RAW")
@@ -392,10 +420,10 @@ class DockData(SeafoilDock):
             axisitem.setSize(100., 100., 100.)
             w.addItem(axisitem)
 
-            pi = gl.GLScatterPlotItem(pos=np.vstack((data.mag_x, data.mag_y, data.mag_z)).T, color=(1, 0, 0, 1), size=1)
+            pi = gl.GLScatterPlotItem(pos=np.vstack((data.mag_x, data.mag_y, data.mag_z)).T, color=(0, 1, 0, 1), size=1)
             pi.setGLOptions('opaque')
             w.addItem(pi)
-            pi2 = gl.GLScatterPlotItem(pos=np.vstack((data_raw.mag_x, data_raw.mag_y, data_raw.mag_z)).T, color=(0, 1, 0, 1), size=1)
+            pi2 = gl.GLScatterPlotItem(pos=np.vstack((data_raw.mag_x, data_raw.mag_y, data_raw.mag_z)).T, color=(1, 0, 0, 1), size=1)
             pi2.setGLOptions('opaque')
             w.addItem(pi2)
 

@@ -9,6 +9,7 @@ from msg.seafoil_raw_data import SeafoilRawData
 from msg.seafoil_r_p_y import SeafoilRPY
 from msg.seafoil_debug_fusion import SeafoilDebugFusion
 from msg.seafoil_distance import SeafoilDistance
+from msg.seafoil_battery import SeafoilBattery
 
 import datetime
 import numpy as np
@@ -26,6 +27,7 @@ class SeafoilBag():
 		self.rpy = SeafoilRPY(bag_path, "/driver/rpy", offset_date)
 		self.rpy.yaw = (self.rpy.yaw + 180) % 360
 		self.debug_fusion = SeafoilDebugFusion(bag_path, "/driver/debug_fusion", offset_date)
+		self.battery = SeafoilBattery(bag_path, "/driver/battery", offset_date)
 
 		# Observer
 		self.height = SeafoilHeight(bag_path, "/observer/height", offset_date)

@@ -94,7 +94,7 @@ class DockAnalysis(SeafoilDock):
                             stepMode=True)
             #pg_profile.plot(data_gnss.time, data_gnss.altitude[:-1], pen=(255, 0, 0), name="height gnss", stepMode=True)
 
-            pg_profile.setLabel('left', "status")
+            pg_profile.setLabel('left', "height (m)")
             pg_profile.showGrid(x=True, y=True)
             # dock.addWidget(pg_profile)
 
@@ -289,8 +289,20 @@ class DockAnalysis(SeafoilDock):
         if filepath[0] == '':
             return
 
+        # Apply an opening to data_gnss.mode[i] by enlarging of 25 sample when mode is less than 3
+        kernel_size_after = 25*10 # 10s after
+        kernel_size_before = 25*2 # 2s before
+        mode = data_gnss.mode
+        mode_filtered = mode.copy()
+
+        for i, mode_val in enumerate(mode):
+            if mode_val < 3:
+                start_index = max(0, i - kernel_size_before)
+                end_index = min(len(mode), i + kernel_size_after + 1)
+                mode_filtered[start_index:end_index] = 0
+
         for i in range(len(data_gnss.latitude)):
-            if data_gnss.mode[i] >= 2: # Fix mode
+            if mode_filtered[i] >= 3: # Fix mode
                 if not is_fix_mode:
                     gpx_segments.append(gpxpy.gpx.GPXTrackSegment())
                     is_fix_mode = True

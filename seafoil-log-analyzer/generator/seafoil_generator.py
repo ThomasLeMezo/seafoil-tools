@@ -11,5 +11,7 @@ from class_generator import generate_interface_bag_file
 # generate_interface_bag_file("icm20948_driver", "RPY")
 #
 # generate_interface_bag_file("rcl_interfaces", "Log")
-generate_interface_bag_file("seafoil_distance_filter", "Distance")
+# generate_interface_bag_file("seafoil_distance_filter", "Distance")
+
+generate_interface_bag_file("battery_bq27441_driver", "Battery")
 
