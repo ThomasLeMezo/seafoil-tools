@@ -33,9 +33,10 @@ def compute_speed_for_distance(data_distance, distance):
                             speed_distance[d1_idx] = (d1 - d0) / dt
                         else:
                             speed_distance[d1_idx] = 0
-                        d0_idx_last = max(0, d0_idx-1)
+                        d0_idx_last = max(0, d0_idx - 1)
                         break
     return speed_distance
+
 
 def get_starting_index_for_distance_from_last_point(data_distance, distance, ending_idx):
     starting_idx = 0
@@ -45,6 +46,7 @@ def get_starting_index_for_distance_from_last_point(data_distance, distance, end
         if d1 - d0 >= distance:
             return d0_idx
     return starting_idx
+
 
 class DockAnalysis(SeafoilDock):
     def __init__(self, seafoil_bag, tabWidget, windows):
@@ -64,9 +66,9 @@ class DockAnalysis(SeafoilDock):
         self.add_height_velocity()
         self.add_heading()
         self.add_speed_for_distance()
+        self.add_polar_heading()
 
         print("DockAnalysis initialized")
-
 
     def plot_height_velocity(self):
         data_debug = copy.copy(self.sfb.height_debug)
@@ -85,12 +87,14 @@ class DockAnalysis(SeafoilDock):
             window_size = 50
             pg_profile.plot(data.time,
                             np.convolve(data.height[:-1], np.ones(window_size) / window_size, mode='same') * (
-                                    data_speed[:-1] > 4.0) + (data_speed[:-1] <= 4.0)*0.28, pen=(0, 0, 255), name="height filter (2s)",
+                                    data_speed[:-1] > 4.0) + (data_speed[:-1] <= 4.0) * 0.28, pen=(0, 0, 255),
+                            name="height filter (2s)",
                             stepMode=True)
             window_size = 100
             pg_profile.plot(data.time,
                             np.convolve(data.height[:-1], np.ones(window_size) / window_size, mode='same') * (
-                                    data_speed[:-1] > 4.0) + (data_speed[:-1] <= 4.0)*0.28, pen=(255, 0, 255), name="height filter (4s)",
+                                    data_speed[:-1] > 4.0) + (data_speed[:-1] <= 4.0) * 0.28, pen=(255, 0, 255),
+                            name="height filter (4s)",
                             stepMode=True)
             #pg_profile.plot(data_gnss.time, data_gnss.altitude[:-1], pen=(255, 0, 0), name="height gnss", stepMode=True)
 
@@ -173,8 +177,8 @@ class DockAnalysis(SeafoilDock):
 
         if not data.is_empty():
 
-            speed_max = np.max(data_gnss.speed*(data_gnss.mode>=3) * 1.94384)
-            speed_max_idx = np.argmax(data_gnss.speed*(data_gnss.mode>=3) * 1.94384)
+            speed_max = np.max(data_gnss.speed * (data_gnss.mode >= 3) * 1.94384)
+            speed_max_idx = np.argmax(data_gnss.speed * (data_gnss.mode >= 3) * 1.94384)
 
             pg_speed = pg.PlotWidget()
             self.set_plot_options(pg_speed)
@@ -186,36 +190,39 @@ class DockAnalysis(SeafoilDock):
 
             pg_speed_distance = pg.PlotWidget()
             self.set_plot_options(pg_speed_distance)
-            if(np.size(self.speed_v500)>5):
+            if (np.size(self.speed_v500) > 5):
                 pg_speed_distance.plot(data_distance.time, self.speed_v500[:-1] * 1.94384, pen=(0, 255, 0),
-                                   name="speed 500m", stepMode=True)
-            if(np.size(self.speed_v1852)>5):
+                                       name="speed 500m", stepMode=True)
+            if (np.size(self.speed_v1852) > 5):
                 pg_speed_distance.plot(data_distance.time, self.speed_v1852[:-1] * 1.94384, pen=(0, 0, 255),
-                                   name="speed 1852m", stepMode=True)
+                                       name="speed 1852m", stepMode=True)
 
             # Get idx and value of max speed for v500
-            if(np.size(self.speed_v500)>5):
+            if (np.size(self.speed_v500) > 5):
                 idx_max_speed_v500 = np.argmax(self.speed_v500)
                 max_speed_v500 = self.speed_v500[idx_max_speed_v500]
                 idx_start_v500 = get_starting_index_for_distance_from_last_point(data_distance, 500, idx_max_speed_v500)
                 pg_speed_distance.plot([data_distance.time[idx_max_speed_v500]], [max_speed_v500 * 1.94384], pen=None,
                                        symbol='o', symbolBrush=(255, 0, 0), symbolPen='w', symbolSize=10,
                                        name="end speed 500m")
-                pg_speed_distance.plot([data_distance.time[idx_start_v500]], [self.speed_v500[idx_start_v500] * 1.94384], pen=None,
-                                          symbol='o', symbolBrush=(0, 255, 0), symbolPen='w', symbolSize=10,
-                                          name="start speed 500m")
+                pg_speed_distance.plot([data_distance.time[idx_start_v500]],
+                                       [self.speed_v500[idx_start_v500] * 1.94384], pen=None,
+                                       symbol='o', symbolBrush=(0, 255, 0), symbolPen='w', symbolSize=10,
+                                       name="start speed 500m")
 
             # Get idx and value of max speed for v1852
-            if(np.size(self.speed_v1852)>5):
+            if (np.size(self.speed_v1852) > 5):
                 idx_max_speed_v1852 = np.argmax(self.speed_v1852)
                 max_speed_v1852 = self.speed_v1852[idx_max_speed_v1852]
-                idx_start_v1852 = get_starting_index_for_distance_from_last_point(data_distance, 1852, idx_max_speed_v1852)
+                idx_start_v1852 = get_starting_index_for_distance_from_last_point(data_distance, 1852,
+                                                                                  idx_max_speed_v1852)
                 pg_speed_distance.plot([data_distance.time[idx_max_speed_v1852]], [max_speed_v1852 * 1.94384], pen=None,
                                        symbol='o', symbolBrush=(255, 0, 0), symbolPen='w', symbolSize=10,
                                        name="end speed 1852m")
-                pg_speed_distance.plot([data_distance.time[idx_start_v1852]], [self.speed_v1852[idx_start_v1852] * 1.94384], pen=None,
-                                          symbol='o', symbolBrush=(0, 255, 0), symbolPen='w', symbolSize=10,
-                                          name="start speed 1852m")
+                pg_speed_distance.plot([data_distance.time[idx_start_v1852]],
+                                       [self.speed_v1852[idx_start_v1852] * 1.94384], pen=None,
+                                       symbol='o', symbolBrush=(0, 255, 0), symbolPen='w', symbolSize=10,
+                                       name="start speed 1852m")
 
             pg_speed_distance.setLabel('left', "speed of distance (kt)")
             dock_height_velocity.addWidget(pg_speed_distance)
@@ -224,19 +231,20 @@ class DockAnalysis(SeafoilDock):
             pg_speed.setXLink(self.pg_speed)
 
             self.add_label_time([pg_speed, pg_speed_distance], data_gnss.starting_time, dock_height_velocity)
-            if(np.size(self.speed_v1852)>5):
-                self.add_label_with_text(dock_height_velocity, "Max speed for 500m: " + str(round(max_speed_v500 * 1.94384, 2)) + " kt")
-            if(np.size(self.speed_v1852)>5):
-                self.add_label_with_text(dock_height_velocity, "Max speed for 1852m: " + str(round(max_speed_v1852 * 1.94384, 2)) + " kt")
+            if (np.size(self.speed_v1852) > 5):
+                self.add_label_with_text(dock_height_velocity,
+                                         "Max speed for 500m: " + str(round(max_speed_v500 * 1.94384, 2)) + " kt")
+            if (np.size(self.speed_v1852) > 5):
+                self.add_label_with_text(dock_height_velocity,
+                                         "Max speed for 1852m: " + str(round(max_speed_v1852 * 1.94384, 2)) + " kt")
             self.add_label_with_text(dock_height_velocity, "Max speed: " + str(round(speed_max, 2)) + " kt")
 
             from pyqtgraph.Qt import QtGui, QtCore
             saveBtn = QtGui.QPushButton('Export GPX (for BaseDeVitesse)')
             saveBtn.clicked.connect(self.save_gpx)
-            dock_height_velocity.addWidget(saveBtn, row=dock_height_velocity.currentRow+1, col=0)
+            dock_height_velocity.addWidget(saveBtn, row=dock_height_velocity.currentRow + 1, col=0)
 
     def save_gpx(self):
-
 
         data_gnss = self.sfb.gps_fix
         data_height = self.sfb.height
@@ -275,11 +283,11 @@ class DockAnalysis(SeafoilDock):
 
         # smooth data
         window_size = 100
-        height = np.convolve(height, np.ones(window_size)/window_size, mode='same')
-        roll = np.convolve(roll, np.ones(window_size)/window_size, mode='same')
+        height = np.convolve(height, np.ones(window_size) / window_size, mode='same')
+        roll = np.convolve(roll, np.ones(window_size) / window_size, mode='same')
 
         window_size = 100
-        height = np.convolve(height, np.ones(window_size)/window_size, mode='same')
+        height = np.convolve(height, np.ones(window_size) / window_size, mode='same')
 
         print(self.sfb.seafoil_id)
         filepath = QFileDialog.getSaveFileName(self.win, "Save file",
@@ -290,8 +298,8 @@ class DockAnalysis(SeafoilDock):
             return
 
         # Apply an opening to data_gnss.mode[i] by enlarging of 25 sample when mode is less than 3
-        kernel_size_after = 25*10 # 10s after
-        kernel_size_before = 25*2 # 2s before
+        kernel_size_after = 25 * 10  # 10s after
+        kernel_size_before = 25 * 2  # 2s before
         mode = data_gnss.mode
         mode_filtered = mode.copy()
 
@@ -302,7 +310,7 @@ class DockAnalysis(SeafoilDock):
                 mode_filtered[start_index:end_index] = 0
 
         for i in range(len(data_gnss.latitude)):
-            if mode_filtered[i] >= 3: # Fix mode
+            if mode_filtered[i] >= 3:  # Fix mode
                 if not is_fix_mode:
                     gpx_segments.append(gpxpy.gpx.GPXTrackSegment())
                     is_fix_mode = True
@@ -330,3 +338,93 @@ class DockAnalysis(SeafoilDock):
         file.write(gpx.to_xml(version='1.1'))
         file.close()
         print("start date", data_gnss.time_gnss[0])
+
+    def add_polar_heading(self):
+        dock_polar_heading = Dock("Polar heading")
+        self.addDock(dock_polar_heading, position='below')
+
+        data_gnss = copy.copy(self.sfb.gps_fix)
+        data_height = copy.copy(self.sfb.height)
+
+        # filter by 2s data_gnss
+        window_size = 100
+        data_gnss.speed = np.convolve(data_gnss.speed, np.ones(window_size) / window_size, mode='same')
+        data_gnss.track = np.convolve(data_gnss.track, np.ones(window_size) / window_size, mode='same')
+
+        # filter by 2s data_height
+        window_size = 100
+        data_height.height = np.convolve(data_height.height, np.ones(window_size) / window_size, mode='same')
+
+        # interpolate data_height to data_gnss.time_gnss
+        f_height = interpolate.interp1d(data_height.time, data_height.height, bounds_error=False, kind="zero")
+        height = f_height(data_gnss.time)
+
+        min_sample = 10
+
+        # For each heading, compute the mean speed, max speed
+        resolution = 1
+        min_velocity_kt = 12.0
+        ms_to_kt = 1.94384
+        min_velocity = min_velocity_kt / ms_to_kt
+        heading = np.arange(0, 360, resolution)
+        speed_mean = np.zeros(len(heading))  # Speed mean function of the heading
+        speed_max = np.zeros(len(heading))  # Speed max function of the heading
+        speed_min = np.zeros(len(heading))  # Speed min function of the heading
+        for i, h in enumerate(heading):
+            idx = np.where(
+                (data_gnss.track >= h) & (data_gnss.track < h + resolution) & (data_gnss.speed > min_velocity))
+            if len(idx[0]) > min_sample:
+                speed_mean[i] = np.mean(data_gnss.speed[idx])
+                speed_max[i] = np.max(data_gnss.speed[idx])
+                speed_min[i] = np.min(data_gnss.speed[idx])
+
+        # Compute the mean and max height function of heading
+        height_mean = np.zeros(len(heading))
+        height_max = np.zeros(len(heading))
+        height_min = np.zeros(len(heading))
+        for i, h in enumerate(heading):
+            idx = np.where(
+                (data_gnss.track >= h) & (data_gnss.track < h + resolution) & (data_gnss.speed > min_velocity))
+            if len(idx[0]) > min_sample:
+                height_mean[i] = np.mean(height[idx])
+                height_max[i] = np.max(height[idx])
+                height_min[i] = np.min(height[idx])
+
+        # Compute the mean and max height function of speed
+        resolution = 0.1
+        speed_vect = np.arange(min_velocity, 23, resolution) # 23 m/s in kt = 44.6 kt
+        height_mean_speed = np.zeros(len(speed_vect))
+        height_max_speed = np.zeros(len(speed_vect))
+        height_min_speed = np.zeros(len(speed_vect))
+        for i, s in enumerate(speed_vect):
+            idx = np.where((data_gnss.speed >= s) & (data_gnss.speed < s + resolution))
+            if len(idx[0]) > min_sample:
+                height_mean_speed[i] = np.mean(height[idx])
+                height_max_speed[i] = np.max(height[idx])
+                height_min_speed[i] = np.min(height[idx])
+
+        # plot
+        pg_polar_heading = pg.PlotWidget()
+        self.set_plot_options(pg_polar_heading)
+        pg_polar_heading.plot(heading, speed_mean[:-1]*ms_to_kt, pen=(255, 0, 0), name="speed mean", stepMode=True)
+        pg_polar_heading.plot(heading, speed_max[:-1]*ms_to_kt, pen=(0, 255, 0), name="speed max", stepMode=True)
+        pg_polar_heading.plot(heading, speed_min[:-1]*ms_to_kt, pen=(0, 0, 255), name="speed min", stepMode=True)
+        pg_polar_heading.setLabel('left', "speed (kt)")
+        dock_polar_heading.addWidget(pg_polar_heading)
+
+        pg_polar_heading_height = pg.PlotWidget()
+        self.set_plot_options(pg_polar_heading_height)
+        pg_polar_heading_height.plot(heading, height_mean[:-1], pen=(255, 0, 0), name="height mean", stepMode=True)
+        pg_polar_heading_height.plot(heading, height_max[:-1], pen=(0, 255, 0), name="height max", stepMode=True)
+        pg_polar_heading_height.plot(heading, height_min[:-1], pen=(0, 0, 255), name="height min", stepMode=True)
+        pg_polar_heading_height.setLabel('left', "height (m)")
+        dock_polar_heading.addWidget(pg_polar_heading_height)
+        pg_polar_heading_height.setXLink(pg_polar_heading)
+
+        pg_polar_heading_speed = pg.PlotWidget()
+        self.set_plot_options(pg_polar_heading_speed)
+        pg_polar_heading_speed.plot(speed_vect * ms_to_kt, height_mean_speed[:-1], pen=(255, 0, 0), name="height mean", stepMode=True)
+        pg_polar_heading_speed.plot(speed_vect * ms_to_kt, height_max_speed[:-1], pen=(0, 255, 0), name="height max", stepMode=True)
+        pg_polar_heading_speed.plot(speed_vect * ms_to_kt, height_min_speed[:-1], pen=(0, 0, 255), name="height min", stepMode=True)
+        pg_polar_heading_speed.setLabel('left', "height (m)")
+        dock_polar_heading.addWidget(pg_polar_heading_speed)
