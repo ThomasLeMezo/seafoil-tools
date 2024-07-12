@@ -27,6 +27,7 @@ class DockData(SeafoilDock):
         self.add_ahrs_error_acc()
         self.add_ahrs_error_mag()
         self.add_battery()
+        self.add_wind()
 
         print("DockData initialized")
 
@@ -428,3 +429,22 @@ class DockData(SeafoilDock):
             w.addItem(pi2)
 
             dock_imu.addWidget(w)
+
+    def add_wind(self):
+        dock_wind = Dock("Wind")
+        self.addDock(dock_wind, position='below')
+        data = self.sfb.wind
+
+        if not data.is_empty():
+            pg_wind = pg.PlotWidget()
+            self.set_plot_options(pg_wind)
+            pg_wind.plot(data.time, data.velocity * 1.94384, pen=(255, 0, 0), name="velocity (in kt)")
+            pg_wind.setLabel('left', "velocity")
+            dock_wind.addWidget(pg_wind)
+
+            pg_wind_dir = pg.PlotWidget()
+            self.set_plot_options(pg_wind_dir)
+            pg_wind_dir.plot(data.time, data.direction, pen=(0, 255, 0), name="direction")
+            pg_wind_dir.setLabel('left', "direction")
+            dock_wind.addWidget(pg_wind_dir)
+            pg_wind_dir.setXLink(pg_wind)

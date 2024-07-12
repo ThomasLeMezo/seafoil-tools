@@ -53,6 +53,8 @@ class DockAnalysis(SeafoilDock):
         SeafoilDock.__init__(self, seafoil_bag)
         tabWidget.addTab(self, "Analysis")
 
+        self.ms_to_kt = 1.94384
+
         self.win = windows
 
         self.list_pg_yaw = []
@@ -67,6 +69,8 @@ class DockAnalysis(SeafoilDock):
         self.add_heading()
         self.add_speed_for_distance()
         self.add_polar_heading()
+
+        # self.add_jibe_speed()
 
         print("DockAnalysis initialized")
 
@@ -125,7 +129,7 @@ class DockAnalysis(SeafoilDock):
         data_gnss = copy.copy(self.sfb.gps_fix)
         data_imu = copy.copy(self.sfb.rpy)
 
-        if not data.is_empty():
+        if not data.is_empty() and not data_imu.is_empty():
             pg_imu = pg.PlotWidget()
             window_size = 100
             self.set_plot_options(pg_imu)
@@ -364,8 +368,8 @@ class DockAnalysis(SeafoilDock):
         # For each heading, compute the mean speed, max speed
         resolution = 1
         min_velocity_kt = 12.0
-        ms_to_kt = 1.94384
-        min_velocity = min_velocity_kt / ms_to_kt
+
+        min_velocity = min_velocity_kt / self.ms_to_kt
         heading = np.arange(0, 360, resolution)
         speed_mean = np.zeros(len(heading))  # Speed mean function of the heading
         speed_max = np.zeros(len(heading))  # Speed max function of the heading
@@ -403,12 +407,15 @@ class DockAnalysis(SeafoilDock):
                 height_max_speed[i] = np.max(height[idx])
                 height_min_speed[i] = np.min(height[idx])
 
+
+        ## ToDo : implement wind direction to replot the polar
+
         # plot
         pg_polar_heading = pg.PlotWidget()
         self.set_plot_options(pg_polar_heading)
-        pg_polar_heading.plot(heading, speed_mean[:-1]*ms_to_kt, pen=(255, 0, 0), name="speed mean", stepMode=True)
-        pg_polar_heading.plot(heading, speed_max[:-1]*ms_to_kt, pen=(0, 255, 0), name="speed max", stepMode=True)
-        pg_polar_heading.plot(heading, speed_min[:-1]*ms_to_kt, pen=(0, 0, 255), name="speed min", stepMode=True)
+        pg_polar_heading.plot(heading, speed_mean[:-1]*self.ms_to_kt, pen=(255, 0, 0), name="speed mean", stepMode=True)
+        pg_polar_heading.plot(heading, speed_max[:-1]*self.ms_to_kt, pen=(0, 255, 0), name="speed max", stepMode=True)
+        pg_polar_heading.plot(heading, speed_min[:-1]*self.ms_to_kt, pen=(0, 0, 255), name="speed min", stepMode=True)
         pg_polar_heading.setLabel('left', "speed (kt)")
         dock_polar_heading.addWidget(pg_polar_heading)
 
@@ -423,8 +430,70 @@ class DockAnalysis(SeafoilDock):
 
         pg_polar_heading_speed = pg.PlotWidget()
         self.set_plot_options(pg_polar_heading_speed)
-        pg_polar_heading_speed.plot(speed_vect * ms_to_kt, height_mean_speed[:-1], pen=(255, 0, 0), name="height mean", stepMode=True)
-        pg_polar_heading_speed.plot(speed_vect * ms_to_kt, height_max_speed[:-1], pen=(0, 255, 0), name="height max", stepMode=True)
-        pg_polar_heading_speed.plot(speed_vect * ms_to_kt, height_min_speed[:-1], pen=(0, 0, 255), name="height min", stepMode=True)
+        pg_polar_heading_speed.plot(speed_vect * self.ms_to_kt, height_mean_speed[:-1], pen=(255, 0, 0), name="height mean", stepMode=True)
+        pg_polar_heading_speed.plot(speed_vect * self.ms_to_kt, height_max_speed[:-1], pen=(0, 255, 0), name="height max", stepMode=True)
+        pg_polar_heading_speed.plot(speed_vect * self.ms_to_kt, height_min_speed[:-1], pen=(0, 0, 255), name="height min", stepMode=True)
         pg_polar_heading_speed.setLabel('left', "height (m)")
         dock_polar_heading.addWidget(pg_polar_heading_speed)
+
+    def add_jibe_speed(self):
+        dock_jibe = Dock("Jibe speed")
+        self.addDock(dock_jibe, position='below')
+
+        # For each value of heading find the index before such that the absolute variation of heading is greater than 180
+        # And the difference of index is inferior to 20*25 (20s).
+        max_window_size = 20 * 25
+        jibe_angle = 150
+
+        data_gnss = copy.copy(self.sfb.gps_fix)
+
+        # Compute the heading variation
+        heading_variation = data_gnss.track[:-1] - data_gnss.track[1:]
+        # remove the value greater than 180
+        heading_variation = np.where(heading_variation > 180, heading_variation - 360, heading_variation)
+        heading_variation = np.where(heading_variation < -180, heading_variation + 360, heading_variation)
+
+        heading_accumulated = np.cumsum(heading_variation)
+
+        # For each accumulated heading find the index before such that the absolute variation of heading is greater than 180
+        # And the difference of index is inferior to 20*25 (20s).
+        jibe = np.zeros(len(heading_accumulated))
+
+        for i in range(len(heading_accumulated)):
+            if i > max_window_size:
+                for j in range(10*25, max_window_size+1):
+                    if abs(heading_accumulated[i]-heading_accumulated[i-j]) >= 150:
+                        # Compute the mean speed between i and j
+                        jibe[i] = np.mean(data_gnss.speed[j:i])
+                        break
+
+        # plot (speed, heading, jibe)
+        pg_speed = pg.PlotWidget()
+        self.set_plot_options(pg_speed)
+        pg_speed.plot(data_gnss.time, (data_gnss.speed*self.ms_to_kt)[:-1], pen=(255, 0, 0), name="speed", stepMode=True)
+        pg_speed.setLabel('left', "speed (m/s)")
+        dock_jibe.addWidget(pg_speed)
+
+        pg_heading = pg.PlotWidget()
+        self.set_plot_options(pg_heading)
+        pg_heading.plot(data_gnss.time, data_gnss.track[:-1], pen=(255, 0, 0), name="heading", stepMode=True)
+        pg_heading.setLabel('left', "heading (°)")
+        dock_jibe.addWidget(pg_heading)
+        pg_heading.setXLink(pg_speed)
+
+        pg_jibe = pg.PlotWidget()
+        self.set_plot_options(pg_jibe)
+        pg_jibe.plot(data_gnss.time, jibe*self.ms_to_kt, pen=(255, 0, 0), name="jibe speed", stepMode=True)
+        pg_jibe.setLabel('left', "speed (kt)")
+        dock_jibe.addWidget(pg_jibe)
+        pg_jibe.setXLink(pg_speed)
+
+        pg_heading_acc = pg.PlotWidget()
+        self.set_plot_options(pg_heading_acc)
+        pg_heading_acc.plot(data_gnss.time, heading_accumulated, pen=(255, 0, 0), name="heading variation", stepMode=True)
+        pg_heading_acc.setLabel('left', "heading variation (°)")
+        dock_jibe.addWidget(pg_heading_acc)
+        pg_heading_acc.setXLink(pg_speed)
+
+
+

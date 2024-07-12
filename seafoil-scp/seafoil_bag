@@ -2,6 +2,7 @@
 
 DIRECTORY=`pwd`
 USER=pi
+#IP=192.168.0.3
 IP=192.168.1.30
 
 # Ask for bags in ~/log and sort by time
