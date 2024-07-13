@@ -14,7 +14,7 @@ class SeafoilWind(SeafoilData):
         self.start_date = start_date
         
         self.velocity = np.empty([self.nb_elements], dtype='float')
-        self.direction = np.empty([self.nb_elements], dtype='uint8')
+        self.direction = np.empty([self.nb_elements], dtype='uint16')
         self.battery = np.empty([self.nb_elements], dtype='uint8')
         self.temperature = np.empty([self.nb_elements], dtype='uint8')
         self.roll = np.empty([self.nb_elements], dtype='int8')

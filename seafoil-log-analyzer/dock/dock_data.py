@@ -28,6 +28,7 @@ class DockData(SeafoilDock):
         self.add_ahrs_error_mag()
         self.add_battery()
         self.add_wind()
+        self.add_wind_info()
 
         print("DockData initialized")
 
@@ -448,3 +449,43 @@ class DockData(SeafoilDock):
             pg_wind_dir.setLabel('left', "direction")
             dock_wind.addWidget(pg_wind_dir)
             pg_wind_dir.setXLink(pg_wind)
+
+    def add_wind_info(self):
+        dock_wind_info = Dock("Wind info")
+        self.addDock(dock_wind_info, position='below')
+        data = self.sfb.wind
+
+        if not data.is_empty():
+            pg_wind_info_battery = pg.PlotWidget()
+            self.set_plot_options(pg_wind_info_battery)
+            pg_wind_info_battery.plot(data.time, data.battery, pen=(255, 0, 0), name="battery")
+            pg_wind_info_battery.setLabel('left', "battery")
+            dock_wind_info.addWidget(pg_wind_info_battery)
+
+            pg_wind_info_temperature = pg.PlotWidget()
+            self.set_plot_options(pg_wind_info_temperature)
+            pg_wind_info_temperature.plot(data.time, data.temperature, pen=(0, 255, 0), name="temperature")
+            pg_wind_info_temperature.setLabel('left', "temperature")
+            dock_wind_info.addWidget(pg_wind_info_temperature)
+            pg_wind_info_temperature.setXLink(pg_wind_info_battery)
+
+            pg_wind_info_roll = pg.PlotWidget()
+            self.set_plot_options(pg_wind_info_roll)
+            pg_wind_info_roll.plot(data.time, data.roll, pen=(0, 0, 255), name="roll")
+            pg_wind_info_roll.setLabel('left', "roll")
+            dock_wind_info.addWidget(pg_wind_info_roll)
+            pg_wind_info_roll.setXLink(pg_wind_info_battery)
+
+            pg_wind_info_pitch = pg.PlotWidget()
+            self.set_plot_options(pg_wind_info_pitch)
+            pg_wind_info_pitch.plot(data.time, data.pitch, pen=(255, 0, 0), name="pitch")
+            pg_wind_info_pitch.setLabel('left', "pitch")
+            dock_wind_info.addWidget(pg_wind_info_pitch)
+            pg_wind_info_pitch.setXLink(pg_wind_info_battery)
+
+            pg_wind_info_heading = pg.PlotWidget()
+            self.set_plot_options(pg_wind_info_heading)
+            pg_wind_info_heading.plot(data.time, data.heading, pen=(0, 255, 0), name="heading")
+            pg_wind_info_heading.setLabel('left', "heading")
+            dock_wind_info.addWidget(pg_wind_info_heading)
+            pg_wind_info_heading.setXLink(pg_wind_info_battery)
