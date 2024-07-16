@@ -21,6 +21,7 @@ class DockGnss(SeafoilDock):
         self.add_position()
         self.add_fix()
         self.add_time()
+        self.add_gnss_debug()
 
         print("DockGnss initialized")
 
@@ -89,3 +90,24 @@ class DockGnss(SeafoilDock):
                          pen=(255, 0, 0), name="time offset", stepMode=True)
             pg_time.setLabel('left', "time error with GNSS")
             dock_time.addWidget(pg_time)
+
+    def add_gnss_debug(self):
+        dock_gnss_debug = Dock("debug")
+        self.addDock(dock_gnss_debug, position='below')
+        data = self.sfb.gps_fix
+
+        if (not data.is_empty()):
+            pg_mode = pg.PlotWidget()
+            self.set_plot_options(pg_mode)
+            pg_mode.plot(data.time, data.mode[:-1], pen=(255, 0, 0), name="mode", stepMode=True)
+            pg_mode.plot(data.time, data.status[:-1], pen=(0, 255, 0), name="status", stepMode=True)
+            pg_mode.setLabel('left', "mode & status")
+            dock_gnss_debug.addWidget(pg_mode)
+
+            pg_gnss_debug = pg.PlotWidget()
+            pg_gnss_debug.plot(data.time, data.satellites_visible[:-1], pen=(255, 0, 0), name="satellites_visible",
+                               stepMode=True)
+            pg_gnss_debug.setLabel('left', "satellites visible")
+            dock_gnss_debug.addWidget(pg_gnss_debug)
+            pg_gnss_debug.setXLink(pg_mode)
+
