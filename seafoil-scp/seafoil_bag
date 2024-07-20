@@ -2,11 +2,29 @@
 
 DIRECTORY=`pwd`
 USER=pi
-#IP=192.168.0.3
-IP=192.168.1.30
 
+wifi_interface=$(nmcli device status | grep wifi | grep -v disconnected | awk '{print $1}')
+ip_address=$(nmcli -g IP4.ADDRESS device show $wifi_interface | grep -oP '192\.168\.\d+\.\d+' | head -n 1)
+third_octet=$(echo $ip_address | cut -d '.' -f 3)
+IP=192.168.0.3
+
+if [ "$third_octet" -eq "0" ]; then
+    IP=192.168.0.3
+elif [ "$third_octet" -eq "1" ]; then
+    IP=192.168.1.30
+else
+    echo "The IP address $ip_address does not belong to the subnetwork 192.168.0.x or 192.168.1.x"
+fi
+
+echo "Seabot IP address: $IP"
 # Ask for bags in ~/log and sort by time
-FILES=($(ssh $USER@$IP ls -t /home/$USER/log))
+#FILES=($(ssh $USER@$IP ls -t /home/$USER/log))
+
+FILES=($(ssh -o ConnectTimeout=5 $USER@$IP ls -t /home/$USER/log 2>/dev/null))
+if [ $? -ne 0 ]; then
+    echo "Failed to connect to $IP : connection issue."
+    exit 1
+fi
 
 # Display bags and ask user to choose one
 COUNTER=0

@@ -20,6 +20,7 @@ class SeafoilWind(SeafoilData):
         self.roll = np.empty([self.nb_elements], dtype='int8')
         self.pitch = np.empty([self.nb_elements], dtype='int8')
         self.heading = np.empty([self.nb_elements], dtype='uint16')
+        self.awa = np.empty([self.nb_elements], dtype='int16')
 
         self.load_message()
         self.resize_data_array()
@@ -36,6 +37,7 @@ class SeafoilWind(SeafoilData):
         self.roll[self.k] = msg.roll
         self.pitch[self.k] = msg.pitch
         self.heading[self.k] = msg.heading
+        self.awa[self.k] = msg.awa
         return
 
     def resize_data_array(self):
@@ -47,6 +49,7 @@ class SeafoilWind(SeafoilData):
         self.roll = np.resize(self.roll, self.k)
         self.pitch = np.resize(self.pitch, self.k)
         self.heading = np.resize(self.heading, self.k)
+        self.awa = np.resize(self.awa, self.k)
         return
         
     def save_data(self):
@@ -64,7 +67,8 @@ class SeafoilWind(SeafoilData):
                                 temperature=self.temperature,
                                 roll=self.roll,
                                 pitch=self.pitch,
-                                heading=self.heading,)
+                                heading=self.heading,
+                                awa=self.awa,)
 
     def load_message_from_file(self):
         data = np.load(self.topic_name_dir + "/" + self.topic_name_file, allow_pickle=True)
@@ -76,5 +80,6 @@ class SeafoilWind(SeafoilData):
         self.roll = data['roll']
         self.pitch = data['pitch']
         self.heading = data['heading']
+        self.awa = data['awa']
         self.k = len(self.time)
     
