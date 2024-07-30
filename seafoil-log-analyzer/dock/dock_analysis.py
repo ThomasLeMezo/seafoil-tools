@@ -323,7 +323,7 @@ class DockAnalysis(SeafoilDock):
                                              longitude=data_gnss.longitude[i],
                                              #elevation=height[i],
                                              time=datetime.datetime.fromtimestamp(
-                                                 data_gnss.time_gnss[i]),
+                                                 data_gnss.time_gnss[i], datetime.timezone.utc),
                                              # horizontal_dilution=roll[i],
                                              # vertical_dilution=pitch[i],
                                              speed=data_gnss.speed[i],

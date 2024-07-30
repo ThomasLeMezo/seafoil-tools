@@ -17,4 +17,5 @@ from class_generator import generate_interface_bag_file
 # generate_interface_bag_file("seafoil_voice_text", "Manoeuvre")
 # generate_interface_bag_file("seafoil_voice_text", "DistanceGate")
 
-generate_interface_bag_file("calypso_driver", "Wind")
+# generate_interface_bag_file("calypso_driver", "Wind")
+generate_interface_bag_file("calypso_driver", "WindDebug")

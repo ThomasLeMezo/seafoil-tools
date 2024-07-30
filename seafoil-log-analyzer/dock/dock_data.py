@@ -29,6 +29,7 @@ class DockData(SeafoilDock):
         self.add_battery()
         self.add_wind()
         self.add_wind_info()
+        self.add_wind_debug()
 
         print("DockData initialized")
 
@@ -489,3 +490,27 @@ class DockData(SeafoilDock):
             pg_wind_info_heading.setLabel('left', "heading")
             dock_wind_info.addWidget(pg_wind_info_heading)
             pg_wind_info_heading.setXLink(pg_wind_info_battery)
+
+    def add_wind_debug(self):
+        dock_wind_debug = Dock("Wind debug")
+        self.addDock(dock_wind_debug, position='below')
+        data = self.sfb.wind_debug
+
+        if not data.is_empty():
+            pg_wind_status = pg.PlotWidget()
+            self.set_plot_options(pg_wind_status)
+            pg_wind_status.plot(data.time, data.status, pen=(255, 0, 0), name="status")
+            dock_wind_debug.addWidget(pg_wind_status)
+
+            pg_wind_rate = pg.PlotWidget()
+            self.set_plot_options(pg_wind_rate)
+            pg_wind_rate.plot(data.time, data.rate, pen=(0, 255, 0), name="rate")
+            dock_wind_debug.addWidget(pg_wind_rate)
+            pg_wind_rate.setXLink(pg_wind_status)
+
+            pg_wind_sensors = pg.PlotWidget()
+            self.set_plot_options(pg_wind_sensors)
+            pg_wind_sensors.plot(data.time, data.sensors, pen=(0, 0, 255), name="sensors")
+            dock_wind_debug.addWidget(pg_wind_sensors)
+            pg_wind_sensors.setXLink(pg_wind_status)
+

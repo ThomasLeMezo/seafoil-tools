@@ -2,6 +2,7 @@
 
 import sys
 import pyqtgraph as pg
+from PyQt5 import QtCore
 from pyqtgraph.Qt import QtWidgets
 import pyqtgraph.console
 from pyqtgraph.dockarea import *
@@ -23,6 +24,7 @@ class DockDataObserver(SeafoilDock):
         self.add_distance()
         self.add_manoeuvre()
         self.add_distance_gate()
+        self.add_wind()
 
         print("DockDataObserver initialized")
 
@@ -167,65 +169,130 @@ class DockDataObserver(SeafoilDock):
             dock_distance_gate.addWidget(pg_distance_gate)
             pg_distance_gate.setXLink(pg_speed)
 
+
+    def add_plot_profile(self, dock, data, add_interval=True):
+        pg_profile = pg.PlotWidget()
+        i2 = pg.ImageItem(image=data.profile)
+        pg_profile.addItem(i2, title='')
+
+        # inserted color bar also works with labels on the right.
+        # p2.showAxis('left')
+        # p2.getAxis('left').setStyle( showValues=False )
+        # p2.getAxis('bottom').setLabel('time')
+        # p2.getAxis('left').setLabel('distance')
+
+        bar = pg.ColorBarItem(
+            values=(0, 1),
+            colorMap='CET-L4',
+            label='horizontal color bar',
+            limits=(0, None),
+            rounding=0.01,
+            orientation='h',
+            pen='#8888FF', hoverPen='#EEEEFF', hoverBrush='#EEEEFF80',
+            interactive=False
+        )
+        bar.setImageItem(i2)
+
+        temperatureKelvin = 12.0 + 273.15
+        gamma = 1.4
+        R = 287.0
+        speedOfSound = np.sqrt(gamma * R * temperatureKelvin)
+        idx_to_height = 4.096e-3 * speedOfSound / 128.0
+        height_to_pixel = (np.shape(data.profile)[1])
+        pixel_times = np.arange(np.size(data.height_unfiltered))
+
+        self.set_plot_options(pg_profile)
+        pg_profile.plot(pixel_times, data.height_unfiltered / idx_to_height, pen=pg.mkPen('g', width=5),
+                        name="height_unfiltered")
+        if add_interval:
+            pg_profile.plot(pixel_times, data.height_unfiltered[:-1] / idx_to_height + (data.interval_diam[:-1] / 2.),
+                            pen=(0, 0, 255), name="interval max", stepMode=True)
+            pg_profile.plot(pixel_times, data.height_unfiltered[:-1] / idx_to_height - (data.interval_diam[:-1] / 2.),
+                            pen=(0, 0, 255), name="interval min", stepMode=True)
+        pg_profile.showGrid(x=False, y=True)
+        dock.addWidget(pg_profile)
+
+        return pg_profile
+
     def add_profile(self):
         dock_profile = Dock("Profile")
         self.addDock(dock_profile, position='below')
         data = copy.copy(self.sfb.height_debug)
 
+        temperatureKelvin = 12.0 + 273.15
+        gamma = 1.4
+        R = 287.0
+        speedOfSound = np.sqrt(gamma * R * temperatureKelvin)
+        idx_to_height = 4.096e-3 * speedOfSound / 128.0
+
+        t_start = 20
+
         if not data.is_empty():
             # pg_profile = pg.GraphicsLayoutWidget()
-            pg_profile = pg.PlotWidget()
-
-            i2 = pg.ImageItem(image=data.profile)
-            pg_profile.addItem(i2, title='')
-
-            # inserted color bar also works with labels on the right.
-            # p2.showAxis('left')
-            # p2.getAxis('left').setStyle( showValues=False )
-            # p2.getAxis('bottom').setLabel('time')
-            # p2.getAxis('left').setLabel('distance')
-
-            bar = pg.ColorBarItem(
-                values=(0, 1),
-                colorMap='CET-L4',
-                label='horizontal color bar',
-                limits=(0, None),
-                rounding=0.01,
-                orientation='h',
-                pen='#8888FF', hoverPen='#EEEEFF', hoverBrush='#EEEEFF80',
-                interactive=False
-            )
-            bar.setImageItem(i2)
-
-            temperatureKelvin = 12.0 + 273.15
-            gamma = 1.4
-            R = 287.0
-            speedOfSound = np.sqrt(gamma * R * temperatureKelvin)
-            idx_to_height = 4.096e-3 * speedOfSound / 128.0
-            height_to_pixel = (np.shape(data.profile)[1])
-            pixel_times = np.arange(np.size(data.height_unfiltered))
-
-            self.set_plot_options(pg_profile)
-            pg_profile.plot(pixel_times, data.height_unfiltered / idx_to_height, pen=pg.mkPen('g', width=5),
-                            name="height_unfiltered")
-            pg_profile.plot(pixel_times, data.height_unfiltered[:-1] / idx_to_height + (data.interval_diam[:-1] / 2.),
-                            pen=(0, 0, 255), name="interval max", stepMode=True)
-            pg_profile.plot(pixel_times, data.height_unfiltered[:-1] / idx_to_height - (data.interval_diam[:-1] / 2.),
-                            pen=(0, 0, 255), name="interval min", stepMode=True)
-            pg_profile.showGrid(x=False, y=True)
-            dock_profile.addWidget(pg_profile)
+            pg_profile = self.add_plot_profile(dock_profile, data, add_interval=True)
 
     def add_profile_one(self):
         dock_profile_one = Dock("Profile one")
         self.addDock(dock_profile_one, position='below')
-        data = copy.copy(self.sfb.height_debug)
+        data_filtered = copy.copy(self.sfb.height_debug)
+        data_profile = copy.copy(self.sfb.profile)
         i = 10
 
-        if not data.is_empty():
+        if not data_filtered.is_empty():
+            pg_image = self.add_plot_profile(dock_profile_one, data_filtered, add_interval=False)
+            # Add infinite line
+            inf1 = pg.InfiniteLine(movable=True, angle=90, label='{value:0.0f}',
+                                   labelOpts={'position':0.1,
+                                              'color': (200,200,100),
+                                              'fill': (200,200,200,50),
+                                              'movable': True
+                                              })
+            # Set line width and color yellow
+            inf1.setPen(pg.mkPen(color=(200,200,100), width=2))
+            inf1.setPos([data_filtered.nb_elements/2,data_filtered.nb_elements/2])
+            pg_image.addItem(inf1)
+
+            # Add plot profile
             pg_profile = pg.PlotWidget()
-            pg_profile.plot(np.arange(128), data.profile[i, :-1], pen=(255, 0, 0), name="signal", stepMode=True)
+            self.set_plot_options(pg_profile)
+            plot_filtered = pg_profile.plot(np.arange(128), data_filtered.profile[i, :-1]*256.0, pen=(255, 0, 0), name="signal", stepMode=True)
+            plot_profile = pg_profile.plot(np.arange(128), data_profile.profile[i, :-1], pen=(0, 255, 0), name="profile", stepMode=True)
             pg_profile.setLabel('left', "status")
             dock_profile_one.addWidget(pg_profile)
+
+            # interp data_profile.profile to data_filtered.time
+            f_profile = interpolate.interp2d(np.arange(128), data_profile.time,data_profile.profile, bounds_error=False, kind="linear", fill_value=0)
+            profile_interp = f_profile(np.arange(128), data_filtered.time)
+
+            def update_profile_one(inf1, data_filtered, data_profile, plot_filtered, plot_profile):
+                plot_filtered.setData(np.arange(128), data_filtered.profile[int(inf1.value()),:-1]*256.0)
+                plot_profile.setData(np.arange(128), profile_interp[int(inf1.value()),:-1])
+
+            inf1.sigPositionChanged.connect(lambda: update_profile_one(inf1, data_filtered, data_profile, plot_filtered, plot_profile))
+
+            # capture right and left key press
+            def keyPressEvent(event):
+                if event.key() == QtCore.Qt.Key_Right:
+                    inf1.setValue(inf1.value() + 1)
+                elif event.key() == QtCore.Qt.Key_Left:
+                    inf1.setValue(inf1.value() - 1)
+
+            pg_image.getViewBox().keyPressEvent = keyPressEvent
+
+             # Add plot with the sum of the profile
+            # pg_sum = pg.PlotWidget()
+            # self.set_plot_options(pg_sum)
+            # # sum
+            # sum_profile = np.sum(data_filtered.profile, axis=1)
+            # # make a convolution to smooth the sum
+            # window = signal.gaussian(100, std=20)
+            # sum_profile = np.convolve(sum_profile, window, mode='same') / sum(window)
+            #
+            # pg_sum.plot(np.arange(data_filtered.nb_elements), sum_profile[:-1], pen=(255, 0, 0), name="sum profile", stepMode=True)
+            # pg_sum.setLabel('left', "sum profile")
+            # dock_profile_one.addWidget(pg_sum)
+            # pg_sum.setXLink(pg_image)
+
 
     def add_profile_filter(self):
         dock_profile_filter = Dock("Height")
@@ -242,4 +309,48 @@ class DockDataObserver(SeafoilDock):
             pg_profile.setLabel('left', "status")
             dock_profile_filter.addWidget(pg_profile)
 
+    def add_wind(self):
+        # Plot wind data correct by heading of the boat
+
+        dock_wind = Dock("Wind")
+        self.addDock(dock_wind, position='below')
+        data_wind = copy.copy(self.sfb.wind)
+        data_gnss = copy.copy(self.sfb.gps_fix)
+
+        # interp data_gnss.track to data_wind.time
+        f_gnss_track = interpolate.interp1d(data_gnss.time, data_gnss.track, bounds_error=False, kind="zero")
+        track = f_gnss_track(data_wind.time)
+
+        if not data_wind.is_empty() and not data_gnss.is_empty():
+
+            # Convert Heading from [0, 380] to [-180, 180]
+            wind_heading = (data_wind.heading.astype(np.int32) - 180) % 360 - 180
+            # Convert wind direction from [0, 380] to [-180, 180]
+            wind_direction = (data_wind.direction.astype(np.int32) - 180) % 360 - 180
+
+            # Compute wind direction relative to the north in [-180, 180]
+            wind_heading_north = wind_heading - wind_direction
+
+            pg_wind = pg.PlotWidget()
+            self.set_plot_options(pg_wind)
+            pg_wind.plot(data_wind.time, wind_heading_north[:-1], pen=(255, 0, 0), name="wind heading", stepMode=True)
+            pg_wind.setLabel('left', "wind heading")
+            dock_wind.addWidget(pg_wind)
+
+            # Plot wind speed
+            pg_wind_speed = pg.PlotWidget()
+            self.set_plot_options(pg_wind_speed)
+            pg_wind_speed.plot(data_wind.time, data_wind.velocity[:-1] * 1.94384, pen=(255, 0, 0), name="wind speed (kt)", stepMode=True)
+            pg_wind_speed.plot(data_gnss.time, data_gnss.speed[:-1] * 1.94384, pen=(0, 255, 0), name="gnss speed (kt)", stepMode=True)
+            pg_wind_speed.setLabel('left', "wind speed")
+            dock_wind.addWidget(pg_wind_speed)
+            pg_wind_speed.setXLink(pg_wind)
+
+            # Plot gnss track
+            pg_track = pg.PlotWidget()
+            self.set_plot_options(pg_track)
+            pg_track.plot(data_gnss.time, data_gnss.track[:-1], pen=(255, 0, 0), name="track", stepMode=True)
+            pg_track.setLabel('left', "track")
+            dock_wind.addWidget(pg_track)
+            pg_track.setXLink(pg_wind)
 
