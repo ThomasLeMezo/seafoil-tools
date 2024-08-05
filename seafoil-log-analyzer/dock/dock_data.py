@@ -499,18 +499,25 @@ class DockData(SeafoilDock):
         if not data.is_empty():
             pg_wind_status = pg.PlotWidget()
             self.set_plot_options(pg_wind_status)
-            pg_wind_status.plot(data.time, data.status, pen=(255, 0, 0), name="status")
+            pg_wind_status.plot(data.time, data.status, pen=(255, 0, 0), symbol='o', name="status")
             dock_wind_debug.addWidget(pg_wind_status)
 
             pg_wind_rate = pg.PlotWidget()
             self.set_plot_options(pg_wind_rate)
-            pg_wind_rate.plot(data.time, data.rate, pen=(0, 255, 0), name="rate")
+            pg_wind_rate.plot(data.time, data.rate, pen=(0, 255, 0), symbol='o', name="rate")
             dock_wind_debug.addWidget(pg_wind_rate)
             pg_wind_rate.setXLink(pg_wind_status)
 
             pg_wind_sensors = pg.PlotWidget()
             self.set_plot_options(pg_wind_sensors)
-            pg_wind_sensors.plot(data.time, data.sensors, pen=(0, 0, 255), name="sensors")
+            pg_wind_sensors.plot(data.time, data.sensors, pen=(0, 0, 255), symbol='o', name="sensors")
             dock_wind_debug.addWidget(pg_wind_sensors)
             pg_wind_sensors.setXLink(pg_wind_status)
+
+            pg_wind_rssi = pg.PlotWidget()
+            self.set_plot_options(pg_wind_rssi)
+            pg_wind_rssi.plot(data.time, data.rssi, pen=(255, 0, 255), symbol='o', name="rssi")
+            dock_wind_debug.addWidget(pg_wind_rssi)
+            pg_wind_rssi.setXLink(pg_wind_status)
+
 
