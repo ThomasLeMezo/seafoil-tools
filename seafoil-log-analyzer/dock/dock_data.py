@@ -200,11 +200,46 @@ class DockData(SeafoilDock):
     def calibrate_mag(self):
         print("Start magnetic calibration")
 
+        # Open a dialog box and ask for start (from 0s to max time of self.sfb.raw_data.time, and stop time)
+        start_time = QtWidgets.QInputDialog.getText(None, "Start time", "Start time (s):", QtWidgets.QLineEdit.Normal, "0")
+        stop_time = QtWidgets.QInputDialog.getText(None, "Stop time", "Stop time (s):", QtWidgets.QLineEdit.Normal, str(self.sfb.raw_data.time[-1]))
+
+        # Check start_time and stop_time are valid and inside [0, self.sfb.raw_data.time[-1]]
+        try:
+            start_time = float(start_time[0])
+            stop_time = float(stop_time[0])
+        except ValueError:
+            print("Invalid start or stop time")
+            return
+
+        if start_time < 0:
+            start_time = 0
+        if stop_time > self.sfb.raw_data.time[-1]:
+            stop_time = self.sfb.raw_data.time[-1]
+        if start_time > stop_time:
+            print("Invalid start or stop time")
+            return
+
         ## Call ros2 run icm20948_driver magnetic_calibration
         ## with parameters:
         ## bag_path: the path to the bag file
         ## topic_raw_imu_name: "/driver/raw_data"
-        os.system("ros2 run icm20948_driver magnetic_calibration --ros-args -p bag_path:=" + self.sfb.file_name + " -p topic_raw_imu_name:=/driver/raw_data")
+        ## start_time: start_time
+        ## stop_time: stop_time
+
+        command_str = ("ros2 run icm20948_driver magnetic_calibration --ros-args "
+        "-p bag_path:=" + self.sfb.file_name +
+        " -p topic_raw_imu_name:=/driver/raw_data" +
+        " -p start_time:=" + str(start_time + self.sfb.raw_data.starting_time.timestamp()) +
+        " -p stop_time:=" + str(stop_time + self.sfb.raw_data.starting_time.timestamp()))
+
+        print(command_str)
+
+        os.system("ros2 run icm20948_driver magnetic_calibration --ros-args "
+                  "-p bag_path:=" + self.sfb.file_name +
+                  " -p topic_raw_imu_name:=/driver/raw_data" +
+                    " -p start_time:=" + str(start_time + self.sfb.raw_data.starting_time.timestamp()) +
+                    " -p end_time:=" + str(stop_time + self.sfb.raw_data.starting_time.timestamp()))
 
     def add_euler(self):
         dock_euler = Dock("Euler")
@@ -499,23 +534,30 @@ class DockData(SeafoilDock):
         if not data.is_empty():
             pg_wind_status = pg.PlotWidget()
             self.set_plot_options(pg_wind_status)
-            pg_wind_status.plot(data.time, data.status, pen=(255, 0, 0), symbol='o', name="status")
+            status = np.array(data.status, dtype='float')
+            status[status == 255] = np.nan
+            pg_wind_status.plot(data.time, status, pen=(255, 0, 0), symbol='o', name="status")
             dock_wind_debug.addWidget(pg_wind_status)
 
             pg_wind_rate = pg.PlotWidget()
             self.set_plot_options(pg_wind_rate)
-            pg_wind_rate.plot(data.time, data.rate, pen=(0, 255, 0), symbol='o', name="rate")
+            rate = np.array(data.rate, dtype='float')
+            rate[rate == 255] = np.nan
+            pg_wind_rate.plot(data.time, rate, pen=(0, 255, 0), symbol='o', name="rate")
             dock_wind_debug.addWidget(pg_wind_rate)
             pg_wind_rate.setXLink(pg_wind_status)
 
             pg_wind_sensors = pg.PlotWidget()
             self.set_plot_options(pg_wind_sensors)
-            pg_wind_sensors.plot(data.time, data.sensors, pen=(0, 0, 255), symbol='o', name="sensors")
+            sensors = np.array(data.sensors, dtype='float')
+            sensors[sensors == 255] = np.nan
+            pg_wind_sensors.plot(data.time, sensors, pen=(0, 0, 255), symbol='o', name="sensors")
             dock_wind_debug.addWidget(pg_wind_sensors)
             pg_wind_sensors.setXLink(pg_wind_status)
 
             pg_wind_rssi = pg.PlotWidget()
             self.set_plot_options(pg_wind_rssi)
+
             pg_wind_rssi.plot(data.time, data.rssi, pen=(255, 0, 255), symbol='o', name="rssi")
             dock_wind_debug.addWidget(pg_wind_rssi)
             pg_wind_rssi.setXLink(pg_wind_status)

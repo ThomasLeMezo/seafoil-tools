@@ -25,6 +25,7 @@ class DockDataObserver(SeafoilDock):
         self.add_manoeuvre()
         self.add_distance_gate()
         self.add_wind()
+        self.add_wind2()
 
         print("DockDataObserver initialized")
 
@@ -34,7 +35,7 @@ class DockDataObserver(SeafoilDock):
         data = copy.copy(self.sfb.height)
         data_gnss = copy.copy(self.sfb.gps_fix)
 
-        if not data.is_empty():
+        if not data.is_empty() and not data_gnss.is_empty() and not data_debug.is_empty():
             # interp speed to height
             f_gnss_speed = interpolate.interp1d(data_gnss.time, data_gnss.speed, bounds_error=False, kind="zero")
             data_speed = f_gnss_speed(data.time)
@@ -77,11 +78,11 @@ class DockDataObserver(SeafoilDock):
         self.addDock(dock_imu_height, position='below')
         data = self.sfb.calibrated_data
 
-        pg_profile, pg_speed = self.plot_height_velocity()
-        dock_imu_height.addWidget(pg_profile)
-        dock_imu_height.addWidget(pg_speed)
-
         if not data.is_empty():
+            pg_profile, pg_speed = self.plot_height_velocity()
+            dock_imu_height.addWidget(pg_profile)
+            dock_imu_height.addWidget(pg_speed)
+
             pg_acceleration = pg.PlotWidget()
             self.set_plot_options(pg_acceleration)
             pg_acceleration.plot(data.time, data.accel_x, pen=(255, 0, 0), name="x")
@@ -317,11 +318,10 @@ class DockDataObserver(SeafoilDock):
         data_wind = copy.copy(self.sfb.wind)
         data_gnss = copy.copy(self.sfb.gps_fix)
 
-        # interp data_gnss.track to data_wind.time
-        f_gnss_track = interpolate.interp1d(data_gnss.time, data_gnss.track, bounds_error=False, kind="zero")
-        track = f_gnss_track(data_wind.time)
-
         if not data_wind.is_empty() and not data_gnss.is_empty():
+            # interp data_gnss.track to data_wind.time
+            f_gnss_track = interpolate.interp1d(data_gnss.time, data_gnss.track, bounds_error=False, kind="zero")
+            track = f_gnss_track(data_wind.time)
 
             # Convert Heading from [0, 380] to [-180, 180]
             wind_heading = (data_wind.heading.astype(np.int32) - 180) % 360 - 180
@@ -354,3 +354,53 @@ class DockDataObserver(SeafoilDock):
             dock_wind.addWidget(pg_track)
             pg_track.setXLink(pg_wind)
 
+    def add_wind2(self):
+        # Plot wind data correct by heading of the boat
+
+        dock_wind = Dock("Wind2")
+        self.addDock(dock_wind, position='below')
+        data_wind = copy.copy(self.sfb.wind)
+        data_gnss = copy.copy(self.sfb.gps_fix)
+        data_imu = copy.copy(self.sfb.rpy)
+
+
+        if not data_wind.is_empty():
+            pg_wind_speed = None
+            if not data_gnss.is_empty():
+                # interp data_gnss.track to data_wind.time
+                f_gnss_track = interpolate.interp1d(data_gnss.time, data_gnss.track, bounds_error=False, kind="zero")
+                track = f_gnss_track(data_wind.time)
+
+                # Plot wind speed
+                pg_wind_speed = pg.PlotWidget()
+                self.set_plot_options(pg_wind_speed)
+                pg_wind_speed.plot(data_wind.time, data_wind.velocity[:-1] * 1.94384, pen=(255, 0, 0), name="wind speed (kt)", stepMode=True)
+                pg_wind_speed.plot(data_gnss.time, data_gnss.speed[:-1] * 1.94384, pen=(0, 255, 0), name="gnss speed (kt)", stepMode=True)
+                pg_wind_speed.setLabel('left', "wind speed")
+                dock_wind.addWidget(pg_wind_speed)
+
+            # Plot wind sensor roll and pitch
+            pg_wind_info_roll_pitch = pg.PlotWidget()
+            self.set_plot_options(pg_wind_info_roll_pitch)
+            # set roll data as NaN if equal to -90
+            roll = np.array(data_wind.roll, dtype='float')
+            roll[roll == -90] = np.nan
+            pitch = np.array(data_wind.pitch, dtype='float')
+            pitch[pitch == -90] = np.nan
+
+            pg_wind_info_roll_pitch.plot(data_wind.time, -roll, pen=(0, 0, 255), name="roll wind")
+            pg_wind_info_roll_pitch.plot(data_imu.time, data_imu.roll, pen=(255, 0, 0), name="roll imu")
+            dock_wind.addWidget(pg_wind_info_roll_pitch)
+            # pg_wind_info_roll_pitch.setXLink(pg_wind_speed)
+
+            # Plot imu roll and pitch
+            pg_imu_info_roll_pitch = pg.PlotWidget()
+            self.set_plot_options(pg_imu_info_roll_pitch)
+            pg_imu_info_roll_pitch.plot(data_wind.time, -pitch, pen=(0, 0, 255), name="pitch wind")
+            pg_imu_info_roll_pitch.plot(data_imu.time, data_imu.pitch, pen=(255, 0, 0), name="pitch imu")
+            dock_wind.addWidget(pg_imu_info_roll_pitch)
+            # pg_imu_info_roll_pitch.setXLink(pg_wind_speed)
+            pg_imu_info_roll_pitch.setXLink(pg_wind_info_roll_pitch)
+
+            if not data_gnss.is_empty():
+                pg_wind_speed.setXLink(pg_wind_info_roll_pitch)

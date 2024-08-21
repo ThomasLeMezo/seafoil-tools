@@ -48,7 +48,7 @@ class SeafoilData(object):
             return False
 
     def add_time(self, t):
-        self.time[self.k] = t * 1e-9 - self.starting_time.timestamp()
+        self.time[self.k] = t * 1e-9  - self.starting_time.timestamp()
         self.k = self.k + 1
 
     def count_nb_message(self):
@@ -60,7 +60,8 @@ class SeafoilData(object):
             return 0
 
     def get_starting_time(self):
-        return rosbag2_py.Info().read_metadata(self.storage_options.uri, self.storage_options.storage_id).starting_time
+        st = rosbag2_py.Info().read_metadata(self.storage_options.uri, self.storage_options.storage_id).starting_time
+        return datetime.datetime.utcfromtimestamp(st.nanoseconds*1e-9)
 
     def process_message(self, msg):
         print("process_message not implemented")

@@ -17,14 +17,19 @@ else
 fi
 
 echo "Seabot IP address: $IP"
-# Ask for bags in ~/log and sort by time
-#FILES=($(ssh $USER@$IP ls -t /home/$USER/log))
 
-FILES=($(ssh -o ConnectTimeout=5 $USER@$IP ls -t /home/$USER/log 2>/dev/null))
-if [ $? -ne 0 ]; then
-    echo "Failed to connect to $IP : connection issue."
-    exit 1
-fi
+RETRIES=0  # Initial retry count
+
+while true; do
+    echo "Try to connected to $IP and retrieved files (attempt $RETRIES)"
+    FILES=($(ssh -o ConnectTimeout=5 $USER@$IP ls -t /home/$USER/log 2>/dev/null))
+    if [ $? -eq 0 ]; then
+        # Successfully connected and executed the command
+        echo "Successfully connected to $IP and retrieved files."
+        break
+    fi
+    RETRIES=$((RETRIES+1))
+done
 
 # Display bags and ask user to choose one
 COUNTER=0

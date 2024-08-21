@@ -69,6 +69,7 @@ class DockAnalysis(SeafoilDock):
         self.add_heading()
         self.add_speed_for_distance()
         self.add_polar_heading()
+        self.add_velocity()
 
         # self.add_jibe_speed()
 
@@ -79,7 +80,7 @@ class DockAnalysis(SeafoilDock):
         data = copy.copy(self.sfb.height)
         data_gnss = copy.copy(self.sfb.gps_fix)
 
-        if not data.is_empty():
+        if not data.is_empty() and not data_gnss.is_empty():
             # interp speed to height
             f_gnss_speed = interpolate.interp1d(data_gnss.time, data_gnss.speed, bounds_error=False, kind="zero")
             data_speed = f_gnss_speed(data.time)
@@ -129,7 +130,7 @@ class DockAnalysis(SeafoilDock):
         data_gnss = copy.copy(self.sfb.gps_fix)
         data_imu = copy.copy(self.sfb.rpy)
 
-        if not data.is_empty() and not data_imu.is_empty():
+        if not data.is_empty() and not data_imu.is_empty() and not data_gnss.is_empty():
             pg_imu = pg.PlotWidget()
             window_size = 100
             self.set_plot_options(pg_imu)
@@ -154,21 +155,23 @@ class DockAnalysis(SeafoilDock):
         data_gnss = copy.copy(self.sfb.gps_fix)
         data_imu = copy.copy(self.sfb.rpy)
 
-        pg_profile, pg_speed = self.plot_height_velocity()
-        dock_heading.addWidget(pg_profile)
-        dock_heading.addWidget(pg_speed)
+        if not data_gnss.is_empty() and not data_imu.is_empty():
 
-        pg_track = pg.PlotWidget()
-        self.set_plot_options(pg_track)
-        pg_track.plot(data_gnss.time, data_gnss.track[:-1], pen=(255, 0, 0), name="track (gnss)", stepMode=True)
-        pg_track.plot(data_imu.time, data_imu.yaw[:-1], pen=(0, 255, 0), name="yaw (imu)", stepMode=True)
-        pg_track.setLabel('left', "track")
-        dock_heading.addWidget(pg_track)
-        pg_track.setXLink(pg_profile)
+            pg_profile, pg_speed = self.plot_height_velocity()
+            dock_heading.addWidget(pg_profile)
+            dock_heading.addWidget(pg_speed)
 
-        self.list_pg_yaw.append(pg_track)
+            pg_track = pg.PlotWidget()
+            self.set_plot_options(pg_track)
+            pg_track.plot(data_gnss.time, data_gnss.track[:-1], pen=(255, 0, 0), name="track (gnss)", stepMode=True)
+            pg_track.plot(data_imu.time, data_imu.yaw[:-1], pen=(0, 255, 0), name="yaw (imu)", stepMode=True)
+            pg_track.setLabel('left', "track")
+            dock_heading.addWidget(pg_track)
+            pg_track.setXLink(pg_profile)
 
-        self.add_label_time([pg_speed, pg_profile, pg_track], data_gnss.starting_time, dock_heading)
+            self.list_pg_yaw.append(pg_track)
+
+            self.add_label_time([pg_speed, pg_profile, pg_track], data_gnss.starting_time, dock_heading)
 
     def add_speed_for_distance(self):
         dock_height_velocity = Dock("Speed for a distance")
@@ -179,7 +182,7 @@ class DockAnalysis(SeafoilDock):
         data_imu = copy.copy(self.sfb.rpy)
         data_distance = copy.copy(self.sfb.distance)
 
-        if not data.is_empty():
+        if not data.is_empty() and not data_imu.is_empty() and not data_gnss.is_empty() and not data_distance.is_empty():
 
             speed_max = np.max(data_gnss.speed * (data_gnss.mode >= 3) * 1.94384)
             speed_max_idx = np.argmax(data_gnss.speed * (data_gnss.mode >= 3) * 1.94384)
@@ -253,6 +256,7 @@ class DockAnalysis(SeafoilDock):
         data_gnss = self.sfb.gps_fix
         data_height = self.sfb.height
         data_imu = copy.copy(self.sfb.rpy)
+        data_wind = copy.copy(self.sfb.wind)
 
         gpx = gpxpy.gpx.GPX()
         gpx.creator = "SeaFoil"
@@ -293,6 +297,10 @@ class DockAnalysis(SeafoilDock):
         window_size = 100
         height = np.convolve(height, np.ones(window_size) / window_size, mode='same')
 
+        # interpolate data_wind to data_gnss.time_gnss
+        # f_wind_velocity = interpolate.interp1d(data_wind.time, data_wind.velocity, bounds_error=False, kind="zero")
+        # wind_velocity = f_wind_velocity(data_gnss.time)
+
         print(self.sfb.seafoil_id)
         filepath = QFileDialog.getSaveFileName(self.win, "Save file",
                                                str(data_gnss.bag_path) + "_" + self.sfb.seafoil_id + ".gpx",
@@ -321,7 +329,8 @@ class DockAnalysis(SeafoilDock):
 
                 pt = gpxpy.gpx.GPXTrackPoint(latitude=data_gnss.latitude[i],
                                              longitude=data_gnss.longitude[i],
-                                             #elevation=height[i],
+                                             # elevation=height[i],
+                                             #elevation=wind_velocity[i],
                                              time=datetime.datetime.fromtimestamp(
                                                  data_gnss.time_gnss[i], datetime.timezone.utc),
                                              # horizontal_dilution=roll[i],
@@ -350,91 +359,173 @@ class DockAnalysis(SeafoilDock):
         data_gnss = copy.copy(self.sfb.gps_fix)
         data_height = copy.copy(self.sfb.height)
 
-        # filter by 2s data_gnss
-        window_size = 100
-        data_gnss.speed = np.convolve(data_gnss.speed, np.ones(window_size) / window_size, mode='same')
-        data_gnss.track = np.convolve(data_gnss.track, np.ones(window_size) / window_size, mode='same')
+        if not data_gnss.is_empty() and not data_height.is_empty():
 
-        # filter by 2s data_height
-        window_size = 100
-        data_height.height = np.convolve(data_height.height, np.ones(window_size) / window_size, mode='same')
+            # filter by 2s data_gnss
+            window_size = 100
+            data_gnss.speed = np.convolve(data_gnss.speed, np.ones(window_size) / window_size, mode='same')
+            data_gnss.track = np.convolve(data_gnss.track, np.ones(window_size) / window_size, mode='same')
 
-        # interpolate data_height to data_gnss.time_gnss
-        f_height = interpolate.interp1d(data_height.time, data_height.height, bounds_error=False, kind="zero")
-        height = f_height(data_gnss.time)
+            # filter by 2s data_height
+            window_size = 100
+            data_height.height = np.convolve(data_height.height, np.ones(window_size) / window_size, mode='same')
 
-        min_sample = 10
+            # interpolate data_height to data_gnss.time_gnss
+            f_height = interpolate.interp1d(data_height.time, data_height.height, bounds_error=False, kind="zero")
+            height = f_height(data_gnss.time)
 
-        # For each heading, compute the mean speed, max speed
-        resolution = 1
-        min_velocity_kt = 12.0
+            min_sample = 20
 
-        min_velocity = min_velocity_kt / self.ms_to_kt
-        heading = np.arange(0, 360, resolution)
-        speed_mean = np.zeros(len(heading))  # Speed mean function of the heading
-        speed_max = np.zeros(len(heading))  # Speed max function of the heading
-        speed_min = np.zeros(len(heading))  # Speed min function of the heading
-        for i, h in enumerate(heading):
-            idx = np.where(
-                (data_gnss.track >= h) & (data_gnss.track < h + resolution) & (data_gnss.speed > min_velocity))
-            if len(idx[0]) > min_sample:
-                speed_mean[i] = np.mean(data_gnss.speed[idx])
-                speed_max[i] = np.max(data_gnss.speed[idx])
-                speed_min[i] = np.min(data_gnss.speed[idx])
+            # For each heading, compute the mean speed, max speed
+            resolution = 1
+            min_velocity_kt = 12.0
 
-        # Compute the mean and max height function of heading
-        height_mean = np.zeros(len(heading))
-        height_max = np.zeros(len(heading))
-        height_min = np.zeros(len(heading))
-        for i, h in enumerate(heading):
-            idx = np.where(
-                (data_gnss.track >= h) & (data_gnss.track < h + resolution) & (data_gnss.speed > min_velocity))
-            if len(idx[0]) > min_sample:
-                height_mean[i] = np.mean(height[idx])
-                height_max[i] = np.max(height[idx])
-                height_min[i] = np.min(height[idx])
+            min_velocity = min_velocity_kt / self.ms_to_kt
+            heading = np.arange(0, 360, resolution)
+            speed_mean = np.zeros(len(heading))  # Speed mean function of the heading
+            speed_max = np.zeros(len(heading))  # Speed max function of the heading
+            speed_min = np.zeros(len(heading))  # Speed min function of the heading
+            for i, h in enumerate(heading):
+                idx = np.where(
+                    (data_gnss.track >= h) & (data_gnss.track < h + resolution) & (data_gnss.speed > min_velocity))
+                if len(idx[0]) > min_sample:
+                    speed_data = np.sort(copy.copy(data_gnss.speed[idx]))
+                    speed_mean[i] = np.mean(speed_data)
+                    speed_max[i] = np.mean(speed_data[int(len(speed_data) * 0.9):])
+                    speed_min[i] = np.mean(speed_data[:int(len(speed_data) * 0.1)])
 
-        # Compute the mean and max height function of speed
-        resolution = 0.1
-        speed_vect = np.arange(min_velocity, 23, resolution) # 23 m/s in kt = 44.6 kt
-        height_mean_speed = np.zeros(len(speed_vect))
-        height_max_speed = np.zeros(len(speed_vect))
-        height_min_speed = np.zeros(len(speed_vect))
-        for i, s in enumerate(speed_vect):
-            idx = np.where((data_gnss.speed >= s) & (data_gnss.speed < s + resolution))
-            if len(idx[0]) > min_sample:
-                height_mean_speed[i] = np.mean(height[idx])
-                height_max_speed[i] = np.max(height[idx])
-                height_min_speed[i] = np.min(height[idx])
+            # Compute the mean and max height function of heading
+            height_mean = np.zeros(len(heading))
+            height_max = np.zeros(len(heading))
+            height_min = np.zeros(len(heading))
+            for i, h in enumerate(heading):
+                idx = np.where(
+                    (data_gnss.track >= h) & (data_gnss.track < h + resolution) & (data_gnss.speed > min_velocity))
+                if len(idx[0]) > min_sample:
+                    height_data = np.sort(copy.copy(height[idx]))
+                    height_mean[i] = np.mean(height_data)
+                    height_max[i] = np.mean(height_data[int(len(height_data) * 0.9):])
+                    height_min[i] = np.mean(height_data[:int(len(height_data) * 0.1)])
+
+            ## ToDo : implement wind direction to replot the polar
+
+            # plot
+            pg_polar_heading = pg.PlotWidget()
+            self.set_plot_options(pg_polar_heading)
+            pg_polar_heading.plot(heading, speed_mean[:-1]*self.ms_to_kt, pen=(255, 0, 0), name="speed mean", stepMode=True)
+            pg_polar_heading.plot(heading, speed_max[:-1]*self.ms_to_kt, pen=(0, 255, 0), name="speed max (10%)", stepMode=True)
+            pg_polar_heading.plot(heading, speed_min[:-1]*self.ms_to_kt, pen=(0, 0, 255), name="speed min (10%)", stepMode=True)
+            pg_polar_heading.setLabel('left', "speed (kt)")
+            dock_polar_heading.addWidget(pg_polar_heading)
+
+            pg_polar_heading_height = pg.PlotWidget()
+            self.set_plot_options(pg_polar_heading_height)
+            pg_polar_heading_height.plot(heading, height_mean[:-1], pen=(255, 0, 0), name="height mean", stepMode=True)
+            pg_polar_heading_height.plot(heading, height_max[:-1], pen=(0, 255, 0), name="height max (10%)", stepMode=True)
+            pg_polar_heading_height.plot(heading, height_min[:-1], pen=(0, 0, 255), name="height min (10%)", stepMode=True)
+            pg_polar_heading_height.setLabel('left', "height (m)")
+            dock_polar_heading.addWidget(pg_polar_heading_height)
+            pg_polar_heading_height.setXLink(pg_polar_heading)
+
+    def add_velocity(self):
+        dock_velocity = Dock("Velocity")
+        self.addDock(dock_velocity, position='below')
+
+        data_gnss = copy.copy(self.sfb.gps_fix)
+        data_height = copy.copy(self.sfb.height)
+        data_imu = copy.copy(self.sfb.rpy)
+
+        if not data_gnss.is_empty() and not data_height.is_empty() and not data_imu.is_empty():
+
+            # interpolate data_height to data_gnss.time_gnss
+            f_height = interpolate.interp1d(data_height.time, data_height.height, bounds_error=False, kind="zero")
+            height = f_height(data_gnss.time)
+
+            # interpolate pitch to data_gnss.time_gnss
+            f_pitch = interpolate.interp1d(data_imu.time, data_imu.pitch, bounds_error=False, kind="zero")
+            pitch = f_pitch(data_gnss.time)
+
+            # interpolate roll to data_gnss.time_gnss
+            f_roll = interpolate.interp1d(data_imu.time, data_imu.roll, bounds_error=False, kind="zero")
+            roll = f_roll(data_gnss.time)
+
+            min_velocity_kt = 12.0
+            min_sample = 20
+            resolution = 0.1
+            polyndegree = 1
+            min_velocity = min_velocity_kt / self.ms_to_kt
+
+            speed_vect = np.arange(min_velocity, 23, resolution) # 23 m/s in kt = 44.6 kt
+
+            ## height function of speed
+            height_mean_speed = np.zeros(len(speed_vect))
+            height_max_speed = np.zeros(len(speed_vect))
+            height_min_speed = np.zeros(len(speed_vect))
+            for i, s in enumerate(speed_vect):
+                idx = np.where((data_gnss.speed >= s) & (data_gnss.speed < s + resolution))
+                if len(idx[0]) > min_sample:
+                    height_data = np.sort(copy.copy(height[idx]))
+                    height_mean_speed[i] = np.mean(height_data)
+                    height_max_speed[i] = np.mean(height_data[int(len(height_data) * 0.9):])
+                    height_min_speed[i] = np.mean(height_data[:int(len(height_data) * 0.1)])
+
+            # Add a polynomial fit to height_mean_speed
+            last_idx = np.where(height_mean_speed > 0)[0][-1] # remove zeros
+            speed_vect_fit = speed_vect[:last_idx] * self.ms_to_kt
+            z = np.polyfit(speed_vect_fit, height_mean_speed[:last_idx], polyndegree)
+            p = np.poly1d(z)
+
+            ## Roll function of speed
+            roll_mean_speed = np.zeros(len(speed_vect))
+            roll_max_speed = np.zeros(len(speed_vect))
+            roll_min_speed = np.zeros(len(speed_vect))
+            for i, s in enumerate(speed_vect):
+                idx = np.where((data_gnss.speed >= s) & (data_gnss.speed < s + resolution))
+                if len(idx[0]) > min_sample:
+                    roll_data = np.sort(copy.copy(abs(roll[idx])))
+                    roll_mean_speed[i] = np.mean(roll_data)
+                    roll_max_speed[i] = np.mean(roll_data[int(len(roll_data) * 0.9):])
+                    roll_min_speed[i] = np.mean(roll_data[:int(len(roll_data) * 0.1)])
+
+            ## Pitch function of speed
+            pitch_mean_speed = np.zeros(len(speed_vect))
+            pitch_max_speed = np.zeros(len(speed_vect))
+            pitch_min_speed = np.zeros(len(speed_vect))
+            for i, s in enumerate(speed_vect):
+                idx = np.where((data_gnss.speed >= s) & (data_gnss.speed < s + resolution))
+                if len(idx[0]) > min_sample:
+                    pitch_data = np.sort(copy.copy(pitch[idx]))
+                    pitch_mean_speed[i] = np.mean(pitch_data)
+                    pitch_max_speed[i] = np.mean(pitch_data[int(len(pitch_data) * 0.9):])
+                    pitch_min_speed[i] = np.mean(pitch_data[:int(len(pitch_data) * 0.1)])
 
 
-        ## ToDo : implement wind direction to replot the polar
+            pg_polar_heading_speed = pg.PlotWidget()
+            self.set_plot_options(pg_polar_heading_speed)
+            pg_polar_heading_speed.plot(speed_vect * self.ms_to_kt, height_mean_speed[:-1], pen=(255, 0, 0), name="height mean", stepMode=True)
+            pg_polar_heading_speed.plot(speed_vect * self.ms_to_kt, height_max_speed[:-1], pen=(0, 255, 0), name="height max (10%)", stepMode=True)
+            pg_polar_heading_speed.plot(speed_vect * self.ms_to_kt, height_min_speed[:-1], pen=(0, 0, 255), name="height min (10%)", stepMode=True)
+            pg_polar_heading_speed.plot(speed_vect_fit, p(speed_vect_fit)[:-1], pen=(255, 0, 255), name="fit height mean", stepMode=True)
+            pg_polar_heading_speed.setLabel('left', "height (m)")
+            dock_velocity.addWidget(pg_polar_heading_speed)
 
-        # plot
-        pg_polar_heading = pg.PlotWidget()
-        self.set_plot_options(pg_polar_heading)
-        pg_polar_heading.plot(heading, speed_mean[:-1]*self.ms_to_kt, pen=(255, 0, 0), name="speed mean", stepMode=True)
-        pg_polar_heading.plot(heading, speed_max[:-1]*self.ms_to_kt, pen=(0, 255, 0), name="speed max", stepMode=True)
-        pg_polar_heading.plot(heading, speed_min[:-1]*self.ms_to_kt, pen=(0, 0, 255), name="speed min", stepMode=True)
-        pg_polar_heading.setLabel('left', "speed (kt)")
-        dock_polar_heading.addWidget(pg_polar_heading)
+            pg_polar_heading_roll = pg.PlotWidget()
+            self.set_plot_options(pg_polar_heading_roll)
+            pg_polar_heading_roll.plot(speed_vect * self.ms_to_kt, roll_mean_speed[:-1], pen=(255, 0, 0), name="roll mean", stepMode=True)
+            pg_polar_heading_roll.plot(speed_vect * self.ms_to_kt, roll_max_speed[:-1], pen=(0, 255, 0), name="roll max (10%)", stepMode=True)
+            pg_polar_heading_roll.plot(speed_vect * self.ms_to_kt, roll_min_speed[:-1], pen=(0, 0, 255), name="roll min (10%)", stepMode=True)
+            pg_polar_heading_roll.setLabel('left', "roll (°)")
+            dock_velocity.addWidget(pg_polar_heading_roll)
+            pg_polar_heading_roll.setXLink(pg_polar_heading_speed)
 
-        pg_polar_heading_height = pg.PlotWidget()
-        self.set_plot_options(pg_polar_heading_height)
-        pg_polar_heading_height.plot(heading, height_mean[:-1], pen=(255, 0, 0), name="height mean", stepMode=True)
-        pg_polar_heading_height.plot(heading, height_max[:-1], pen=(0, 255, 0), name="height max", stepMode=True)
-        pg_polar_heading_height.plot(heading, height_min[:-1], pen=(0, 0, 255), name="height min", stepMode=True)
-        pg_polar_heading_height.setLabel('left', "height (m)")
-        dock_polar_heading.addWidget(pg_polar_heading_height)
-        pg_polar_heading_height.setXLink(pg_polar_heading)
-
-        pg_polar_heading_speed = pg.PlotWidget()
-        self.set_plot_options(pg_polar_heading_speed)
-        pg_polar_heading_speed.plot(speed_vect * self.ms_to_kt, height_mean_speed[:-1], pen=(255, 0, 0), name="height mean", stepMode=True)
-        pg_polar_heading_speed.plot(speed_vect * self.ms_to_kt, height_max_speed[:-1], pen=(0, 255, 0), name="height max", stepMode=True)
-        pg_polar_heading_speed.plot(speed_vect * self.ms_to_kt, height_min_speed[:-1], pen=(0, 0, 255), name="height min", stepMode=True)
-        pg_polar_heading_speed.setLabel('left', "height (m)")
-        dock_polar_heading.addWidget(pg_polar_heading_speed)
+            pg_polar_heading_pitch = pg.PlotWidget()
+            self.set_plot_options(pg_polar_heading_pitch)
+            pg_polar_heading_pitch.plot(speed_vect * self.ms_to_kt, pitch_mean_speed[:-1], pen=(255, 0, 0), name="pitch mean", stepMode=True)
+            pg_polar_heading_pitch.plot(speed_vect * self.ms_to_kt, pitch_max_speed[:-1], pen=(0, 255, 0), name="pitch max (10%)", stepMode=True)
+            pg_polar_heading_pitch.plot(speed_vect * self.ms_to_kt, pitch_min_speed[:-1], pen=(0, 0, 255), name="pitch min (10%)", stepMode=True)
+            pg_polar_heading_pitch.setLabel('left', "pitch (°)")
+            dock_velocity.addWidget(pg_polar_heading_pitch)
+            pg_polar_heading_pitch.setXLink(pg_polar_heading_speed)
 
     def add_jibe_speed(self):
         dock_jibe = Dock("Jibe speed")
