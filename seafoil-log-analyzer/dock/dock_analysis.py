@@ -13,6 +13,7 @@ import copy
 from PyQt5.QtWidgets import QFileDialog, QInputDialog
 import datetime
 import gpxpy.gpx
+import math
 
 
 def compute_speed_for_distance(data_distance, distance):
@@ -427,6 +428,87 @@ class DockAnalysis(SeafoilDock):
             dock_polar_heading.addWidget(pg_polar_heading_height)
             pg_polar_heading_height.setXLink(pg_polar_heading)
 
+
+    def add_plot_relationship(self, data_x, data_y, data_x_time, data_y_time,
+                              name_x = None, name_y = None, unit_x=None, unit_y=None,
+                              x_min = None, x_max = None, x_resolution = None, x_unit_conversion = 1.0,
+                              y_min = None, y_max = None, y_resolution = None, y_unit_conversion = 1.0,
+                              min_sample=5, enable_polyfit=False, polyndegree=1):
+
+        # Example : x = data_gnss.speed, y = data_height.height, name_x = "speed", name_y = "height"
+
+        # Interpolate data_y over data_x
+        f_y = interpolate.interp1d(data_y_time, data_y, bounds_error=False, kind="zero")
+        y = f_y(data_x_time)
+
+        x_min /= x_unit_conversion
+        x_max /= x_unit_conversion
+        x_resolution /= x_unit_conversion
+
+        y_min /= y_unit_conversion
+        y_max /= y_unit_conversion
+        y_resolution /= y_unit_conversion
+
+        x_vect = np.arange(x_min, x_max, x_resolution)
+
+        # y stats
+        y_stat_mean = np.zeros(len(x_vect))
+        y_stat_max = np.zeros(len(x_vect))
+        y_stat_min = np.zeros(len(x_vect))
+        y_hist = np.zeros([len(x_vect), int((y_max - y_min) / y_resolution)])
+        for i, x in enumerate(x_vect):
+            idx = np.where((data_x.data >= x) & (data_x.data < x + x_resolution))
+            if len(idx[0]) > min_sample:
+                y_data = np.sort(y[idx])
+                y_stat_mean[i] = np.mean(y_data)
+                y_stat_max[i] = np.mean(y_data[int(len(y_data) * 0.9):])
+                y_stat_min[i] = np.mean(y_data[:int(len(y_data) * 0.1)])
+
+                # Get histogram of y
+                for y_val in y_data[np.where((y_data >= y_min) & (y_data < y_max))]:
+                    idx_y = math.floor((y_val - y_min) / (y_max - y_min) * len(y_hist[0]))
+                    if len(y_hist[0]) > idx_y >= 0:
+                        y_hist[i, idx_y] += 1
+
+                # Normalize histogram
+                max_hist = np.max(y_hist[i])
+                if max_hist > 0:
+                    y_hist[i] = y_hist[i] / max_hist
+
+        # Add a polynomial fit to y_mean
+        x_vect_fit = None
+        x_polyfit = None
+        if enable_polyfit:
+            last_idx = np.where(y_stat_mean > 0)[0][-1]
+            x_vect_fit = x_vect[:last_idx]
+            z = np.polyfit(x_vect_fit, y_stat_mean[:last_idx], polyndegree)
+            x_polyfit = np.poly1d(z)
+
+        # Display 2D matrix of y with color
+        edgecolors   = None
+        antialiasing = False
+        colormap = pg.ColorMap(pos=[0., 1.0],
+                                color=[(0, 0, 255, 100), (255, 255, 0, 100)],
+                                mapping=pg.ColorMap.CLIP)
+        pcmi = pg.PColorMeshItem(edgecolors=edgecolors, antialiasing=antialiasing, colorMap=colormap)
+        x_pcmi = np.outer((x_vect - x_resolution/2.) * x_unit_conversion, np.ones(int((y_max-y_min) / y_resolution)))
+        y_pcmi = np.outer(np.ones(len(x_vect)), np.arange(y_min, y_max, y_resolution) * y_unit_conversion)
+        pcmi.setData(x_pcmi, y_pcmi, y_hist[:-1,:-1])
+
+        # Plot
+        pg_plot = pg.PlotWidget()
+        self.set_plot_options(pg_plot)
+        if enable_polyfit:
+            pg_plot.plot(x_vect_fit * x_unit_conversion, x_polyfit(x_vect_fit)[:-1] * y_unit_conversion, pen=(0, 255, 255), name="polyfit", stepMode=True)
+        pg_plot.plot(x_vect * x_unit_conversion, y_stat_mean[:-1] * y_unit_conversion, pen=pg.mkPen((255, 0, 0), width=5), name=name_y + " mean", stepMode=True)
+        pg_plot.plot(x_vect * x_unit_conversion, y_stat_max[:-1] * y_unit_conversion, pen=(0, 255, 0), name=name_y + " max (10%)", stepMode=True)
+        pg_plot.plot(x_vect * x_unit_conversion, y_stat_min[:-1] * y_unit_conversion, pen=(0, 0, 255), name=name_y + " min (10%)", stepMode=True)
+
+        pg_plot.addItem(pcmi)
+        pg_plot.setLabel('left', name_y + " (" + unit_y + ")")
+
+        return pg_plot
+
     def add_velocity(self):
         dock_velocity = Dock("Velocity")
         self.addDock(dock_velocity, position='below')
@@ -437,154 +519,90 @@ class DockAnalysis(SeafoilDock):
 
         if not data_gnss.is_empty() and not data_height.is_empty() and not data_imu.is_empty():
 
-            # interpolate data_height to data_gnss.time_gnss
-            f_height = interpolate.interp1d(data_height.time, data_height.height, bounds_error=False, kind="zero")
-            height = f_height(data_gnss.time)
-
-            # interpolate pitch to data_gnss.time_gnss
-            f_pitch = interpolate.interp1d(data_imu.time, data_imu.pitch, bounds_error=False, kind="zero")
-            pitch = f_pitch(data_gnss.time)
-
-            # interpolate roll to data_gnss.time_gnss
-            f_roll = interpolate.interp1d(data_imu.time, data_imu.roll, bounds_error=False, kind="zero")
-            roll = f_roll(data_gnss.time)
-
-            min_velocity_kt = 12.0
-            min_sample = 20
-            resolution = 0.1
-            polyndegree = 1
-            min_velocity = min_velocity_kt / self.ms_to_kt
-
-            speed_vect = np.arange(min_velocity, 23, resolution) # 23 m/s in kt = 44.6 kt
-
-            ## height function of speed
-            height_mean_speed = np.zeros(len(speed_vect))
-            height_max_speed = np.zeros(len(speed_vect))
-            height_min_speed = np.zeros(len(speed_vect))
-            for i, s in enumerate(speed_vect):
-                idx = np.where((data_gnss.speed >= s) & (data_gnss.speed < s + resolution))
-                if len(idx[0]) > min_sample:
-                    height_data = np.sort(copy.copy(height[idx]))
-                    height_mean_speed[i] = np.mean(height_data)
-                    height_max_speed[i] = np.mean(height_data[int(len(height_data) * 0.9):])
-                    height_min_speed[i] = np.mean(height_data[:int(len(height_data) * 0.1)])
-
-            # Add a polynomial fit to height_mean_speed
-            last_idx = np.where(height_mean_speed > 0)[0][-1] # remove zeros
-            speed_vect_fit = speed_vect[:last_idx] * self.ms_to_kt
-            z = np.polyfit(speed_vect_fit, height_mean_speed[:last_idx], polyndegree)
-            p = np.poly1d(z)
-
-            ## Roll function of speed
-            roll_mean_speed = np.zeros(len(speed_vect))
-            roll_max_speed = np.zeros(len(speed_vect))
-            roll_min_speed = np.zeros(len(speed_vect))
-            for i, s in enumerate(speed_vect):
-                idx = np.where((data_gnss.speed >= s) & (data_gnss.speed < s + resolution))
-                if len(idx[0]) > min_sample:
-                    roll_data = np.sort(copy.copy(abs(roll[idx])))
-                    roll_mean_speed[i] = np.mean(roll_data)
-                    roll_max_speed[i] = np.mean(roll_data[int(len(roll_data) * 0.9):])
-                    roll_min_speed[i] = np.mean(roll_data[:int(len(roll_data) * 0.1)])
-
-            ## Pitch function of speed
-            pitch_mean_speed = np.zeros(len(speed_vect))
-            pitch_max_speed = np.zeros(len(speed_vect))
-            pitch_min_speed = np.zeros(len(speed_vect))
-            for i, s in enumerate(speed_vect):
-                idx = np.where((data_gnss.speed >= s) & (data_gnss.speed < s + resolution))
-                if len(idx[0]) > min_sample:
-                    pitch_data = np.sort(copy.copy(pitch[idx]))
-                    pitch_mean_speed[i] = np.mean(pitch_data)
-                    pitch_max_speed[i] = np.mean(pitch_data[int(len(pitch_data) * 0.9):])
-                    pitch_min_speed[i] = np.mean(pitch_data[:int(len(pitch_data) * 0.1)])
-
-
-            pg_polar_heading_speed = pg.PlotWidget()
-            self.set_plot_options(pg_polar_heading_speed)
-            pg_polar_heading_speed.plot(speed_vect * self.ms_to_kt, height_mean_speed[:-1], pen=(255, 0, 0), name="height mean", stepMode=True)
-            pg_polar_heading_speed.plot(speed_vect * self.ms_to_kt, height_max_speed[:-1], pen=(0, 255, 0), name="height max (10%)", stepMode=True)
-            pg_polar_heading_speed.plot(speed_vect * self.ms_to_kt, height_min_speed[:-1], pen=(0, 0, 255), name="height min (10%)", stepMode=True)
-            pg_polar_heading_speed.plot(speed_vect_fit, p(speed_vect_fit)[:-1], pen=(255, 0, 255), name="fit height mean", stepMode=True)
-            pg_polar_heading_speed.setLabel('left', "height (m)")
+            pg_polar_heading_speed = self.add_plot_relationship(data_gnss.speed, data_height.height, data_gnss.time, data_height.time,
+                                                                name_x="speed", name_y="height",
+                                                                unit_x="kt", unit_y="m",
+                                                                x_min=12.0, x_max=42.0, x_resolution=0.1, x_unit_conversion=self.ms_to_kt,
+                                                                y_min=0.25, y_max=1.0, y_resolution=0.025, y_unit_conversion=1.0,
+                                                                min_sample=10, enable_polyfit=True, polyndegree=1)
             dock_velocity.addWidget(pg_polar_heading_speed)
 
-            pg_polar_heading_roll = pg.PlotWidget()
-            self.set_plot_options(pg_polar_heading_roll)
-            pg_polar_heading_roll.plot(speed_vect * self.ms_to_kt, roll_mean_speed[:-1], pen=(255, 0, 0), name="roll mean", stepMode=True)
-            pg_polar_heading_roll.plot(speed_vect * self.ms_to_kt, roll_max_speed[:-1], pen=(0, 255, 0), name="roll max (10%)", stepMode=True)
-            pg_polar_heading_roll.plot(speed_vect * self.ms_to_kt, roll_min_speed[:-1], pen=(0, 0, 255), name="roll min (10%)", stepMode=True)
-            pg_polar_heading_roll.setLabel('left', "roll (°)")
+            pg_polar_heading_roll = self.add_plot_relationship(data_gnss.speed, abs(data_imu.roll), data_gnss.time, data_imu.time,
+                                                                name_x="speed", name_y="roll",
+                                                                unit_x="kt", unit_y="°",
+                                                                x_min=12.0, x_max=42.0, x_resolution=0.1, x_unit_conversion=self.ms_to_kt,
+                                                                y_min=0, y_max=40, y_resolution=1, y_unit_conversion=1.0,
+                                                                min_sample=10, enable_polyfit=False, polyndegree=1)
             dock_velocity.addWidget(pg_polar_heading_roll)
             pg_polar_heading_roll.setXLink(pg_polar_heading_speed)
 
-            pg_polar_heading_pitch = pg.PlotWidget()
-            self.set_plot_options(pg_polar_heading_pitch)
-            pg_polar_heading_pitch.plot(speed_vect * self.ms_to_kt, pitch_mean_speed[:-1], pen=(255, 0, 0), name="pitch mean", stepMode=True)
-            pg_polar_heading_pitch.plot(speed_vect * self.ms_to_kt, pitch_max_speed[:-1], pen=(0, 255, 0), name="pitch max (10%)", stepMode=True)
-            pg_polar_heading_pitch.plot(speed_vect * self.ms_to_kt, pitch_min_speed[:-1], pen=(0, 0, 255), name="pitch min (10%)", stepMode=True)
-            pg_polar_heading_pitch.setLabel('left', "pitch (°)")
+            pg_polar_heading_pitch = self.add_plot_relationship(data_gnss.speed, abs(data_imu.pitch), data_gnss.time, data_imu.time,
+                                                                name_x="speed", name_y="pitch",
+                                                                unit_x="kt", unit_y="°",
+                                                                x_min=12.0, x_max=42.0, x_resolution=0.1, x_unit_conversion=self.ms_to_kt,
+                                                                y_min=-20, y_max=20, y_resolution=1, y_unit_conversion=1.0,
+                                                                min_sample=10, enable_polyfit=False, polyndegree=1)
             dock_velocity.addWidget(pg_polar_heading_pitch)
             pg_polar_heading_pitch.setXLink(pg_polar_heading_speed)
 
-    def add_jibe_speed(self):
-        dock_jibe = Dock("Jibe speed")
-        self.addDock(dock_jibe, position='below')
-
-        # For each value of heading find the index before such that the absolute variation of heading is greater than 180
-        # And the difference of index is inferior to 20*25 (20s).
-        max_window_size = 20 * 25
-        jibe_angle = 150
-
-        data_gnss = copy.copy(self.sfb.gps_fix)
-
-        # Compute the heading variation
-        heading_variation = data_gnss.track[:-1] - data_gnss.track[1:]
-        # remove the value greater than 180
-        heading_variation = np.where(heading_variation > 180, heading_variation - 360, heading_variation)
-        heading_variation = np.where(heading_variation < -180, heading_variation + 360, heading_variation)
-
-        heading_accumulated = np.cumsum(heading_variation)
-
-        # For each accumulated heading find the index before such that the absolute variation of heading is greater than 180
-        # And the difference of index is inferior to 20*25 (20s).
-        jibe = np.zeros(len(heading_accumulated))
-
-        for i in range(len(heading_accumulated)):
-            if i > max_window_size:
-                for j in range(10*25, max_window_size+1):
-                    if abs(heading_accumulated[i]-heading_accumulated[i-j]) >= 150:
-                        # Compute the mean speed between i and j
-                        jibe[i] = np.mean(data_gnss.speed[j:i])
-                        break
-
-        # plot (speed, heading, jibe)
-        pg_speed = pg.PlotWidget()
-        self.set_plot_options(pg_speed)
-        pg_speed.plot(data_gnss.time, (data_gnss.speed*self.ms_to_kt)[:-1], pen=(255, 0, 0), name="speed", stepMode=True)
-        pg_speed.setLabel('left', "speed (m/s)")
-        dock_jibe.addWidget(pg_speed)
-
-        pg_heading = pg.PlotWidget()
-        self.set_plot_options(pg_heading)
-        pg_heading.plot(data_gnss.time, data_gnss.track[:-1], pen=(255, 0, 0), name="heading", stepMode=True)
-        pg_heading.setLabel('left', "heading (°)")
-        dock_jibe.addWidget(pg_heading)
-        pg_heading.setXLink(pg_speed)
-
-        pg_jibe = pg.PlotWidget()
-        self.set_plot_options(pg_jibe)
-        pg_jibe.plot(data_gnss.time, jibe*self.ms_to_kt, pen=(255, 0, 0), name="jibe speed", stepMode=True)
-        pg_jibe.setLabel('left', "speed (kt)")
-        dock_jibe.addWidget(pg_jibe)
-        pg_jibe.setXLink(pg_speed)
-
-        pg_heading_acc = pg.PlotWidget()
-        self.set_plot_options(pg_heading_acc)
-        pg_heading_acc.plot(data_gnss.time, heading_accumulated, pen=(255, 0, 0), name="heading variation", stepMode=True)
-        pg_heading_acc.setLabel('left', "heading variation (°)")
-        dock_jibe.addWidget(pg_heading_acc)
-        pg_heading_acc.setXLink(pg_speed)
+    # def add_jibe_speed(self):
+    #     dock_jibe = Dock("Jibe speed")
+    #     self.addDock(dock_jibe, position='below')
+    #
+    #     # For each value of heading find the index before such that the absolute variation of heading is greater than 180
+    #     # And the difference of index is inferior to 20*25 (20s).
+    #     max_window_size = 20 * 25
+    #     jibe_angle = 150
+    #
+    #     data_gnss = copy.copy(self.sfb.gps_fix)
+    #
+    #     # Compute the heading variation
+    #     heading_variation = data_gnss.track[:-1] - data_gnss.track[1:]
+    #     # remove the value greater than 180
+    #     heading_variation = np.where(heading_variation > 180, heading_variation - 360, heading_variation)
+    #     heading_variation = np.where(heading_variation < -180, heading_variation + 360, heading_variation)
+    #
+    #     heading_accumulated = np.cumsum(heading_variation)
+    #
+    #     # For each accumulated heading find the index before such that the absolute variation of heading is greater than 180
+    #     # And the difference of index is inferior to 20*25 (20s).
+    #     jibe = np.zeros(len(heading_accumulated))
+    #
+    #     for i in range(len(heading_accumulated)):
+    #         if i > max_window_size:
+    #             for j in range(10*25, max_window_size+1):
+    #                 if abs(heading_accumulated[i]-heading_accumulated[i-j]) >= 150:
+    #                     # Compute the mean speed between i and j
+    #                     jibe[i] = np.mean(data_gnss.speed[j:i])
+    #                     break
+    #
+    #     # plot (speed, heading, jibe)
+    #     pg_speed = pg.PlotWidget()
+    #     self.set_plot_options(pg_speed)
+    #     pg_speed.plot(data_gnss.time, (data_gnss.speed*self.ms_to_kt)[:-1], pen=(255, 0, 0), name="speed", stepMode=True)
+    #     pg_speed.setLabel('left', "speed (m/s)")
+    #     dock_jibe.addWidget(pg_speed)
+    #
+    #     pg_heading = pg.PlotWidget()
+    #     self.set_plot_options(pg_heading)
+    #     pg_heading.plot(data_gnss.time, data_gnss.track[:-1], pen=(255, 0, 0), name="heading", stepMode=True)
+    #     pg_heading.setLabel('left', "heading (°)")
+    #     dock_jibe.addWidget(pg_heading)
+    #     pg_heading.setXLink(pg_speed)
+    #
+    #     pg_jibe = pg.PlotWidget()
+    #     self.set_plot_options(pg_jibe)
+    #     pg_jibe.plot(data_gnss.time, jibe*self.ms_to_kt, pen=(255, 0, 0), name="jibe speed", stepMode=True)
+    #     pg_jibe.setLabel('left', "speed (kt)")
+    #     dock_jibe.addWidget(pg_jibe)
+    #     pg_jibe.setXLink(pg_speed)
+    #
+    #     pg_heading_acc = pg.PlotWidget()
+    #     self.set_plot_options(pg_heading_acc)
+    #     pg_heading_acc.plot(data_gnss.time, heading_accumulated, pen=(255, 0, 0), name="heading variation", stepMode=True)
+    #     pg_heading_acc.setLabel('left', "heading variation (°)")
+    #     dock_jibe.addWidget(pg_heading_acc)
+    #     pg_heading_acc.setXLink(pg_speed)
 
 
 
