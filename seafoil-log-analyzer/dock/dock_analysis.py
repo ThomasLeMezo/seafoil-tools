@@ -48,6 +48,21 @@ def get_starting_index_for_distance_from_last_point(data_distance, distance, end
             return d0_idx
     return starting_idx
 
+def compute_diff_yaw(data_yaw, data_time, window_size):
+    # Create vector with the same size as data_imu.yaw
+    yaw = np.zeros(len(data_yaw))
+
+    # Cumulative sum of the difference between two consecutive values of data_yaw with modulo 360
+    for i in range(1, len(data_yaw)):
+        diff = (data_yaw[i] - data_yaw[i - 1])
+        yaw[i] = yaw[i - 1] + min(diff%360, 360 - diff%360)*np.sign(diff)
+
+    yaw = np.convolve(yaw, np.ones(window_size) / window_size, mode='same')
+    data_time = np.convolve(data_time, np.ones(3) / 3, mode='same')
+    time_diff = np.diff(data_time)
+    yaw_diff = np.diff(yaw) / time_diff
+
+    return yaw, yaw_diff
 
 class DockAnalysis(SeafoilDock):
     def __init__(self, seafoil_bag, tabWidget, windows):
@@ -64,6 +79,13 @@ class DockAnalysis(SeafoilDock):
         self.speed_v500 = compute_speed_for_distance(self.sfb.distance, 500)
         self.speed_v1852 = compute_speed_for_distance(self.sfb.distance, 1852)
 
+        self.yaw = None
+        self.yaw_diff = None
+        data_gnss = copy.copy(self.sfb.gps_fix)
+        if not data_gnss.is_empty():
+            self.yaw, self.yaw_diff = compute_diff_yaw(data_gnss.track, data_gnss.time, 25*3)
+
+
         self.pg_profile, self.pg_speed = self.plot_height_velocity()
 
         self.add_height_velocity()
@@ -71,6 +93,8 @@ class DockAnalysis(SeafoilDock):
         self.add_speed_for_distance()
         self.add_polar_heading()
         self.add_velocity()
+
+        # self.add_heading_velocity()
 
         # self.add_jibe_speed()
 
@@ -169,10 +193,44 @@ class DockAnalysis(SeafoilDock):
             pg_track.setLabel('left', "track")
             dock_heading.addWidget(pg_track)
             pg_track.setXLink(pg_profile)
-
             self.list_pg_yaw.append(pg_track)
 
+            # plot the yaw_diff
+            # if self.yaw is not None and self.yaw_diff is not None:
+            #     pg_yaw_diff = pg.PlotWidget()
+            #     self.set_plot_options(pg_yaw_diff)
+            #     pg_yaw_diff.plot(data_gnss.time, self.yaw_diff, pen=(255, 0, 0), name="yaw diff", stepMode=True)
+            #     pg_yaw_diff.setLabel('left', "yaw diff")
+            #     dock_heading.addWidget(pg_yaw_diff)
+            #     pg_yaw_diff.setXLink(pg_profile)
+            #
+            #     # plot yaw
+            #     pg_yaw = pg.PlotWidget()
+            #     self.set_plot_options(pg_yaw)
+            #     pg_yaw.plot(data_gnss.time, self.yaw[:-1], pen=(255, 0, 0), name="yaw", stepMode=True)
+            #     pg_yaw.setLabel('left', "yaw")
+            #     dock_heading.addWidget(pg_yaw)
+            #     pg_yaw.setXLink(pg_profile)
+
             self.add_label_time([pg_speed, pg_profile, pg_track], data_gnss.starting_time, dock_heading)
+
+    def add_heading_velocity(self):
+        dock_heading_velocity = Dock("Heading velocity")
+        self.addDock(dock_heading_velocity, position='below')
+
+        data_gnss = copy.copy(self.sfb.gps_fix)
+
+        if not data_gnss.is_empty() :
+
+            pg_yaw_diff_velocity = self.add_plot_relationship(data_gnss.speed, self.yaw_diff, data_gnss.time, data_gnss.time[:-1],
+                                                            name_x="speed", name_y="yaw diff",
+                                                            unit_x="kt", unit_y="°/s",
+                                                            x_min=12.0, x_max=42.0, x_resolution=0.1, x_unit_conversion=self.ms_to_kt,
+                                                            y_min=-30, y_max=30, y_resolution=1, y_unit_conversion=1.0,
+                                                            min_sample=10, enable_polyfit=False, polyndegree=1)
+            dock_heading_velocity.addWidget(pg_yaw_diff_velocity)
+
+
 
     def add_speed_for_distance(self):
         dock_height_velocity = Dock("Speed for a distance")
@@ -480,10 +538,15 @@ class DockAnalysis(SeafoilDock):
         x_vect_fit = None
         x_polyfit = None
         if enable_polyfit:
-            last_idx = np.where(y_stat_mean > 0)[0][-1]
-            x_vect_fit = x_vect[:last_idx]
-            z = np.polyfit(x_vect_fit, y_stat_mean[:last_idx], polyndegree)
-            x_polyfit = np.poly1d(z)
+            try:
+                last_idx = np.where(y_stat_mean > 0)[0][-1]
+                x_vect_fit = x_vect[:last_idx]
+                z = np.polyfit(x_vect_fit, y_stat_mean[:last_idx], polyndegree)
+                x_polyfit = np.poly1d(z)
+            except Exception as e:
+                print("Oops!  error ", e)
+                enable_polyfit = False
+                pass
 
         # Display 2D matrix of y with color
         edgecolors   = None
