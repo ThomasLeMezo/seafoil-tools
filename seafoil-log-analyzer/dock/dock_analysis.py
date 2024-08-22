@@ -433,7 +433,8 @@ class DockAnalysis(SeafoilDock):
                               name_x = None, name_y = None, unit_x=None, unit_y=None,
                               x_min = None, x_max = None, x_resolution = None, x_unit_conversion = 1.0,
                               y_min = None, y_max = None, y_resolution = None, y_unit_conversion = 1.0,
-                              min_sample=5, enable_polyfit=False, polyndegree=1):
+                              min_sample=5, enable_polyfit=False, polyndegree=1,
+                              enable_plot_curves=True, enable_plot_trajectory=False):
 
         # Example : x = data_gnss.speed, y = data_height.height, name_x = "speed", name_y = "height"
 
@@ -498,14 +499,24 @@ class DockAnalysis(SeafoilDock):
         # Plot
         pg_plot = pg.PlotWidget()
         self.set_plot_options(pg_plot)
-        if enable_polyfit:
-            pg_plot.plot(x_vect_fit * x_unit_conversion, x_polyfit(x_vect_fit)[:-1] * y_unit_conversion, pen=(0, 255, 255), name="polyfit", stepMode=True)
-        pg_plot.plot(x_vect * x_unit_conversion, y_stat_mean[:-1] * y_unit_conversion, pen=pg.mkPen((255, 0, 0), width=5), name=name_y + " mean", stepMode=True)
-        pg_plot.plot(x_vect * x_unit_conversion, y_stat_max[:-1] * y_unit_conversion, pen=(0, 255, 0), name=name_y + " max (10%)", stepMode=True)
-        pg_plot.plot(x_vect * x_unit_conversion, y_stat_min[:-1] * y_unit_conversion, pen=(0, 0, 255), name=name_y + " min (10%)", stepMode=True)
-
+        if enable_plot_curves:
+            if enable_polyfit:
+                pg_plot.plot(x_vect_fit * x_unit_conversion, x_polyfit(x_vect_fit)[:-1] * y_unit_conversion, pen=(0, 255, 255), name="polyfit", stepMode=True)
+            pg_plot.plot(x_vect * x_unit_conversion, y_stat_mean[:-1] * y_unit_conversion, pen=pg.mkPen((255, 0, 0), width=5), name=name_y + " mean", stepMode=True)
+            pg_plot.plot(x_vect * x_unit_conversion, y_stat_max[:-1] * y_unit_conversion, pen=(0, 255, 0), name=name_y + " max (10%)", stepMode=True)
+            pg_plot.plot(x_vect * x_unit_conversion, y_stat_min[:-1] * y_unit_conversion, pen=(0, 0, 255), name=name_y + " min (10%)", stepMode=True)
         pg_plot.addItem(pcmi)
         pg_plot.setLabel('left', name_y + " (" + unit_y + ")")
+
+        if enable_plot_trajectory:
+            # Select index where the speed is greater than 12 kt
+            idx = np.where(data_x > x_min)
+            # Smooth the trajectory with a window of 4s
+            window_size = 4 * 25
+            y = np.convolve(y, np.ones(window_size) / window_size, mode='same')
+            data_x = np.convolve(data_x, np.ones(window_size) / window_size, mode='same')
+
+            pg_plot.plot(data_x[idx]*x_unit_conversion, y[idx][:-1]*y_unit_conversion, pen=(255, 0, 0), name=name_y + " (filter 4s)", stepMode=True)
 
         return pg_plot
 
@@ -519,31 +530,41 @@ class DockAnalysis(SeafoilDock):
 
         if not data_gnss.is_empty() and not data_height.is_empty() and not data_imu.is_empty():
 
-            pg_polar_heading_speed = self.add_plot_relationship(data_gnss.speed, data_height.height, data_gnss.time, data_height.time,
+            pg_height_velocity = self.add_plot_relationship(data_gnss.speed, data_height.height, data_gnss.time, data_height.time,
                                                                 name_x="speed", name_y="height",
                                                                 unit_x="kt", unit_y="m",
                                                                 x_min=12.0, x_max=42.0, x_resolution=0.1, x_unit_conversion=self.ms_to_kt,
                                                                 y_min=0.25, y_max=1.0, y_resolution=0.025, y_unit_conversion=1.0,
                                                                 min_sample=10, enable_polyfit=True, polyndegree=1)
-            dock_velocity.addWidget(pg_polar_heading_speed)
+            dock_velocity.addWidget(pg_height_velocity)
 
-            pg_polar_heading_roll = self.add_plot_relationship(data_gnss.speed, abs(data_imu.roll), data_gnss.time, data_imu.time,
+            pg_roll_velocity = self.add_plot_relationship(data_gnss.speed, abs(data_imu.roll), data_gnss.time, data_imu.time,
                                                                 name_x="speed", name_y="roll",
                                                                 unit_x="kt", unit_y="°",
                                                                 x_min=12.0, x_max=42.0, x_resolution=0.1, x_unit_conversion=self.ms_to_kt,
                                                                 y_min=0, y_max=40, y_resolution=1, y_unit_conversion=1.0,
                                                                 min_sample=10, enable_polyfit=False, polyndegree=1)
-            dock_velocity.addWidget(pg_polar_heading_roll)
-            pg_polar_heading_roll.setXLink(pg_polar_heading_speed)
+            dock_velocity.addWidget(pg_roll_velocity)
+            pg_roll_velocity.setXLink(pg_height_velocity)
 
-            pg_polar_heading_pitch = self.add_plot_relationship(data_gnss.speed, abs(data_imu.pitch), data_gnss.time, data_imu.time,
+            pg_pitch_velocity = self.add_plot_relationship(data_gnss.speed, abs(data_imu.pitch), data_gnss.time, data_imu.time,
                                                                 name_x="speed", name_y="pitch",
                                                                 unit_x="kt", unit_y="°",
                                                                 x_min=12.0, x_max=42.0, x_resolution=0.1, x_unit_conversion=self.ms_to_kt,
                                                                 y_min=-20, y_max=20, y_resolution=1, y_unit_conversion=1.0,
                                                                 min_sample=10, enable_polyfit=False, polyndegree=1)
-            dock_velocity.addWidget(pg_polar_heading_pitch)
-            pg_polar_heading_pitch.setXLink(pg_polar_heading_speed)
+            dock_velocity.addWidget(pg_pitch_velocity)
+            pg_pitch_velocity.setXLink(pg_height_velocity)
+
+            pg_heading_velocity = self.add_plot_relationship(data_gnss.speed, data_gnss.track, data_gnss.time, data_gnss.time,
+                                                                name_x="speed", name_y="heading",
+                                                                unit_x="kt", unit_y="°",
+                                                                x_min=12.0, x_max=42.0, x_resolution=0.1, x_unit_conversion=self.ms_to_kt,
+                                                                y_min=0, y_max=360, y_resolution=1, y_unit_conversion=1.0,
+                                                                min_sample=10, enable_polyfit=False, polyndegree=1, enable_plot_curves=False,
+                                                                enable_plot_trajectory=True)
+            dock_velocity.addWidget(pg_heading_velocity)
+            pg_heading_velocity.setXLink(pg_height_velocity)
 
     # def add_jibe_speed(self):
     #     dock_jibe = Dock("Jibe speed")
