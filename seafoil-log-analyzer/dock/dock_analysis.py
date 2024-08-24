@@ -64,6 +64,61 @@ def compute_diff_yaw(data_yaw, data_time, window_size):
 
     return yaw, yaw_diff
 
+def add_line(position_init=0, unit="", line_color = (255, 255, 255), text_position = [0, 40]):
+    # Add an infinit movable vertical line
+    r2b = pg.InfiniteLine(pos=position_init, angle=90, movable=True, pen=pg.mkPen(color=line_color, width=2))
+
+    # Add a legend to the plot
+    text = pg.TextItem()
+    # convert color to string
+    color = '#%02x%02x%02x' % line_color
+    # set the html text with the color (span)
+    heading = position_init
+    marge = min(abs(180 - position_init), abs(position_init + 180))
+    text.setHtml("<div style='text-align: center'><span style='color: " + color + ";'>heading: " + f"{heading:.1f}" + unit + "(" + f"{marge:.1f}" + unit + ")" + "</span></div>")
+
+    text.setPos(text_position[0], text_position[1])
+
+    def update():
+        heading = r2b.value()
+        marge = min(abs(180 - heading), abs(heading + 180))
+        text.setHtml("<div style='text-align: center'><span style='color: " + color + ";'>heading: " + f"{heading:.1f}" + unit + "(" + f"{marge:.1f}" + unit + ")" + "</span></div>")
+
+    r2b.sigPositionChanged.connect(update)
+
+    return r2b, text
+
+
+def add_slope(position_init, unit="", line_color = (255, 255, 255), text_position = [0, 40]):
+    r2b = pg.LineSegmentROI(position_init, pen=pg.mkPen(color=line_color, width=2))
+
+    # Add a legend to the plot
+    text = pg.TextItem()
+    # convert color to string
+    color = '#%02x%02x%02x' % line_color
+    # set the html text with the color (span)
+    text.setHtml("<div style='text-align: center'><span style='color: " + color + ";'>slope: 0 " + unit + "</span></div>")
+    text.setPos(text_position[0], text_position[1])
+
+    def update_line():
+        h1, h2 = r2b.getLocalHandlePositions()
+        # x => heading, y => velocity
+        p1 = [h1[-1].x(), h1[-1].y()]
+        p2 = [h2[-1].x(), h2[-1].y()]
+        # compute the slope
+        slope_heading = 0.0
+        if p2[0] - p1[0] != 0:
+            slope_heading = (p2[0] - p1[0]) / (p2[1] - p1[1])
+
+        # change the text of the legend with the slope and add a background color
+        text.setHtml("<div style='text-align: center'><span style='color: " + color + ";'>slope: " + str(round(slope_heading, 2)) + " " + unit + "</span></div>")
+        # Set the position of the text to the middle of the line
+
+    r2b.sigRegionChanged.connect(update_line)
+    r2b.sigRegionChangeFinished.connect(update_line)
+
+    return r2b, text
+
 class DockAnalysis(SeafoilDock):
     def __init__(self, seafoil_bag, tabWidget, windows):
         SeafoilDock.__init__(self, seafoil_bag)
@@ -590,6 +645,8 @@ class DockAnalysis(SeafoilDock):
             data_x = np.convolve(data_x, np.ones(window_size) / window_size, mode='same')
 
             plot_taj = pg_plot.plot(data_x[idx]*x_unit_conversion, y[idx][:-1]*y_unit_conversion, pen=(255, 0, 0), name=name_y + " (filter 4s)", stepMode=True)
+            # set the plot as invisible
+            plot_taj.setVisible(False)
 
         spinbox = None
         if modulo_x:
@@ -616,6 +673,7 @@ class DockAnalysis(SeafoilDock):
                 plot_taj.setData(data_x_copy*x_unit_conversion, y[:-1]*y_unit_conversion)
 
             spinbox.sigValueChanged.connect(update_x_center)
+            update_x_center()
 
         if spinbox is not None:
             return pg_plot, spinbox
@@ -678,31 +736,22 @@ class DockAnalysis(SeafoilDock):
             dock_heading.addWidget(pg_heading_velocity)
             dock_heading.addWidget(spinBox)
 
-            r2b = pg.LineSegmentROI([[0,12], [0,20]])
-            pg_heading_velocity.addItem(r2b)
-            # Add a legend to the plot
-            text = pg.TextItem()
-            pg_heading_velocity.addItem(text)
-            text.setHtml("<div style='text-align: center'><span style='color: #FFF;'>slope: 0.0</span></div>")
-            text.setPos(0, 40)
 
-            def update_line():
-                h1, h2 = r2b.getLocalHandlePositions()
-                # x => heading, y => velocity
-                p1 = [h1[-1].x(), h1[-1].y()]
-                p2 = [h2[-1].x(), h2[-1].y()]
-                # compute the slope
-                slope_heading = 0.0
-                if p2[0] - p1[0] != 0:
-                    slope_heading = (p2[0] - p1[0]) / (p2[1] - p1[1])
+            r2b_1, text_1 = add_slope([[10, 12], [10, 20]], unit="°/kt", line_color=(255, 255, 0), text_position=[0, 40])
+            r2b_2, text_2 = add_slope([[-10, 12], [-10, 20]], unit="°/kt", line_color=(0, 255, 255), text_position=[0, 38])
 
-                # change the text of the legend with the slope and add a background color
-                text.setHtml("<div style='text-align: center'><span style='color: #FFF;'>slope: " + str(round(slope_heading, 2)) + " °/kt</span></div>")
-                # Set the position of the text to the middle of the line
-                # text.setPos((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2)
+            pg_heading_velocity.addItem(r2b_1)
+            pg_heading_velocity.addItem(text_1)
+            pg_heading_velocity.addItem(r2b_2)
+            pg_heading_velocity.addItem(text_2)
 
-            r2b.sigRegionChanged.connect(update_line)
-            r2b.sigRegionChangeFinished.connect(update_line)
+            line_1, text_line_1 = add_line(180, unit="°", line_color=(255, 255, 0), text_position=[0, 36])
+            line_2, text_line_2 = add_line(-180, unit="°", line_color=(0, 255, 255), text_position=[0, 34])
+
+            pg_heading_velocity.addItem(line_1)
+            pg_heading_velocity.addItem(text_line_1)
+            pg_heading_velocity.addItem(line_2)
+            pg_heading_velocity.addItem(text_line_2)
 
             pg_heading_roll = self.add_plot_relationship(data_gnss.track, abs(data_imu.roll), data_gnss.time, data_imu.time,
                                                          name_x="heading", name_y="roll",
