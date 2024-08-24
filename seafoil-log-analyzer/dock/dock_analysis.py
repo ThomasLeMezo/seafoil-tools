@@ -93,6 +93,7 @@ class DockAnalysis(SeafoilDock):
         self.add_speed_for_distance()
         self.add_polar_heading()
         self.add_velocity()
+        self.add_heading_parameter()
 
         # self.add_heading_velocity()
 
@@ -492,7 +493,9 @@ class DockAnalysis(SeafoilDock):
                               x_min = None, x_max = None, x_resolution = None, x_unit_conversion = 1.0,
                               y_min = None, y_max = None, y_resolution = None, y_unit_conversion = 1.0,
                               min_sample=5, enable_polyfit=False, polyndegree=1,
-                              enable_plot_curves=True, enable_plot_trajectory=False):
+                              enable_plot_curves=True, enable_plot_trajectory=False,
+                              normalize = "max",
+                              modulo_x = False):
 
         # Example : x = data_gnss.speed, y = data_height.height, name_x = "speed", name_y = "height"
 
@@ -530,9 +533,12 @@ class DockAnalysis(SeafoilDock):
                         y_hist[i, idx_y] += 1
 
                 # Normalize histogram
-                max_hist = np.max(y_hist[i])
-                if max_hist > 0:
-                    y_hist[i] = y_hist[i] / max_hist
+                if normalize == "max":
+                    max_hist = np.max(y_hist[i])
+                    if max_hist > 0:
+                        y_hist[i] = y_hist[i] / max_hist
+                elif normalize == "one":
+                    y_hist[i] = y_hist[i] > 0
 
         # Add a polynomial fit to y_mean
         x_vect_fit = None
@@ -548,7 +554,9 @@ class DockAnalysis(SeafoilDock):
                 enable_polyfit = False
                 pass
 
+        ##############################
         # Display 2D matrix of y with color
+
         edgecolors   = None
         antialiasing = False
         colormap = pg.ColorMap(pos=[0., 1.0],
@@ -571,17 +579,48 @@ class DockAnalysis(SeafoilDock):
         pg_plot.addItem(pcmi)
         pg_plot.setLabel('left', name_y + " (" + unit_y + ")")
 
+        plot_taj = None
         if enable_plot_trajectory:
-            # Select index where the speed is greater than 12 kt
+            # Select index where the speed is greater than x_min
             idx = np.where(data_x > x_min)
+
             # Smooth the trajectory with a window of 4s
             window_size = 4 * 25
             y = np.convolve(y, np.ones(window_size) / window_size, mode='same')
             data_x = np.convolve(data_x, np.ones(window_size) / window_size, mode='same')
 
-            pg_plot.plot(data_x[idx]*x_unit_conversion, y[idx][:-1]*y_unit_conversion, pen=(255, 0, 0), name=name_y + " (filter 4s)", stepMode=True)
+            plot_taj = pg_plot.plot(data_x[idx]*x_unit_conversion, y[idx][:-1]*y_unit_conversion, pen=(255, 0, 0), name=name_y + " (filter 4s)", stepMode=True)
 
-        return pg_plot
+        spinbox = None
+        if modulo_x:
+            # Add a spin box to change the center value of the x axis
+            spinbox = pg.SpinBox(value=x_min*x_unit_conversion, bounds=[x_min*x_unit_conversion, x_max*x_unit_conversion], step=x_resolution*x_unit_conversion)
+            def update_x_center():
+                half_range = (x_max - x_min)/2
+                x_center = ((spinbox.value()/x_unit_conversion+(x_max - x_min)/2.)%(x_max - x_min))
+
+                # find first index where x_vect_local > (x_max-x_min)/2.
+                idx = np.where(x_vect > x_center)[0][0]
+
+                # put the subarray of y_hist in the right order
+                y_hist_local = np.concatenate((y_hist[idx:], y_hist[:idx]), axis=0)
+                x_vect_local = np.arange(-half_range, half_range, x_resolution)
+
+                x_pcmi = np.outer((x_vect_local - x_resolution/2.) * x_unit_conversion, np.ones(int((y_max-y_min) / y_resolution)))
+                y_pcmi = np.outer(np.ones(len(x_vect_local)), np.arange(y_min, y_max, y_resolution) * y_unit_conversion)
+                pcmi.setData(x_pcmi, y_pcmi, y_hist_local[:-1,:-1])
+
+                #
+                # Apply modulo to x_vect
+                data_x_copy = (data_x - x_center) % (x_max - x_min) - (x_max - x_min)/2.
+                plot_taj.setData(data_x_copy*x_unit_conversion, y[:-1]*y_unit_conversion)
+
+            spinbox.sigValueChanged.connect(update_x_center)
+
+        if spinbox is not None:
+            return pg_plot, spinbox
+        else:
+            return pg_plot
 
     def add_velocity(self):
         dock_velocity = Dock("Velocity")
@@ -619,15 +658,61 @@ class DockAnalysis(SeafoilDock):
             dock_velocity.addWidget(pg_pitch_velocity)
             pg_pitch_velocity.setXLink(pg_height_velocity)
 
-            pg_heading_velocity = self.add_plot_relationship(data_gnss.speed, data_gnss.track, data_gnss.time, data_gnss.time,
-                                                                name_x="speed", name_y="heading",
-                                                                unit_x="kt", unit_y="°",
-                                                                x_min=12.0, x_max=42.0, x_resolution=0.1, x_unit_conversion=self.ms_to_kt,
-                                                                y_min=0, y_max=360, y_resolution=1, y_unit_conversion=1.0,
-                                                                min_sample=10, enable_polyfit=False, polyndegree=1, enable_plot_curves=False,
-                                                                enable_plot_trajectory=True)
-            dock_velocity.addWidget(pg_heading_velocity)
-            pg_heading_velocity.setXLink(pg_height_velocity)
+    def add_heading_parameter(self):
+        dock_heading = Dock("Heading2")
+        self.addDock(dock_heading, position='below')
+
+        data_gnss = copy.copy(self.sfb.gps_fix)
+        data_height = copy.copy(self.sfb.height)
+        data_imu = copy.copy(self.sfb.rpy)
+
+        if not data_gnss.is_empty() and not data_height.is_empty() and not data_imu.is_empty():
+
+            [pg_heading_velocity, spinBox] = self.add_plot_relationship(data_gnss.track, data_gnss.speed, data_gnss.time, data_gnss.time,
+                                                             name_x="heading", name_y="velocity",
+                                                             unit_x="°", unit_y="kt",
+                                                             x_min=0.0, x_max=360.0, x_resolution=1.0, x_unit_conversion=1.0,
+                                                             y_min=12, y_max=42, y_resolution=0.1, y_unit_conversion=self.ms_to_kt,
+                                                             min_sample=10, enable_polyfit=False, polyndegree=1, enable_plot_curves=False,
+                                                             enable_plot_trajectory=True, normalize="one", modulo_x=True)
+            dock_heading.addWidget(pg_heading_velocity)
+            dock_heading.addWidget(spinBox)
+
+            r2b = pg.LineSegmentROI([[0,12], [0,20]])
+            pg_heading_velocity.addItem(r2b)
+            # Add a legend to the plot
+            text = pg.TextItem()
+            pg_heading_velocity.addItem(text)
+            text.setHtml("<div style='text-align: center'><span style='color: #FFF;'>slope: 0.0</span></div>")
+            text.setPos(0, 40)
+
+            def update_line():
+                h1, h2 = r2b.getLocalHandlePositions()
+                # x => heading, y => velocity
+                p1 = [h1[-1].x(), h1[-1].y()]
+                p2 = [h2[-1].x(), h2[-1].y()]
+                # compute the slope
+                slope_heading = 0.0
+                if p2[0] - p1[0] != 0:
+                    slope_heading = (p2[0] - p1[0]) / (p2[1] - p1[1])
+
+                # change the text of the legend with the slope and add a background color
+                text.setHtml("<div style='text-align: center'><span style='color: #FFF;'>slope: " + str(round(slope_heading, 2)) + " °/kt</span></div>")
+                # Set the position of the text to the middle of the line
+                # text.setPos((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2)
+
+            r2b.sigRegionChanged.connect(update_line)
+            r2b.sigRegionChangeFinished.connect(update_line)
+
+            pg_heading_roll = self.add_plot_relationship(data_gnss.track, abs(data_imu.roll), data_gnss.time, data_imu.time,
+                                                         name_x="heading", name_y="roll",
+                                                         unit_x="°", unit_y="°",
+                                                         x_min=0.0, x_max=360.0, x_resolution=1, x_unit_conversion=1,
+                                                         y_min=0, y_max=40, y_resolution=0.5, y_unit_conversion=1.0,
+                                                         min_sample=10, enable_polyfit=False, polyndegree=1 )
+            dock_heading.addWidget(pg_heading_roll)
+
+            # pg_heading_roll.setXLink(pg_heading_velocity)
 
     # def add_jibe_speed(self):
     #     dock_jibe = Dock("Jibe speed")
@@ -687,6 +772,3 @@ class DockAnalysis(SeafoilDock):
     #     pg_heading_acc.setLabel('left', "heading variation (°)")
     #     dock_jibe.addWidget(pg_heading_acc)
     #     pg_heading_acc.setXLink(pg_speed)
-
-
-

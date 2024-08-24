@@ -60,11 +60,15 @@ class SeafoilWindDebug(SeafoilData):
 
     def load_message_from_file(self):
         data = np.load(self.topic_name_dir + "/" + self.topic_name_file, allow_pickle=True)
-        self.time = data['time']
-        self.status = data['status']
-        self.rate = data['rate']
-        self.sensors = data['sensors']
-        self.connected = data['connected']
-        self.rssi = data['rssi']
-        self.k = len(self.time)
+        try:
+            self.time = data['time']
+            self.status = data['status']
+            self.rate = data['rate']
+            self.sensors = data['sensors']
+            self.connected = data['connected']
+            self.rssi = data['rssi']
+            self.k = len(self.time)
+        except Exception as e:
+            pass
+
     
