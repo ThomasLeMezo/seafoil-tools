@@ -15,6 +15,11 @@ import pyqtgraph.opengl as gl
 class DockFusionAnalysis(SeafoilDock):
     def __init__(self, seafoil_bag, tabWidget, dock_analysis):
         SeafoilDock.__init__(self, seafoil_bag)
+
+        # return if raw_data is empty
+        if self.sfb.raw_data.is_empty():
+            return
+
         tabWidget.addTab(self, "Fusion Analysis")
 
         self.dock_analysis = dock_analysis

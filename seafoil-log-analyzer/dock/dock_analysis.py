@@ -202,7 +202,7 @@ class DockAnalysis(SeafoilDock):
 
     def add_height_velocity(self):
         dock_height_velocity = Dock("Height velocity")
-        self.addDock(dock_height_velocity, position='below')
+
 
         dock_height_velocity.addWidget(self.pg_profile)
         dock_height_velocity.addWidget(self.pg_speed)
@@ -212,6 +212,8 @@ class DockAnalysis(SeafoilDock):
         data_imu = copy.copy(self.sfb.rpy)
 
         if not data.is_empty() and not data_imu.is_empty() and not data_gnss.is_empty():
+            self.addDock(dock_height_velocity, position='below')
+
             pg_imu = pg.PlotWidget()
             window_size = 100
             self.set_plot_options(pg_imu)
@@ -232,11 +234,11 @@ class DockAnalysis(SeafoilDock):
 
     def add_heading(self):
         dock_heading = Dock("Heading")
-        self.addDock(dock_heading, position='below')
         data_gnss = copy.copy(self.sfb.gps_fix)
         data_imu = copy.copy(self.sfb.rpy)
 
         if not data_gnss.is_empty() and not data_imu.is_empty():
+            self.addDock(dock_heading, position='below')
 
             pg_profile, pg_speed = self.plot_height_velocity()
             dock_heading.addWidget(pg_profile)
@@ -272,11 +274,11 @@ class DockAnalysis(SeafoilDock):
 
     def add_heading_velocity(self):
         dock_heading_velocity = Dock("Heading velocity")
-        self.addDock(dock_heading_velocity, position='below')
 
         data_gnss = copy.copy(self.sfb.gps_fix)
 
         if not data_gnss.is_empty() :
+            self.addDock(dock_heading_velocity, position='below')
 
             pg_yaw_diff_velocity = self.add_plot_relationship(data_gnss.speed, self.yaw_diff, data_gnss.time, data_gnss.time[:-1],
                                                             name_x="speed", name_y="yaw diff",
@@ -290,18 +292,17 @@ class DockAnalysis(SeafoilDock):
 
     def add_speed_for_distance(self):
         dock_height_velocity = Dock("Speed for a distance")
-        self.addDock(dock_height_velocity, position='below')
-        data_debug = copy.copy(self.sfb.height_debug)
-        data = copy.copy(self.sfb.height)
+
         data_gnss = copy.copy(self.sfb.gps_fix)
-        data_imu = copy.copy(self.sfb.rpy)
         data_distance = copy.copy(self.sfb.distance)
 
-        if not data.is_empty() and not data_imu.is_empty() and not data_gnss.is_empty() and not data_distance.is_empty():
+        if not data_gnss.is_empty() and not data_distance.is_empty():
+            self.addDock(dock_height_velocity, position='below')
 
             speed_max = np.max(data_gnss.speed * (data_gnss.mode >= 3) * 1.94384)
             speed_max_idx = np.argmax(data_gnss.speed * (data_gnss.mode >= 3) * 1.94384)
 
+            # Plot speed
             pg_speed = pg.PlotWidget()
             self.set_plot_options(pg_speed)
             pg_speed.plot(data_gnss.time, data_gnss.speed[:-1] * 1.94384, pen=(255, 0, 0), name="speed", stepMode=True)
@@ -325,7 +326,7 @@ class DockAnalysis(SeafoilDock):
                 max_speed_v500 = self.speed_v500[idx_max_speed_v500]
                 idx_start_v500 = get_starting_index_for_distance_from_last_point(data_distance, 500, idx_max_speed_v500)
                 pg_speed_distance.plot([data_distance.time[idx_max_speed_v500]], [max_speed_v500 * 1.94384], pen=None,
-                                       symbol='o', symbolBrush=(255, 0, 0), symbolPen='w', symbolSize=10,
+                                       symbol='o', symbolBrush=(0, 255, 0), symbolPen='w', symbolSize=10,
                                        name="end speed 500m")
                 pg_speed_distance.plot([data_distance.time[idx_start_v500]],
                                        [self.speed_v500[idx_start_v500] * 1.94384], pen=None,
@@ -339,18 +340,18 @@ class DockAnalysis(SeafoilDock):
                 idx_start_v1852 = get_starting_index_for_distance_from_last_point(data_distance, 1852,
                                                                                   idx_max_speed_v1852)
                 pg_speed_distance.plot([data_distance.time[idx_max_speed_v1852]], [max_speed_v1852 * 1.94384], pen=None,
-                                       symbol='o', symbolBrush=(255, 0, 0), symbolPen='w', symbolSize=10,
+                                       symbol='o', symbolBrush=(0, 0, 255), symbolPen='w', symbolSize=10,
                                        name="end speed 1852m")
                 pg_speed_distance.plot([data_distance.time[idx_start_v1852]],
                                        [self.speed_v1852[idx_start_v1852] * 1.94384], pen=None,
-                                       symbol='o', symbolBrush=(0, 255, 0), symbolPen='w', symbolSize=10,
+                                       symbol='o', symbolBrush=(0, 0, 255), symbolPen='w', symbolSize=10,
                                        name="start speed 1852m")
 
             pg_speed_distance.setLabel('left', "speed of distance (kt)")
             dock_height_velocity.addWidget(pg_speed_distance)
 
             pg_speed_distance.setXLink(self.pg_speed)
-            pg_speed.setXLink(self.pg_speed)
+            pg_speed_distance.setXLink(pg_speed)
 
             self.add_label_time([pg_speed, pg_speed_distance], data_gnss.starting_time, dock_height_velocity)
             if (np.size(self.speed_v1852) > 5):
@@ -469,12 +470,12 @@ class DockAnalysis(SeafoilDock):
 
     def add_polar_heading(self):
         dock_polar_heading = Dock("Polar heading")
-        self.addDock(dock_polar_heading, position='below')
 
         data_gnss = copy.copy(self.sfb.gps_fix)
         data_height = copy.copy(self.sfb.height)
 
         if not data_gnss.is_empty() and not data_height.is_empty():
+            self.addDock(dock_polar_heading, position='below')
 
             # filter by 2s data_gnss
             window_size = 100
@@ -640,9 +641,9 @@ class DockAnalysis(SeafoilDock):
             idx = np.where(data_x > x_min)
 
             # Smooth the trajectory with a window of 4s
-            window_size = 4 * 25
-            y = np.convolve(y, np.ones(window_size) / window_size, mode='same')
-            data_x = np.convolve(data_x, np.ones(window_size) / window_size, mode='same')
+            # window_size = 4 * 25
+            # y = np.convolve(y, np.ones(window_size) / window_size, mode='same')
+            # data_x = np.convolve(data_x, np.ones(window_size) / window_size, mode='same')
 
             plot_taj = pg_plot.plot(data_x[idx]*x_unit_conversion, y[idx][:-1]*y_unit_conversion, pen=(255, 0, 0), name=name_y + " (filter 4s)", stepMode=True)
             # set the plot as invisible
@@ -682,13 +683,13 @@ class DockAnalysis(SeafoilDock):
 
     def add_velocity(self):
         dock_velocity = Dock("Velocity")
-        self.addDock(dock_velocity, position='below')
 
         data_gnss = copy.copy(self.sfb.gps_fix)
         data_height = copy.copy(self.sfb.height)
         data_imu = copy.copy(self.sfb.rpy)
 
         if not data_gnss.is_empty() and not data_height.is_empty() and not data_imu.is_empty():
+            self.addDock(dock_velocity, position='below')
 
             pg_height_velocity = self.add_plot_relationship(data_gnss.speed, data_height.height, data_gnss.time, data_height.time,
                                                                 name_x="speed", name_y="height",
@@ -721,10 +722,10 @@ class DockAnalysis(SeafoilDock):
         self.addDock(dock_heading, position='below')
 
         data_gnss = copy.copy(self.sfb.gps_fix)
-        data_height = copy.copy(self.sfb.height)
         data_imu = copy.copy(self.sfb.rpy)
 
-        if not data_gnss.is_empty() and not data_height.is_empty() and not data_imu.is_empty():
+        if not data_gnss.is_empty():
+
 
             [pg_heading_velocity, spinBox] = self.add_plot_relationship(data_gnss.track, data_gnss.speed, data_gnss.time, data_gnss.time,
                                                              name_x="heading", name_y="velocity",
@@ -753,6 +754,7 @@ class DockAnalysis(SeafoilDock):
             pg_heading_velocity.addItem(line_2)
             pg_heading_velocity.addItem(text_line_2)
 
+        if not data_imu.is_empty():
             pg_heading_roll = self.add_plot_relationship(data_gnss.track, abs(data_imu.roll), data_gnss.time, data_imu.time,
                                                          name_x="heading", name_y="roll",
                                                          unit_x="°", unit_y="°",

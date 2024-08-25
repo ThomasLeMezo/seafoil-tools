@@ -75,10 +75,12 @@ class DockDataObserver(SeafoilDock):
     # function to plota acceleration, gyro and velocity
     def add_imu_height(self):
         dock_imu_height = Dock("IMU/Height")
-        self.addDock(dock_imu_height, position='below')
+
         data = self.sfb.calibrated_data
 
         if not data.is_empty():
+            self.addDock(dock_imu_height, position='below')
+
             pg_profile, pg_speed = self.plot_height_velocity()
             dock_imu_height.addWidget(pg_profile)
             dock_imu_height.addWidget(pg_speed)
@@ -156,13 +158,15 @@ class DockDataObserver(SeafoilDock):
     # Add distance gate
     def add_distance_gate(self):
         dock_distance_gate = Dock("Distance Gate")
-        self.addDock(dock_distance_gate, position='below')
+
         data_distance_gate = copy.copy(self.sfb.distance_gate)
 
-        pg_profile, pg_speed = self.plot_height_velocity()
-        dock_distance_gate.addWidget(pg_speed)
-
         if not data_distance_gate.is_empty():
+            self.addDock(dock_distance_gate, position='below')
+
+            pg_profile, pg_speed = self.plot_height_velocity()
+            dock_distance_gate.addWidget(pg_speed)
+
             pg_distance_gate = pg.PlotWidget()
             self.set_plot_options(pg_distance_gate)
             pg_distance_gate.plot(data_distance_gate.time, data_distance_gate.distance_gate[:-1], pen=(255, 0, 0), name="distance gate", stepMode=True)
@@ -217,7 +221,7 @@ class DockDataObserver(SeafoilDock):
 
     def add_profile(self):
         dock_profile = Dock("Profile")
-        self.addDock(dock_profile, position='below')
+
         data = copy.copy(self.sfb.height_debug)
 
         temperatureKelvin = 12.0 + 273.15
@@ -229,17 +233,21 @@ class DockDataObserver(SeafoilDock):
         t_start = 20
 
         if not data.is_empty():
+            self.addDock(dock_profile, position='below')
+
             # pg_profile = pg.GraphicsLayoutWidget()
             pg_profile = self.add_plot_profile(dock_profile, data, add_interval=True)
 
     def add_profile_one(self):
         dock_profile_one = Dock("Profile one")
-        self.addDock(dock_profile_one, position='below')
+
         data_filtered = copy.copy(self.sfb.height_debug)
         data_profile = copy.copy(self.sfb.profile)
         i = 10
 
-        if not data_filtered.is_empty():
+        if not data_filtered.is_empty() and not data_profile.is_empty():
+            self.addDock(dock_profile_one, position='below')
+
             pg_image = self.add_plot_profile(dock_profile_one, data_filtered, add_interval=False)
             # Add infinite line
             inf1 = pg.InfiniteLine(movable=True, angle=90, label='{value:0.0f}',
@@ -297,15 +305,17 @@ class DockDataObserver(SeafoilDock):
 
     def add_profile_filter(self):
         dock_profile_filter = Dock("Height")
-        self.addDock(dock_profile_filter, position='below')
         data_debug = copy.copy(self.sfb.height_debug)
         data = copy.copy(self.sfb.height)
 
         if not data.is_empty():
+            self.addDock(dock_profile_filter, position='below')
+
             pg_profile = pg.PlotWidget()
             self.set_plot_options(pg_profile)
             pg_profile.plot(data.time, data.height[:-1], pen=(255, 0, 0), name="height", stepMode=True)
-            pg_profile.plot(data_debug.time, data_debug.height_unfiltered[:-1], pen=(0, 255, 0),
+            if not data_debug.is_empty():
+                pg_profile.plot(data_debug.time, data_debug.height_unfiltered[:-1], pen=(0, 255, 0),
                             name="height unfiltered", stepMode=True)
             pg_profile.setLabel('left', "status")
             dock_profile_filter.addWidget(pg_profile)
@@ -314,11 +324,13 @@ class DockDataObserver(SeafoilDock):
         # Plot wind data correct by heading of the boat
 
         dock_wind = Dock("Wind")
-        self.addDock(dock_wind, position='below')
+
         data_wind = copy.copy(self.sfb.wind)
         data_gnss = copy.copy(self.sfb.gps_fix)
 
         if not data_wind.is_empty() and not data_gnss.is_empty():
+            self.addDock(dock_wind, position='below')
+
             # interp data_gnss.track to data_wind.time
             f_gnss_track = interpolate.interp1d(data_gnss.time, data_gnss.track, bounds_error=False, kind="zero")
             track = f_gnss_track(data_wind.time)
@@ -358,13 +370,14 @@ class DockDataObserver(SeafoilDock):
         # Plot wind data correct by heading of the boat
 
         dock_wind = Dock("Wind2")
-        self.addDock(dock_wind, position='below')
         data_wind = copy.copy(self.sfb.wind)
         data_gnss = copy.copy(self.sfb.gps_fix)
         data_imu = copy.copy(self.sfb.rpy)
 
 
-        if not data_wind.is_empty():
+        if not data_wind.is_empty() and not data_imu.is_empty() and not data_gnss.is_empty():
+            self.addDock(dock_wind, position='below')
+
             pg_wind_speed = None
             if not data_gnss.is_empty():
                 # interp data_gnss.track to data_wind.time

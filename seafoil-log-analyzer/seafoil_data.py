@@ -23,8 +23,13 @@ class SeafoilData(object):
             output_serialization_format=self.serialization_format)
 
         ## Count number of messages
-        self.nb_elements = self.count_nb_message()
-        self.starting_time = self.get_starting_time()
+        # test if bag_path is not a gpx
+        if not bag_path.endswith(".gpx"):
+            self.nb_elements = self.count_nb_message()
+            self.starting_time = self.get_starting_time()
+        else:
+            self.nb_elements = 0
+            self.starting_time = datetime.datetime(2019, 1, 1, 0, 0)
 
         self.time = np.empty([self.nb_elements])
         self.k = 0
@@ -76,6 +81,8 @@ class SeafoilData(object):
         print("save_data not implemented")
 
     def load_message(self):
+        if self.nb_elements == 0:
+            return
 
         # test if data directory exists (data has been already saved)
         if os.path.exists(self.topic_full_dir):

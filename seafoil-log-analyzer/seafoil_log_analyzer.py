@@ -1,6 +1,7 @@
 #!/bin/python3
 
 import sys
+import os
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtWidgets
 import pyqtgraph.console
@@ -28,8 +29,15 @@ if len(sys.argv)>=3:
     offset_date = datetime.datetime.strptime(sys.argv[2], '%Y-%m-%d %H:%M:%S')
     print(offset_date)
 
-## Load ros2 bag
-sfb = SeafoilBag(filename, offset_date)
+sfb = None
+# test if file is a .gpx
+if filename.endswith('.gpx'):
+    sfb = SeafoilBag(filename, offset_date, is_gpx=True)
+# test if file is a directory
+elif os.path.isdir(filename):
+    ## Load ros2 bag
+    sfb = SeafoilBag(filename, offset_date)
+
 ## Display
 
 app = QtWidgets.QApplication([])

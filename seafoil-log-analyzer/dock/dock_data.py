@@ -15,7 +15,7 @@ import pyqtgraph.opengl as gl
 class DockData(SeafoilDock):
     def __init__(self, seafoil_bag, tabWidget):
         SeafoilDock.__init__(self, seafoil_bag)
-        tabWidget.addTab(self, "Raw Data")
+
         self.add_profile()
         # self.add_profile2()
         # self.add_profile_one()
@@ -31,14 +31,20 @@ class DockData(SeafoilDock):
         self.add_wind_info()
         self.add_wind_debug()
 
+        # test if tabWidget contains any docks
+        if self.docks:
+            tabWidget.addTab(self, "Raw Data")
+
         print("DockData initialized")
 
     def add_profile(self):
         dock_profile = Dock("Profile (default)")
-        self.addDock(dock_profile, position='below')
+
         data = copy.copy(self.sfb.profile)
 
         if not data.is_empty():
+            self.addDock(dock_profile, position='below')
+
             pg_profile = pg.GraphicsLayoutWidget()
             i2 = pg.ImageItem(image=data.profile)
             p2 = pg_profile.addPlot(1, 0, 1, 1, title="interactive")
@@ -63,10 +69,11 @@ class DockData(SeafoilDock):
 
     def add_profile2(self):
         dock_profile = Dock("Profile (zero)")
-        self.addDock(dock_profile, position='below')
+
         data = copy.copy(self.sfb.profile)
 
         if not data.is_empty():
+            self.addDock(dock_profile, position='below')
 
             # compute the mean of the first 10 profiles
             mean_profile = np.mean(data.profile[0:10, :], axis=0)
@@ -100,11 +107,13 @@ class DockData(SeafoilDock):
 
     def add_profile_one(self):
         dock_profile_one = Dock("Profile analysis")
-        self.addDock(dock_profile_one, position='below')
+
         data = self.sfb.profile
         i = 10
 
         if not data.is_empty():
+            self.addDock(dock_profile_one, position='below')
+
             pg_profile = pg.PlotWidget()
             pg_profile.plot(np.arange(128), data.profile[i, :-1], pen=(255, 0, 0), name="signal", stepMode=True)
             pg_profile.setLabel('left', "status")
@@ -112,10 +121,12 @@ class DockData(SeafoilDock):
 
     def add_battery(self):
         dock_battery = Dock("Battery")
-        self.addDock(dock_battery, position='below')
+
         data = self.sfb.battery
 
         if not data.is_empty():
+            self.addDock(dock_battery, position='below')
+
             pg_voltage = pg.PlotWidget()
             self.set_plot_options(pg_voltage)
             pg_voltage.plot(data.time, data.voltage, pen=(255, 0, 0), name="voltage")
@@ -139,12 +150,14 @@ class DockData(SeafoilDock):
 
     def add_imu(self):
         dock_imu = Dock("IMU RAW")
-        self.addDock(dock_imu, position='below')
+
         data = self.sfb.raw_data
         data_debug = self.sfb.debug_fusion
         pg_acceleration = None
 
         if not data.is_empty():
+            self.addDock(dock_imu, position='below')
+
             pg_acceleration = pg.PlotWidget()
             self.set_plot_options(pg_acceleration)
             pg_acceleration.plot(data.time, data.accel_x, pen=(255, 0, 0), name="x")
@@ -243,11 +256,13 @@ class DockData(SeafoilDock):
 
     def add_euler(self):
         dock_euler = Dock("Euler")
-        self.addDock(dock_euler, position='below')
+
         data = self.sfb.rpy
         data_debug = self.sfb.debug_fusion
 
         if not data.is_empty():
+            self.addDock(dock_euler, position='below')
+
             pg_roll = pg.PlotWidget()
             self.set_plot_options(pg_roll)
             pg_roll.plot(data.time, data.roll, pen=(255, 0, 0), name="roll")
@@ -267,11 +282,14 @@ class DockData(SeafoilDock):
 
     def add_ahrs_error_acc(self):
         dock_ahrs_error_acc = Dock("AHRS error (Acc)")
-        self.addDock(dock_ahrs_error_acc, position='below')
+
         data_debug = self.sfb.debug_fusion
         data = self.sfb.calibrated_data
         pg_acc = None
         data_rpy = self.sfb.rpy
+
+        if not data.is_empty() or not data_rpy.is_empty() or not data_debug.is_empty():
+            self.addDock(dock_ahrs_error_acc, position='below')
 
         if not data.is_empty():
             pg_acc = pg.PlotWidget()
@@ -320,11 +338,14 @@ class DockData(SeafoilDock):
 
     def add_ahrs_error_mag(self):
         dock_ahrs_error_mag = Dock("AHRS error (Mag)")
-        self.addDock(dock_ahrs_error_mag, position='below')
+
         data_debug = self.sfb.debug_fusion
         data = self.sfb.calibrated_data
 
         pg_mag = None
+
+        if not data.is_empty() or not data_debug.is_empty():
+            self.addDock(dock_ahrs_error_mag, position='below')
 
         if not data.is_empty():
             pg_mag = pg.PlotWidget()
@@ -372,10 +393,12 @@ class DockData(SeafoilDock):
 
     def add_corr_acc(self):
         dock_corr_acc = Dock("Correlation acceleration")
-        self.addDock(dock_corr_acc, position='below')
+
         data = self.sfb.rpy
 
         if not data.is_empty():
+            self.addDock(dock_corr_acc, position='below')
+
             pg_acc_x = pg.PlotWidget()
             self.set_plot_options(pg_acc_x)
             pg_acc_x.plot(data.time, data.acceleration_x, pen=(255, 0, 0), name="acceleration_x")
@@ -398,10 +421,12 @@ class DockData(SeafoilDock):
 
     def add_imu_calibrated(self):
         dock_imu = Dock("IMU CALIBRATED")
-        self.addDock(dock_imu, position='below')
+
         data = self.sfb.calibrated_data
 
         if not data.is_empty():
+            self.addDock(dock_imu, position='below')
+
             pg_acceleration = pg.PlotWidget()
             self.set_plot_options(pg_acceleration)
             pg_acceleration.plot(data.time, data.accel_x, pen=(255, 0, 0), name="x")
@@ -434,11 +459,13 @@ class DockData(SeafoilDock):
 
     def add_magnetic_3Dplot(self):
         dock_imu = Dock("MAG 3D")
-        self.addDock(dock_imu, position='below')
+
         data = self.sfb.calibrated_data
         data_raw = self.sfb.raw_data
 
-        if not data.is_empty():
+        if not data.is_empty() or not data_raw.is_empty():
+            self.addDock(dock_imu, position='below')
+
             w = gl.GLViewWidget()
             w.setCameraPosition(distance=200)
 
@@ -469,10 +496,12 @@ class DockData(SeafoilDock):
 
     def add_wind(self):
         dock_wind = Dock("Wind")
-        self.addDock(dock_wind, position='below')
+
         data = self.sfb.wind
 
         if not data.is_empty():
+            self.addDock(dock_wind, position='below')
+
             pg_wind = pg.PlotWidget()
             self.set_plot_options(pg_wind)
             pg_wind.plot(data.time, data.velocity * 1.94384, pen=(255, 0, 0), name="velocity (in kt)")
@@ -488,10 +517,12 @@ class DockData(SeafoilDock):
 
     def add_wind_info(self):
         dock_wind_info = Dock("Wind info")
-        self.addDock(dock_wind_info, position='below')
+
         data = self.sfb.wind
 
         if not data.is_empty():
+            self.addDock(dock_wind_info, position='below')
+
             pg_wind_info_battery = pg.PlotWidget()
             self.set_plot_options(pg_wind_info_battery)
             pg_wind_info_battery.plot(data.time, data.battery, pen=(255, 0, 0), name="battery")
@@ -528,10 +559,12 @@ class DockData(SeafoilDock):
 
     def add_wind_debug(self):
         dock_wind_debug = Dock("Wind debug")
-        self.addDock(dock_wind_debug, position='below')
+
         data = self.sfb.wind_debug
 
         if not data.is_empty():
+            self.addDock(dock_wind_debug, position='below')
+
             pg_wind_status = pg.PlotWidget()
             self.set_plot_options(pg_wind_status)
             status = np.array(data.status, dtype='float')

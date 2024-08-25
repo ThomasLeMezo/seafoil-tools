@@ -12,6 +12,11 @@ from pyqtgraph.Qt.QtGui import QColor
 class DockLog(SeafoilDock):
     def __init__(self, seafoil_bag, tabWidget):
         SeafoilDock.__init__(self, seafoil_bag)
+
+        # return if no log data
+        if self.sfb.rosout.is_empty():
+            return
+
         tabWidget.addTab(self, "Log")
 
         self.add_ros_out()

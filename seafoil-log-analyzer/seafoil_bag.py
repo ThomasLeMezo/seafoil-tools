@@ -14,17 +14,22 @@ from msg.seafoil_distance_gate import SeafoilDistanceGate
 from msg.seafoil_manoeuvre import SeafoilManoeuvre
 from msg.seafoil_wind import SeafoilWind
 from msg.seafoil_wind_debug import SeafoilWindDebug
+from gpx.seafoil_gpx import SeafoilGpx
 
 import datetime
 import numpy as np
 
 class SeafoilBag():
-	def __init__(self, bag_path="", offset_date=datetime.datetime(2019, 1, 1, 0, 0)):
+	def __init__(self, bag_path="", offset_date=datetime.datetime(2019, 1, 1, 0, 0), is_gpx=False):
+
 		self.file_name = bag_path
 		self.offset_date = offset_date
 
 		# Driver
-		self.gps_fix = SeafoilGpsFix(bag_path, "/driver/fix", offset_date)
+		if is_gpx:
+			self.gps_fix = SeafoilGpx(bag_path)
+		else:
+			self.gps_fix = SeafoilGpsFix(bag_path, "/driver/fix", offset_date)
 		self.profile = SeafoilProfile(bag_path, "/driver/profile", offset_date)
 		self.raw_data = SeafoilRawData(bag_path, "/driver/raw_data", offset_date)
 		self.calibrated_data = SeafoilRawData(bag_path, "/driver/calibrated_data", offset_date)
@@ -38,7 +43,10 @@ class SeafoilBag():
 		# Observer
 		self.height = SeafoilHeight(bag_path, "/observer/height", offset_date)
 		self.height_debug = SeafoilHeightDebug(bag_path, "/observer/height_debug", offset_date)
-		self.distance = SeafoilDistance(bag_path, "/observer/distance", offset_date)
+		if is_gpx:
+			self.distance = self.gps_fix
+		else:
+			self.distance = SeafoilDistance(bag_path, "/observer/distance", offset_date)
 		self.manoeuvre = SeafoilManoeuvre(bag_path, "/observer/manoeuvre", offset_date)
 		self.distance_gate = SeafoilDistanceGate(bag_path, "/observer/distance_gate", offset_date)
 
