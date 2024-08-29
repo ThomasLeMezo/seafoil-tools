@@ -50,6 +50,9 @@ class SeafoilUiSession(QtWidgets.QDialog):
         self.log_list = []
         self.model = DictListModel(self.log_list)
         self.ui.listView_log.setModel(self.model)
+        # Enable custom context menu on the QListView
+        self.listView_log.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.listView_log.customContextMenuRequested.connect(self.show_context_menu)
 
         # Connect the buttons to the functions
         # self.ui.pushButton_upload_log.clicked.connect(self.on_upload_log_clicked)
@@ -59,11 +62,6 @@ class SeafoilUiSession(QtWidgets.QDialog):
         # Connect ok and cancel buttons
         # self.ui.buttonBox.accepted.connect(self.accept)
         self.ui.buttonBox.rejected.connect(self.reject)
-
-    # On click reject
-    def reject(self):
-        print("Reject")
-        self.close()
 
     # Import a gpx file
     def on_import_gpx_clicked(self):
@@ -76,7 +74,6 @@ class SeafoilUiSession(QtWidgets.QDialog):
             try:
                 gpx_file = open(file_name, 'r')
                 gpx = gpxpy.parse(gpx_file)
-                print("GPX file parsed")
 
                 # Get the starting time of the gpx file
                 starting_time = gpx.tracks[0].segments[0].points[0].time
@@ -93,14 +90,12 @@ class SeafoilUiSession(QtWidgets.QDialog):
 
                 # Insert the gpx file in the database
                 id, exist = self.sdb.insert_gpx(os.path.basename(file_name), log_folder, starting_time)
-                print("GPX file inserted in the database")
 
                 if exist:
                     # Open dialog error
                     QtWidgets.QMessageBox.warning(self, 'Information', 'This GPX file is already imported')
                 else:
                     os.system('cp ' + file_name + ' ' + gpx_file_name)
-                    print("GPX file copied")
 
 
                 # Add the gpx file in the list if it is not already in the list
@@ -129,6 +124,31 @@ class SeafoilUiSession(QtWidgets.QDialog):
                 return False
         return False
 
+    def show_context_menu(self, position):
+        # Create the context menu
+        menu = QtWidgets.QMenu(self)
+        remove_action = menu.addAction("Remove Item")
+
+        # Execute the menu and get the selected action
+        action = menu.exec_(self.listView_log.mapToGlobal(position))
+
+        if action == remove_action:
+            self.remove_selected_item()
+
+    def remove_selected_item(self):
+        # Get the currently selected index
+        index = self.listView_log.currentIndex()
+
+        if not index.isValid():
+            return
+
+        # Remove the selected item from the dictionary
+        if index.row() < len(self.log_list):
+            # delete the item from the dictionary at position index.row()
+            del self.log_list[index.row()]
+
+        # Update the model with the modified dictionary
+        self.model.update_data(self.log_list)
 
     def update_log_list(self):
         # Clear the list view

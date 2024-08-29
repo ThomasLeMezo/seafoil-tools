@@ -30,13 +30,23 @@ class SeafoilDB:
             name TEXT
         )''')
 
+        # Create table for rider
+        self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS rider
+        (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            first_name TEXT,
+            last_name TEXT
+        )''')
+
         # Create table for session
         self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS session
         (
             id INTEGER PRIMARY KEY AUTOINCREMENT, 
             time_start DATETIME DEFAULT 0,
             time_end DATETIME DEFAULT 0,
-            wind_mean_heading REAL
+            rider_id INTEGER,
+            wind_mean_heading REAL,
+            FOREIGN KEY (rider_id) REFERENCES rider(id)
         )''')
 
         # Create table for rosbag

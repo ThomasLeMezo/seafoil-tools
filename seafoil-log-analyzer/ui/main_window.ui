@@ -77,8 +77,214 @@
       </widget>
       <widget class="QWidget" name="tab">
        <attribute name="title">
-        <string>Configuration Botier</string>
+        <string>Configuration botier</string>
        </attribute>
+       <layout class="QFormLayout" name="formLayout">
+        <item row="0" column="0">
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>Configuration</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QComboBox" name="comboBox"/>
+        </item>
+        <item row="4" column="0" colspan="2">
+         <widget class="QLabel" name="label_7">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="text">
+           <string>Vitesse</string>
+          </property>
+          <property name="textFormat">
+           <enum>Qt::AutoText</enum>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="0">
+         <widget class="QLabel" name="label_2">
+          <property name="text">
+           <string>V500</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="1">
+         <widget class="QDoubleSpinBox" name="doubleSpinBox">
+          <property name="suffix">
+           <string> kt</string>
+          </property>
+          <property name="decimals">
+           <number>1</number>
+          </property>
+          <property name="singleStep">
+           <double>0.500000000000000</double>
+          </property>
+          <property name="value">
+           <double>20.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+        <item row="6" column="0">
+         <widget class="QLabel" name="label_3">
+          <property name="text">
+           <string>V1850</string>
+          </property>
+         </widget>
+        </item>
+        <item row="6" column="1">
+         <widget class="QDoubleSpinBox" name="doubleSpinBox_2">
+          <property name="suffix">
+           <string> kt</string>
+          </property>
+          <property name="decimals">
+           <number>1</number>
+          </property>
+          <property name="singleStep">
+           <double>0.500000000000000</double>
+          </property>
+          <property name="value">
+           <double>20.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+        <item row="9" column="0" colspan="2">
+         <widget class="QLabel" name="label_6">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="text">
+           <string>Hauteur de vol</string>
+          </property>
+         </widget>
+        </item>
+        <item row="10" column="0">
+         <widget class="QLabel" name="label_4">
+          <property name="text">
+           <string>Limite haute</string>
+          </property>
+         </widget>
+        </item>
+        <item row="10" column="1">
+         <widget class="QDoubleSpinBox" name="doubleSpinBox_4">
+          <property name="suffix">
+           <string> m</string>
+          </property>
+          <property name="maximum">
+           <double>1.100000000000000</double>
+          </property>
+          <property name="singleStep">
+           <double>0.010000000000000</double>
+          </property>
+          <property name="value">
+           <double>0.700000000000000</double>
+          </property>
+         </widget>
+        </item>
+        <item row="11" column="0">
+         <widget class="QLabel" name="label_5">
+          <property name="text">
+           <string>Limite basse</string>
+          </property>
+         </widget>
+        </item>
+        <item row="11" column="1">
+         <widget class="QDoubleSpinBox" name="doubleSpinBox_3">
+          <property name="suffix">
+           <string> m</string>
+          </property>
+          <property name="maximum">
+           <double>1.100000000000000</double>
+          </property>
+          <property name="singleStep">
+           <double>0.010000000000000</double>
+          </property>
+          <property name="value">
+           <double>0.400000000000000</double>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="0" colspan="2">
+         <widget class="Line" name="line">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>100</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QPushButton" name="pushButton">
+          <property name="text">
+           <string>Envoyer vers le boitier</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QPushButton" name="pushButton_2">
+          <property name="text">
+           <string>Enregistrer la configuration</string>
+          </property>
+         </widget>
+        </item>
+        <item row="7" column="0">
+         <widget class="QLabel" name="label_8">
+          <property name="text">
+           <string>Interval voix</string>
+          </property>
+         </widget>
+        </item>
+        <item row="7" column="1">
+         <widget class="QSpinBox" name="spinBox">
+          <property name="suffix">
+           <string> s</string>
+          </property>
+          <property name="minimum">
+           <number>2</number>
+          </property>
+          <property name="maximum">
+           <number>6</number>
+          </property>
+          <property name="value">
+           <number>5</number>
+          </property>
+         </widget>
+        </item>
+        <item row="8" column="0">
+         <widget class="QLabel" name="label_9">
+          <property name="text">
+           <string>Activer cap</string>
+          </property>
+         </widget>
+        </item>
+        <item row="8" column="1">
+         <widget class="QCheckBox" name="checkBox">
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </widget>
      </widget>
     </item>
@@ -92,6 +298,11 @@
      <width>982</width>
      <height>22</height>
     </rect>
+   </property>
+   <property name="font">
+    <font>
+     <kerning>true</kerning>
+    </font>
    </property>
    <widget class="QMenu" name="menuMenut">
     <property name="title">
