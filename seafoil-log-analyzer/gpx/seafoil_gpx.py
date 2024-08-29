@@ -21,7 +21,8 @@ class SeafoilGpx(SeafoilData):
         self.gpx = gpxpy.parse(self.gpx_file)
 
         self.nb_elements = len(self.gpx.tracks[0].segments[0].points)
-        self.start_date = self.gpx.tracks[0].segments[0].points[0].time
+        #self.start_date = self.gpx.tracks[0].segments[0].points[0].time
+        self.starting_time = self.gpx.tracks[0].segments[0].points[0].time
         self.k = 0
 
         self.time = np.empty([self.nb_elements])
@@ -36,7 +37,7 @@ class SeafoilGpx(SeafoilData):
         self.satellites_visible = np.empty([self.nb_elements], dtype='int32')
 
         for i, point in enumerate(self.gpx.tracks[0].segments[0].points):
-            self.time[i] = (point.time - self.start_date).total_seconds()
+            self.time[i] = (point.time - self.starting_time).total_seconds()
             self.time_gnss[i] = point.time.timestamp()
             self.latitude[i] = point.latitude
             self.longitude[i] = point.longitude

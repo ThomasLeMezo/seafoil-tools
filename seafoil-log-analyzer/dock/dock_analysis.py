@@ -575,7 +575,7 @@ class DockAnalysis(SeafoilDock):
         y_stat_min = np.zeros(len(x_vect))
         y_hist = np.zeros([len(x_vect), int((y_max - y_min) / y_resolution)])
         for i, x in enumerate(x_vect):
-            idx = np.where((data_x.data >= x) & (data_x.data < x + x_resolution))
+            idx = np.where((data_x.data >= x) & (data_x.data < (x + x_resolution)))
             if len(idx[0]) > min_sample:
                 y_data = np.sort(y[idx])
                 y_stat_mean[i] = np.mean(y_data)
@@ -645,7 +645,7 @@ class DockAnalysis(SeafoilDock):
             # y = np.convolve(y, np.ones(window_size) / window_size, mode='same')
             # data_x = np.convolve(data_x, np.ones(window_size) / window_size, mode='same')
 
-            plot_taj = pg_plot.plot(data_x[idx]*x_unit_conversion, y[idx][:-1]*y_unit_conversion, pen=(255, 0, 0), name=name_y + " (filter 4s)", stepMode=True)
+            plot_taj = pg_plot.plot(data_x[idx]*x_unit_conversion, y[idx]*y_unit_conversion, pen=(255, 0, 0), name=name_y + " (filter 4s)", stepMode=False)
             # set the plot as invisible
             plot_taj.setVisible(False)
 
@@ -664,14 +664,14 @@ class DockAnalysis(SeafoilDock):
                 y_hist_local = np.concatenate((y_hist[idx:], y_hist[:idx]), axis=0)
                 x_vect_local = np.arange(-half_range, half_range, x_resolution)
 
-                x_pcmi = np.outer((x_vect_local - x_resolution/2.) * x_unit_conversion, np.ones(int((y_max-y_min) / y_resolution)))
+                x_pcmi = np.outer((x_vect_local + x_resolution) * x_unit_conversion, np.ones(int((y_max-y_min) / y_resolution)))
                 y_pcmi = np.outer(np.ones(len(x_vect_local)), np.arange(y_min, y_max, y_resolution) * y_unit_conversion)
                 pcmi.setData(x_pcmi, y_pcmi, y_hist_local[:-1,:-1])
 
                 #
                 # Apply modulo to x_vect
                 data_x_copy = (data_x - x_center) % (x_max - x_min) - (x_max - x_min)/2.
-                plot_taj.setData(data_x_copy*x_unit_conversion, y[:-1]*y_unit_conversion)
+                plot_taj.setData(data_x_copy*x_unit_conversion, y*y_unit_conversion)
 
             spinbox.sigValueChanged.connect(update_x_center)
             update_x_center()
@@ -732,7 +732,7 @@ class DockAnalysis(SeafoilDock):
                                                              unit_x="°", unit_y="kt",
                                                              x_min=0.0, x_max=360.0, x_resolution=1.0, x_unit_conversion=1.0,
                                                              y_min=12, y_max=42, y_resolution=0.1, y_unit_conversion=self.ms_to_kt,
-                                                             min_sample=10, enable_polyfit=False, polyndegree=1, enable_plot_curves=False,
+                                                             min_sample=0, enable_polyfit=False, polyndegree=1, enable_plot_curves=False,
                                                              enable_plot_trajectory=True, normalize="one", modulo_x=True)
             dock_heading.addWidget(pg_heading_velocity)
             dock_heading.addWidget(spinBox)
