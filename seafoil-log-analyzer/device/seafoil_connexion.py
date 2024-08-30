@@ -2,6 +2,7 @@ import paramiko
 import datetime
 import os
 from scp import SCPClient
+import yaml
 
 class SeafoilConnexion:
 
@@ -17,10 +18,6 @@ class SeafoilConnexion:
         self.log_folder = self.projet_folder + '/data/log/'
 
         self.stored_log_list = []
-
-        if not self.connect():
-            print("An error occurred while connecting to the server.")
-            exit(1)
 
     def __del__(self):
         # if connected, close the connection
@@ -125,6 +122,69 @@ class SeafoilConnexion:
         except Exception as e:
             print(f"An error occurred: {e}")
             return False
+
+    # Send a yaml configuration file to the seafoil box
+    def seafoil_send_config(self, file_name, yaml_data):
+        # Test if connected
+        if not self.check_if_connected():
+            return False
+
+        # Create temporary yaml file (test if directory exists)
+        os.makedirs(f"{self.projet_folder}/data/", exist_ok=True)
+        config_file = f"{self.projet_folder}/data/tmp.yaml"
+        with open(config_file, 'w') as file:
+            yaml.dump(yaml_data, file)
+
+        # Stop the service
+        if not self.seafoil_service_stop():
+            return False
+
+        try:
+            # Send the file
+            with SCPClient(self.ssh_client.get_transport()) as scp:
+                scp.put(config_file, f"/home/{self.username}/config/default/" + file_name)
+                print("File sent successfully.")
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return False
+
+        # Remove the temporary file
+        os.remove(config_file)
+
+    # Read a yaml configuration file from the seafoil box
+    def seafoil_read_config(self, file_name):
+        # Create temporary yaml file (test if directory exists)
+        os.makedirs(f"{self.projet_folder}/data/", exist_ok=True)
+        config_file = f"{self.projet_folder}/data/tmp.yaml"
+        # Errase file if it exists
+        if os.path.exists(config_file):
+            os.remove(config_file)
+
+        try:
+            # Get the file
+            with SCPClient(self.ssh_client.get_transport()) as scp:
+                scp.get(f"/home/{self.username}/config/default/" + file_name, config_file)
+                print("File received successfully.")
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return False
+
+        # Read the file
+        yaml_data = None
+        try:
+            with open(config_file, 'r') as file:
+                yaml_data = yaml.load(file, Loader=yaml.FullLoader)
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return False
+
+        # Remove the temporary file
+        os.remove(config_file)
+
+        return yaml_data
 
     # Get the list of folder in the seafoil home/log directory
     def seafoil_get_log_list(self):

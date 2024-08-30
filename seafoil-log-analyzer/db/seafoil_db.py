@@ -38,6 +38,21 @@ class SeafoilDB:
             last_name TEXT
         )''')
 
+        # Create table for seafoil box configuration
+        self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS seafoil_box_configuration
+        (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            v500 REAL,
+            v1850 REAL,
+            heading_enable BOOLEAN,
+            voice_interval INTEGER,
+            height_too_high REAL,
+            height_high REAL,
+            min_speed_sound REAL
+        )''')
+
+
         # Create table for session
         self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS session
         (
@@ -165,6 +180,35 @@ class SeafoilDB:
 
         # return the id of the last inserted row
         return self.sqliteCursor.lastrowid, False
+
+    # Set configuration for a seafoil box
+    def set_configuration(self, name, v500, v1850, heading_enable, voice_interval, height_too_high, height_high, min_speed_sound, id_config=None):
+        if id_config is not None:
+            print(f"Update configuration {id_config}")
+            self.sqliteCursor.execute('''UPDATE seafoil_box_configuration SET name = ?, v500 = ?, v1850 = ?, heading_enable = ?, voice_interval = ?, height_too_high = ?, height_high = ?, min_speed_sound = ? WHERE id = ?''', (name, v500, v1850, heading_enable, voice_interval, height_too_high, height_high, min_speed_sound, id_config))
+        else:
+            print(f"Save configuration {name}")
+            self.sqliteCursor.execute('''INSERT INTO seafoil_box_configuration (name, v500, v1850, heading_enable, voice_interval, height_too_high, height_high, min_speed_sound) VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (name, v500, v1850, heading_enable, voice_interval, height_too_high, height_high, min_speed_sound))
+        self.sqliteConnection.commit()
+
+    # Get All configurations
+    def get_configuration_all(self):
+        self.sqliteCursor.execute('''SELECT * FROM seafoil_box_configuration''')
+        return self.sqliteCursor.fetchall()
+
+    def get_configuration_last(self):
+        self.sqliteCursor.execute('''SELECT * FROM seafoil_box_configuration ORDER BY id DESC LIMIT 1''')
+        return self.sqliteCursor.fetchone()
+
+    # Get configuration by id
+    def get_configuration_by_id(self, id):
+        self.sqliteCursor.execute('''SELECT * FROM seafoil_box_configuration WHERE id = ?''', (id,))
+        return self.sqliteCursor.fetchone()
+
+    # Remove configuration by id
+    def remove_configuration(self, id):
+        self.sqliteCursor.execute('''DELETE FROM seafoil_box_configuration WHERE id = ?''', (id,))
+        self.sqliteConnection.commit()
 
 # Test the class
 if __name__ == '__main__':
