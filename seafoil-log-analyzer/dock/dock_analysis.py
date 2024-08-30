@@ -754,14 +754,14 @@ class DockAnalysis(SeafoilDock):
             pg_heading_velocity.addItem(line_2)
             pg_heading_velocity.addItem(text_line_2)
 
-        if not data_imu.is_empty():
-            pg_heading_roll = self.add_plot_relationship(data_gnss.track, abs(data_imu.roll), data_gnss.time, data_imu.time,
-                                                         name_x="heading", name_y="roll",
-                                                         unit_x="°", unit_y="°",
-                                                         x_min=0.0, x_max=360.0, x_resolution=1, x_unit_conversion=1,
-                                                         y_min=0, y_max=40, y_resolution=0.5, y_unit_conversion=1.0,
-                                                         min_sample=10, enable_polyfit=False, polyndegree=1 )
-            dock_heading.addWidget(pg_heading_roll)
+        # if not data_imu.is_empty():
+        #     pg_heading_roll = self.add_plot_relationship(data_gnss.track, abs(data_imu.roll), data_gnss.time, data_imu.time,
+        #                                                  name_x="heading", name_y="roll",
+        #                                                  unit_x="°", unit_y="°",
+        #                                                  x_min=0.0, x_max=360.0, x_resolution=1, x_unit_conversion=1,
+        #                                                  y_min=0, y_max=40, y_resolution=0.5, y_unit_conversion=1.0,
+        #                                                  min_sample=10, enable_polyfit=False, polyndegree=1 )
+        #     dock_heading.addWidget(pg_heading_roll)
 
             # pg_heading_roll.setXLink(pg_heading_velocity)
 

@@ -90,7 +90,7 @@
         <item row="0" column="1">
          <widget class="QComboBox" name="comboBox_configuration_list"/>
         </item>
-        <item row="3" column="1">
+        <item row="2" column="1">
          <widget class="QPushButton" name="pushButton_read_config">
           <property name="enabled">
            <bool>false</bool>
@@ -100,7 +100,7 @@
           </property>
          </widget>
         </item>
-        <item row="4" column="0" colspan="2">
+        <item row="3" column="0" colspan="2">
          <widget class="Line" name="line">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
@@ -119,7 +119,7 @@
           </property>
          </widget>
         </item>
-        <item row="5" column="0" colspan="2">
+        <item row="4" column="0" colspan="2">
          <widget class="QLabel" name="label_7">
           <property name="font">
            <font>
@@ -138,14 +138,14 @@
           </property>
          </widget>
         </item>
-        <item row="6" column="0">
+        <item row="5" column="0">
          <widget class="QLabel" name="label_2">
           <property name="text">
            <string>V500</string>
           </property>
          </widget>
         </item>
-        <item row="6" column="1">
+        <item row="5" column="1">
          <widget class="QDoubleSpinBox" name="doubleSpinBox_v500">
           <property name="suffix">
            <string> kt</string>
@@ -161,14 +161,14 @@
           </property>
          </widget>
         </item>
-        <item row="7" column="0">
+        <item row="6" column="0">
          <widget class="QLabel" name="label_3">
           <property name="text">
            <string>V1850</string>
           </property>
          </widget>
         </item>
-        <item row="7" column="1">
+        <item row="6" column="1">
          <widget class="QDoubleSpinBox" name="doubleSpinBox_v1850">
           <property name="suffix">
            <string> kt</string>
@@ -184,14 +184,14 @@
           </property>
          </widget>
         </item>
-        <item row="8" column="0">
+        <item row="7" column="0">
          <widget class="QLabel" name="label_8">
           <property name="text">
            <string>Intervalle voix</string>
           </property>
          </widget>
         </item>
-        <item row="8" column="1">
+        <item row="7" column="1">
          <widget class="QSpinBox" name="spinBox_voice_interval">
           <property name="suffix">
            <string> ms</string>
@@ -210,21 +210,21 @@
           </property>
          </widget>
         </item>
-        <item row="9" column="0">
+        <item row="8" column="0">
          <widget class="QLabel" name="label_9">
           <property name="text">
            <string>Activer cap</string>
           </property>
          </widget>
         </item>
-        <item row="9" column="1">
+        <item row="8" column="1">
          <widget class="QCheckBox" name="checkBox_enable_heading">
           <property name="text">
            <string/>
           </property>
          </widget>
         </item>
-        <item row="10" column="0" colspan="2">
+        <item row="9" column="0" colspan="2">
          <widget class="QLabel" name="label_6">
           <property name="font">
            <font>
@@ -237,14 +237,14 @@
           </property>
          </widget>
         </item>
-        <item row="11" column="0">
+        <item row="10" column="0">
          <widget class="QLabel" name="label_4">
           <property name="text">
            <string>Limite haute</string>
           </property>
          </widget>
         </item>
-        <item row="11" column="1">
+        <item row="10" column="1">
          <widget class="QDoubleSpinBox" name="doubleSpinBox_height_too_high">
           <property name="suffix">
            <string> m</string>
@@ -260,14 +260,14 @@
           </property>
          </widget>
         </item>
-        <item row="12" column="0">
+        <item row="11" column="0">
          <widget class="QLabel" name="label_5">
           <property name="text">
            <string>Limite basse</string>
           </property>
          </widget>
         </item>
-        <item row="12" column="1">
+        <item row="11" column="1">
          <widget class="QDoubleSpinBox" name="doubleSpinBox_height_high">
           <property name="suffix">
            <string> m</string>
@@ -284,16 +284,16 @@
          </widget>
         </item>
         <item row="13" column="1">
-         <widget class="QPushButton" name="pushButton_save_config">
-          <property name="text">
-           <string>Sauvegarder</string>
-          </property>
-         </widget>
-        </item>
-        <item row="14" column="1">
          <widget class="QPushButton" name="pushButton_send_config">
           <property name="text">
            <string>Envoyer vers le boitier</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QPushButton" name="pushButton_remove_config">
+          <property name="text">
+           <string>Supprimer la configuration</string>
           </property>
          </widget>
         </item>

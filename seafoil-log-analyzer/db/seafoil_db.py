@@ -182,13 +182,45 @@ class SeafoilDB:
         return self.sqliteCursor.lastrowid, False
 
     # Set configuration for a seafoil box
-    def set_configuration(self, name, v500, v1850, heading_enable, voice_interval, height_too_high, height_high, min_speed_sound, id_config=None):
-        if id_config is not None:
-            print(f"Update configuration {id_config}")
-            self.sqliteCursor.execute('''UPDATE seafoil_box_configuration SET name = ?, v500 = ?, v1850 = ?, heading_enable = ?, voice_interval = ?, height_too_high = ?, height_high = ?, min_speed_sound = ? WHERE id = ?''', (name, v500, v1850, heading_enable, voice_interval, height_too_high, height_high, min_speed_sound, id_config))
+    def set_configuration(self, data):
+        if data['id'] is not None:
+            self.sqliteCursor.execute('''UPDATE seafoil_box_configuration SET name = ?, 
+                                                                                    v500 = ?, 
+                                                                                    v1850 = ?, 
+                                                                                    heading_enable = ?, 
+                                                                                    voice_interval = ?, 
+                                                                                    height_too_high = ?, 
+                                                                                    height_high = ?, 
+                                                                                    min_speed_sound = ? 
+                                                                                    WHERE id = ?''',
+                                                                                    (data['name'],
+                                                                                     data['v500'],
+                                                                                     data['v1850'],
+                                                                                     data['heading_enable'],
+                                                                                     data['voice_interval'],
+                                                                                     data['height_too_high'],
+                                                                                     data['height_high'],
+                                                                                     data['min_speed_sound'],
+                                                                                     data['id']))
         else:
-            print(f"Save configuration {name}")
-            self.sqliteCursor.execute('''INSERT INTO seafoil_box_configuration (name, v500, v1850, heading_enable, voice_interval, height_too_high, height_high, min_speed_sound) VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (name, v500, v1850, heading_enable, voice_interval, height_too_high, height_high, min_speed_sound))
+            print(f"Save configuration {data['name']}")
+            self.sqliteCursor.execute('''INSERT INTO seafoil_box_configuration (name, 
+                                                                                    v500, 
+                                                                                    v1850, 
+                                                                                    heading_enable, 
+                                                                                    voice_interval, 
+                                                                                    height_too_high, 
+                                                                                    height_high, 
+                                                                                    min_speed_sound) 
+                                                                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                                                                                     (data['name'],
+                                                                                      data['v500'],
+                                                                                      data['v1850'],
+                                                                                      data['heading_enable'],
+                                                                                      data['voice_interval'],
+                                                                                      data['height_too_high'],
+                                                                                      data['height_high'],
+                                                                                      data['min_speed_sound']))
         self.sqliteConnection.commit()
 
     # Get All configurations

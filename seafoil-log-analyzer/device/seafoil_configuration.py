@@ -6,6 +6,8 @@ from device.seafoil_connexion import SeafoilConnexion
 # class to manage the yaml configuration file of the seafoil box
 class SeafoilConfiguration():
     def __init__(self):
+        self.configuration_list = None
+        self.current_index = None
         self.config_file_name = 'observer.yaml'
         self.sc = SeafoilConnexion()
         self.db = SeafoilDB()
@@ -54,33 +56,59 @@ class SeafoilConfiguration():
         self.update_yaml()
         return self.sc.seafoil_send_config(self.config_file_name, self.yaml_observer)
 
+    def update_index(self, index):
+        if self.current_index != index:
+            if index < len(self.configuration_list):
+                self.current_index = index
+                self.db_load_configuration(index)
+                return True
+        return False
 
-    def db_load_last_configuration(self):
-        data = self.db.get_configuration_last()
-        if data is None:
+    def db_load_configuration(self, index):
+        if index is not None and 0 <= index < len(self.configuration_list):
+            data = self.db.get_configuration_by_id(self.configuration_list[index]['id'])
+            if data is None:
+                return
+            self.v500 = data['v500']
+            self.v1850 = data['v1850']
+            self.voice_interval = data['voice_interval']
+            self.heading_enable = data['heading_enable']
+            self.height_high = data['height_high']
+            self.height_too_high = data['height_too_high']
+            self.min_speed_sound = data['min_speed_sound']
+
+    def db_save_configuration(self, name=None, is_new=False):
+        if is_new==False and self.current_index < 0:
             return
-        self.v500 = data['v500']
-        self.v1850 = data['v1850']
-        self.voice_interval = data['voice_interval']
-        self.heading_enable = data['heading_enable']
-        self.height_high = data['height_high']
-        self.height_too_high = data['height_too_high']
-        self.min_speed_sound = data['min_speed_sound']
+        id_config = None
+        if not is_new:
+            id_config = self.configuration_list[self.current_index]['id']
+            name = self.configuration_list[self.current_index]['name']
 
-    def db_save_configuration(self, name):
-        print(f"Save configuration {name}")
-        self.db.set_configuration(name,
-                                  self.v500,
-                                  self.v1850,
-                                  self.heading_enable,
-                                  self.voice_interval,
-                                  self.height_high,
-                                  self.height_too_high,
-                                  self.min_speed_sound)
+        # build a map
+        data = {'name': name,
+                'v500': self.v500,
+                'v1850': self.v1850,
+                'heading_enable': self.heading_enable,
+                'voice_interval': self.voice_interval,
+                'height_high': self.height_high,
+                'height_too_high': self.height_too_high,
+                'min_speed_sound': self.min_speed_sound,
+                'id': id_config}
+
+        self.db.set_configuration(data)
         self.db_get_configuration_list()
+
 
     def db_get_configuration_list(self):
         self.configuration_list = self.db.get_configuration_all()
+        if self.current_index is None:
+            self.current_index = min(len(self.configuration_list) -1, 0)
+        self.db_load_configuration(self.current_index)
 
-    def db_remove_configuration(self, id):
-        self.db.remove_configuration(id)
+
+    def db_remove_configuration(self):
+        if 0 <= self.current_index < len(self.configuration_list):
+            self.db.remove_configuration(self.configuration_list[self.current_index]['id'])
+            self.current_index = None
+            self.db_get_configuration_list()
