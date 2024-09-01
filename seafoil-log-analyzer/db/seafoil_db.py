@@ -102,6 +102,7 @@ class SeafoilDB:
         (
             id INTEGER PRIMARY KEY,
             width REAL,
+            length REAL,
             volume REAL,
             FOREIGN KEY (id) REFERENCES windfoil_equipment(id)
         )''')
@@ -303,11 +304,11 @@ class SeafoilDB:
     def insert_windfoil_board(self, data):
         equipment_id = self.insert_windfoil_equipment(data)
         if data['id'] is None: # Add the board with the id of the last inserted row
-            self.sqliteCursor.execute('''INSERT INTO windfoil_board (id, width, volume) VALUES (?, ?, ?)''', (equipment_id, data['width'], data['volume']))
+            self.sqliteCursor.execute('''INSERT INTO windfoil_board (id, width, length, volume) VALUES (?, ?, ?, ?)''', (equipment_id, data['width'], data['length'], data['volume']))
             self.sqliteConnection.commit()
             return equipment_id
         else: # Update the board
-            self.sqliteCursor.execute('''UPDATE windfoil_board SET width = ?, volume = ? WHERE id = ?''', (data['width'], data['volume'], data['id']))
+            self.sqliteCursor.execute('''UPDATE windfoil_board SET width = ?, length = ?, volume = ? WHERE id = ?''', (data['width'], data['length'], data['volume'], data['id']))
             self.sqliteConnection.commit()
             return data['id']
 
@@ -399,6 +400,11 @@ class SeafoilDB:
         self.remove_windfoil_equipment(id)
         self.sqliteCursor.execute('''DELETE FROM windfoil_fuselage WHERE id = ?''', (id,))
         self.sqliteConnection.commit()
+
+    # Get all windfoil equipment manufacturers
+    def get_windfoil_manufacturer_all(self):
+        self.sqliteCursor.execute('''SELECT DISTINCT manufacturer FROM windfoil_equipment''')
+        return self.sqliteCursor.fetchall()
 
 # Test the class
 if __name__ == '__main__':

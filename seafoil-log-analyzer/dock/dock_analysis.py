@@ -575,7 +575,7 @@ class DockAnalysis(SeafoilDock):
         y_stat_min = np.zeros(len(x_vect))
         y_hist = np.zeros([len(x_vect), int((y_max - y_min) / y_resolution)])
         for i, x in enumerate(x_vect):
-            idx = np.where((data_x.data >= x) & (data_x.data < (x + x_resolution)))
+            idx = np.where((data_x.equipment_data >= x) & (data_x.equipment_data < (x + x_resolution)))
             if len(idx[0]) > min_sample:
                 y_data = np.sort(y[idx])
                 y_stat_mean[i] = np.mean(y_data)
