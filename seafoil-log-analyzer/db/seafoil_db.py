@@ -87,61 +87,63 @@ class SeafoilDB:
             FOREIGN KEY (session) REFERENCES session(id)
         )''')
 
+        # Create table for windfoil equipement
+        self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS windfoil_equipment
+        (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            manufacturer TEXT,
+            model TEXT,
+            year INTEGER,
+            comment TEXT
+        )''')
+
         # Create table for windfoil board
         self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS windfoil_board
         (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, 
-            manufacturer TEXT,
-            model TEXT,
-            length REAL,
+            id INTEGER PRIMARY KEY,
             width REAL,
             volume REAL,
-            year INTEGER,
-            comment TEXT
+            FOREIGN KEY (id) REFERENCES windfoil_equipment(id)
         )''')
 
         # Create table for windfoil sail
         self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS windfoil_sail
         (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, 
-            manufacturer TEXT,
-            model TEXT,
-            size REAL,
-            year INTEGER,
-            comment TEXT
+            id INTEGER PRIMARY KEY,
+            surface REAL,
+            FOREIGN KEY (id) REFERENCES windfoil_equipment(id)
         )''')
 
         # Create table for windfoil front foil
         self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS windfoil_front_foil
         (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, 
-            manufacturer TEXT,
-            model TEXT,
+            id INTEGER PRIMARY KEY,
             surface REAL,
-            year INTEGER,
-            comment TEXT
+            FOREIGN KEY (id) REFERENCES windfoil_equipment(id)
         )''')
 
         # Create table for windfoil back foil
         self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS windfoil_back_foil
         (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, 
-            manufacturer TEXT,
-            model TEXT,
+            id INTEGER PRIMARY KEY,
             surface REAL,
-            year INTEGER,
-            comment TEXT
+            FOREIGN KEY (id) REFERENCES windfoil_equipment(id)
         )''')
 
         # Create table for windfoil foil mast
         self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS windfoil_foil_mast
         (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, 
-            manufacturer TEXT,
-            model TEXT,
+            id INTEGER PRIMARY KEY,
             length REAL,
-            year INTEGER,
-            comment TEXT
+            FOREIGN KEY (id) REFERENCES windfoil_equipment(id)
+        )''')
+
+        # Create table for windfoil fuselage
+        self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS windfoil_fuselage
+        (
+            id INTEGER PRIMARY KEY,
+            length REAL,
+            FOREIGN KEY (id) REFERENCES windfoil_equipment(id)
         )''')
 
         # Create table for windfoil session setup
@@ -242,9 +244,169 @@ class SeafoilDB:
         self.sqliteCursor.execute('''DELETE FROM seafoil_box_configuration WHERE id = ?''', (id,))
         self.sqliteConnection.commit()
 
+    # Get all windfoil_equipment and windfoil_fuselage where id is in windfoil_fuselage (left join)
+    def get_windfoil_fuselage_all(self):
+        self.sqliteCursor.execute('''SELECT * FROM windfoil_equipment LEFT JOIN windfoil_fuselage ON windfoil_equipment.id = windfoil_fuselage.id WHERE windfoil_fuselage.id IS NOT NULL''')
+        return self.sqliteCursor.fetchall()
+
+    # Get all windfoil_equipment and windfoil_board where id is in windfoil_board (left join)
+    def get_windfoil_board_all(self):
+        self.sqliteCursor.execute('''SELECT * FROM windfoil_equipment LEFT JOIN windfoil_board ON windfoil_equipment.id = windfoil_board.id WHERE windfoil_board.id IS NOT NULL''')
+        return self.sqliteCursor.fetchall()
+
+    # Get all windfoil_equipment and windfoil_sail where id is in windfoil_sail (left join)
+    def get_windfoil_sail_all(self):
+        self.sqliteCursor.execute('''SELECT * FROM windfoil_equipment LEFT JOIN windfoil_sail ON windfoil_equipment.id = windfoil_sail.id WHERE windfoil_sail.id IS NOT NULL''')
+        return self.sqliteCursor.fetchall()
+
+    # Get all windfoil_equipment and windfoil_front_foil where id is in windfoil_front_foil (left join)
+    def get_windfoil_front_foil_all(self):
+        self.sqliteCursor.execute('''SELECT * FROM windfoil_equipment LEFT JOIN windfoil_front_foil ON windfoil_equipment.id = windfoil_front_foil.id WHERE windfoil_front_foil.id IS NOT NULL''')
+        return self.sqliteCursor.fetchall()
+
+    # Get all windfoil_equipment and windfoil_back_foil where id is in windfoil_back_foil (left join)
+    def get_windfoil_back_foil_all(self):
+        self.sqliteCursor.execute('''SELECT * FROM windfoil_equipment LEFT JOIN windfoil_back_foil ON windfoil_equipment.id = windfoil_back_foil.id WHERE windfoil_back_foil.id IS NOT NULL''')
+        return self.sqliteCursor.fetchall()
+
+    # Get all windfoil_equipment and windfoil_foil_mast where id is in windfoil_foil_mast (left join)
+    def get_windfoil_foil_mast_all(self):
+        self.sqliteCursor.execute('''SELECT * FROM windfoil_equipment LEFT JOIN windfoil_foil_mast ON windfoil_equipment.id = windfoil_foil_mast.id WHERE windfoil_foil_mast.id IS NOT NULL''')
+        return self.sqliteCursor.fetchall()
+
+    # Add new windfoil equipment to the database if it does not exist (data is a dict)
+    def insert_windfoil_equipment(self, data):
+        if data['id'] is None:
+            # Add a new equipement and get the id
+            self.sqliteCursor.execute('''INSERT INTO windfoil_equipment (manufacturer, model, year, comment) VALUES (?, ?, ?, ?)''', (data['manufacturer'], data['model'], data['year'], data['comment']))
+            self.sqliteConnection.commit()
+            return self.sqliteCursor.lastrowid
+        else:
+            # Update the equipement
+            self.sqliteCursor.execute('''UPDATE windfoil_equipment SET manufacturer = ?, model = ?, year = ?, comment = ? WHERE id = ?''', (data['manufacturer'], data['model'], data['year'], data['comment'], data['id']))
+            self.sqliteConnection.commit()
+            return data['id']
+
+    # Add new windfoil fuselage to the database if it does not exist (data is a dict)
+    def insert_windfoil_fuselage(self, data):
+        equipment_id = self.insert_windfoil_equipment(data)
+        if data['id'] is None: # Add the fuselage with the id of the last inserted row
+            self.sqliteCursor.execute('''INSERT INTO windfoil_fuselage (id, length) VALUES (?, ?)''', (equipment_id, data['length']))
+            self.sqliteConnection.commit()
+            return equipment_id
+        else: # Update the fuselage
+            self.sqliteCursor.execute('''UPDATE windfoil_fuselage SET length = ? WHERE id = ?''', (data['length'], data['id']))
+            self.sqliteConnection.commit()
+            return data['id']
+
+    # Add new windfoil board to the database if it does not exist (data is a dict)
+    def insert_windfoil_board(self, data):
+        equipment_id = self.insert_windfoil_equipment(data)
+        if data['id'] is None: # Add the board with the id of the last inserted row
+            self.sqliteCursor.execute('''INSERT INTO windfoil_board (id, width, volume) VALUES (?, ?, ?)''', (equipment_id, data['width'], data['volume']))
+            self.sqliteConnection.commit()
+            return equipment_id
+        else: # Update the board
+            self.sqliteCursor.execute('''UPDATE windfoil_board SET width = ?, volume = ? WHERE id = ?''', (data['width'], data['volume'], data['id']))
+            self.sqliteConnection.commit()
+            return data['id']
+
+    # Add new windfoil sail to the database if it does not exist (data is a dict)
+    def insert_windfoil_sail(self, data):
+        equipment_id = self.insert_windfoil_equipment(data)
+        if data['id'] is None: # Add the sail with the id of the last inserted row
+            self.sqliteCursor.execute('''INSERT INTO windfoil_sail (id, surface) VALUES (?, ?)''', (equipment_id, data['surface']))
+            self.sqliteConnection.commit()
+            return equipment_id
+        else: # Update the sail
+            self.sqliteCursor.execute('''UPDATE windfoil_sail SET surface = ? WHERE id = ?''', (data['surface'], data['id']))
+            self.sqliteConnection.commit()
+            return data['id']
+
+    # Add new windfoil front foil to the database if it does not exist (data is a dict)
+    def insert_windfoil_front_foil(self, data):
+        equipment_id = self.insert_windfoil_equipment(data)
+        if data['id'] is None: # Add the front foil with the id of the last inserted row
+            self.sqliteCursor.execute('''INSERT INTO windfoil_front_foil (id, surface) VALUES (?, ?)''', (equipment_id, data['surface']))
+            self.sqliteConnection.commit()
+            return equipment_id
+        else: # Update the front foil
+            self.sqliteCursor.execute('''UPDATE windfoil_front_foil SET surface = ? WHERE id = ?''', (data['surface'], data['id']))
+            self.sqliteConnection.commit()
+            return data['id']
+
+    # Add new windfoil back foil to the database if it does not exist (data is a dict)
+    def insert_windfoil_back_foil(self, data):
+        equipment_id = self.insert_windfoil_equipment(data)
+        if data['id'] is None: # Add the back foil with the id of the last inserted row
+            self.sqliteCursor.execute('''INSERT INTO windfoil_back_foil (id, surface) VALUES (?, ?)''', (equipment_id, data['surface']))
+            self.sqliteConnection.commit()
+            return equipment_id
+        else: # Update the back foil
+            self.sqliteCursor.execute('''UPDATE windfoil_back_foil SET surface = ? WHERE id = ?''', (data['surface'], data['id']))
+            self.sqliteConnection.commit()
+            return data['id']
+
+    # Add new windfoil foil mast to the database if it does not exist (data is a dict)
+    def insert_windfoil_foil_mast(self, data):
+        equipment_id = self.insert_windfoil_equipment(data)
+        if data['id'] is None: # Add the foil mast with the id of the last inserted row
+            self.sqliteCursor.execute('''INSERT INTO windfoil_foil_mast (id, length) VALUES (?, ?)''', (equipment_id, data['length']))
+            self.sqliteConnection.commit()
+            return equipment_id
+        else: # Update the foil mast
+            self.sqliteCursor.execute('''UPDATE windfoil_foil_mast SET length = ? WHERE id = ?''', (data['length'], data['id']))
+            self.sqliteConnection.commit()
+            return data['id']
+
+    # Remove windfoil equipment by id
+    def remove_windfoil_equipment(self, id):
+        self.sqliteCursor.execute('''DELETE FROM windfoil_equipment WHERE id = ?''', (id,))
+        self.sqliteConnection.commit()
+
+    # Remove windfoil board by id
+    def remove_windfoil_board(self, id):
+        self.remove_windfoil_equipment(id)
+        self.sqliteCursor.execute('''DELETE FROM windfoil_board WHERE id = ?''', (id,))
+        self.sqliteConnection.commit()
+
+    # Remove windfoil sail by id
+    def remove_windfoil_sail(self, id):
+        self.remove_windfoil_equipment(id)
+        self.sqliteCursor.execute('''DELETE FROM windfoil_sail WHERE id = ?''', (id,))
+        self.sqliteConnection.commit()
+
+    # Remove windfoil front foil by id
+    def remove_windfoil_front_foil(self, id):
+        self.remove_windfoil_equipment(id)
+        self.sqliteCursor.execute('''DELETE FROM windfoil_front_foil WHERE id = ?''', (id,))
+        self.sqliteConnection.commit()
+
+    # Remove windfoil back foil by id
+    def remove_windfoil_back_foil(self, id):
+        self.remove_windfoil_equipment(id)
+        self.sqliteCursor.execute('''DELETE FROM windfoil_back_foil WHERE id = ?''', (id,))
+        self.sqliteConnection.commit()
+
+    # Remove windfoil foil mast by id
+    def remove_windfoil_foil_mast(self, id):
+        self.remove_windfoil_equipment(id)
+        self.sqliteCursor.execute('''DELETE FROM windfoil_foil_mast WHERE id = ?''', (id,))
+        self.sqliteConnection.commit()
+
+    # Remove windfoil fuselage by id
+    def remove_windfoil_fuselage(self, id):
+        self.remove_windfoil_equipment(id)
+        self.sqliteCursor.execute('''DELETE FROM windfoil_fuselage WHERE id = ?''', (id,))
+        self.sqliteConnection.commit()
+
 # Test the class
 if __name__ == '__main__':
     db = SeafoilDB()
+
+    db.insert_windfoil_fuselage({'manufacturer': 'AFS', 'model': '', 'year': 2021, 'comment': '', 'length': 0.95, 'id': None})
+
+    db.insert_windfoil_fuselage({'manufacturer': 'AFS', 'model': '', 'year': 2021, 'comment': '', 'length': 0.6, 'id': 1})
 
 
 

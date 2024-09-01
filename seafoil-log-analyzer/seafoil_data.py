@@ -66,7 +66,10 @@ class SeafoilData(object):
 
     def get_starting_time(self):
         st = rosbag2_py.Info().read_metadata(self.storage_options.uri, self.storage_options.storage_id).starting_time
-        return datetime.datetime.utcfromtimestamp(st.nanoseconds*1e-9)
+        # test if st is a datetime
+
+        dt = datetime.datetime.utcfromtimestamp(st.nanoseconds*1e-9)
+        return dt
 
     def process_message(self, msg):
         print("process_message not implemented")

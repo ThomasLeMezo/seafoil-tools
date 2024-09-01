@@ -1,24 +1,20 @@
 import sys
 from PyQt5 import QtWidgets, uic
+from PyQt5.QtWidgets import QApplication, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 from .seafoilUiSession import SeafoilUiSession
 from device.seafoil_configuration import SeafoilConfiguration
+from device.seafoil_equipement import SeafoilEquipement
 import os
 
-class SeafoilUi(QtWidgets.QMainWindow):
-    def __init__(self, seafoil_directory):
-        super().__init__()
+class SeafoilUiConfiguration:
 
-        # Conversion kt to m/s
-        self.kt_to_ms = 0.514444
-        self.ms_to_kt = 1.0 / self.kt_to_ms
+    def __init__(self, seafoil_ui, ui):
+        self.seafoil_ui = seafoil_ui
+        self.ui = ui
 
-        # Get directory of the current file
-        self.seafoil_directory = seafoil_directory
-        self.ui = uic.loadUi(self.seafoil_directory + '/ui/main_window.ui', self)
         self.configuration_ui_was_connected = False
 
-        # connect the menu/action_new_session to function on_new_session_clicked
-        self.ui.action_new_session.triggered.connect(self.on_new_session_clicked)
+
 
         # connect the pushButton_send_config to function on_send_config_clicked
         self.ui.pushButton_send_config.clicked.connect(self.on_send_config_clicked)
@@ -52,10 +48,7 @@ class SeafoilUi(QtWidgets.QMainWindow):
             self.ui.comboBox_configuration_list.currentIndexChanged.disconnect(self.on_change_index_configuration)
             self.configuration_ui_was_connected = False
 
-    def on_new_session_clicked(self):
-        # Logic to execute when the button is clicked
-        session = SeafoilUiSession(self.seafoil_directory)
-        session.exec_()
+
 
     def update_ui_from_configuration(self):
         self.connect_value_changed_configuration(False)
@@ -97,7 +90,7 @@ class SeafoilUi(QtWidgets.QMainWindow):
 
         index = self.ui.comboBox_configuration_list.currentIndex()
         if index >= len(self.sc.configuration_list):
-            text, ok = QtWidgets.QInputDialog.getText(self, 'Save configuration', 'Enter the name of the configuration:')
+            text, ok = QtWidgets.QInputDialog.getText(self.seafoil_ui, 'Save configuration', 'Enter the name of the configuration:')
             if ok:
                 self.sc.db_save_configuration(text, is_new=True)
 
@@ -128,9 +121,120 @@ class SeafoilUi(QtWidgets.QMainWindow):
             msg.setWindowTitle("Warning")
             msg.exec_()
 
-# Test the class
-if __name__ == "__main__":
-    app = QtWidgets.QApplication(sys.argv)
-    ui = SeafoilUi()
-    ui.show()
-    sys.exit(app.exec_())
+class SeafoilUiEquipement:
+    def __init__(self, seafoil_ui):
+        self.seafoil_ui = seafoil_ui
+        self.ui = seafoil_ui.ui
+        self.se = SeafoilEquipement()
+
+        self.equipment_name_list = {}
+        for names in self.se.equipment_names:
+            self.equipment_name_list[names] = None
+
+        self.update_ui_from_equipement()
+
+        # Add a menu (add/remove) for each type of equipment
+        self.ui.treeWidget_equipment.setContextMenuPolicy(3)
+        self.ui.treeWidget_equipment.customContextMenuRequested.connect(self.show_context_menu)
+
+
+    def show_context_menu(self, position):
+        # Create the context menu
+        menu = QtWidgets.QMenu(self.ui.treeWidget_equipment)
+
+        # Get the selected item
+        item = self.ui.treeWidget_equipment.currentItem()
+
+        category = item.text(0)
+        remove_action = None
+        add_action = None
+        update_action = None
+        is_child = item.parent() is not None
+        item_index = self.ui.treeWidget_equipment.currentIndex()
+
+        if is_child:
+            item_top = self.ui.treeWidget_equipment.currentItem().parent()
+            category = item_top.text(0)
+            remove_action = menu.addAction("Remove " + category)
+            update_action = menu.addAction("Update " + category)
+        else:
+            add_action = menu.addAction("Add " + category)
+
+        # Execute the menu and get the selected action
+        action = menu.exec_(self.ui.treeWidget_equipment.mapToGlobal(position))
+
+        if is_child and action == remove_action:
+            self.remove_selected_item(category, item_index)
+        elif is_child and action == update_action:
+            pass
+        elif action == add_action:
+            pass
+
+    def remove_selected_item(self, category, item_index):
+        if not item_index.isValid():
+            return
+        # Ask for confirmation
+        msg = QtWidgets.QMessageBox()
+        msg.setIcon(QtWidgets.QMessageBox.Question)
+        msg.setText(f"Do you want to remove this {category}?")
+        msg.setWindowTitle(f"Remove {category}")
+        msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+        ret = msg.exec_()
+        if ret == QtWidgets.QMessageBox.No:
+            return
+        self.se.db_remove_equipment(category, item_index.row())
+        self.update_ui_from_equipement()
+
+    def update_ui_from_equipement(self):
+        # Add items from equipment_name_list
+        self.ui.treeWidget_equipment.clear()
+        self.ui.treeWidget_equipment.setHeaderLabels(["Equipement"])
+        for i, name in enumerate(self.equipment_name_list.keys()):
+            item = QTreeWidgetItem([name], i)
+            self.ui.treeWidget_equipment.addTopLevelItem(item)
+            self.equipment_name_list[name] = item
+
+        def equipment_text(data):
+            return f"{data['manufacturer']} {data['model']} ({data['year']}) {data['comment']}"
+        def equipment_text_postfix(data, id):
+            if id == 0:
+                return f" [{data['volume']:.0f} L]"
+            elif id == 1:
+                return f" [{data['size']:.0f} m²]"
+            elif id == 2:
+                return f" [{data['surface']:.0f} cm²]"
+            elif id == 3:
+                return f" [{data['surface']:.0f} m²]"
+            elif id == 4:
+                return f" [{data['length']*100:.0f} cm]"
+            elif id == 5:
+                return f" [{data['length']*100:.0f} cm]"
+            else:
+                return ""
+
+        for i, equipment_type in enumerate(self.se.data):
+            if equipment_type is not None and len(equipment_type)>0:
+                for equipment in equipment_type:
+                    text = equipment_text(equipment) + equipment_text_postfix(equipment, i)
+                    self.equipment_name_list[self.se.equipment_names[i]].addChild(QTreeWidgetItem([text]))
+        self.ui.treeWidget_equipment.expandAll()
+
+
+class SeafoilUi(QtWidgets.QMainWindow):
+    def __init__(self, seafoil_directory):
+        super().__init__()
+
+        # Get directory of the current file
+        self.seafoil_directory = seafoil_directory
+        self.ui = uic.loadUi(self.seafoil_directory + '/ui/main_window.ui', self)
+
+        self.seafoil_ui_configuration = SeafoilUiConfiguration(self, self.ui)
+        self.seafoil_ui_equipment = SeafoilUiEquipement(self)
+
+        # connect the menu/action_new_session to function on_new_session_clicked
+        self.ui.action_new_session.triggered.connect(self.on_new_session_clicked)
+
+    def on_new_session_clicked(self):
+        # Logic to execute when the button is clicked
+        session = SeafoilUiSession(self.seafoil_ui.seafoil_directory)
+        session.exec_()
