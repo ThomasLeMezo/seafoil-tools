@@ -93,7 +93,7 @@ class SeafoilConnexion(QObject):
     def seafoil_service_stop(self):
         try:
             # Command to stop the service
-            command = f"sudo systemctl stop {self.service_name}"
+            command = f"systemctl stop {self.service_name}"
 
             # Execute the command
             stdin, stdout, stderr = self.ssh_client.exec_command(command)
@@ -114,9 +114,12 @@ class SeafoilConnexion(QObject):
             return False
 
     def seafoil_service_start(self):
+        if not self.connect():
+            return False
+
         try:
             # Command to start the service
-            command = f"sudo systemctl start {self.service_name}"
+            command = f"systemctl start {self.service_name}"
 
             # Execute the command
             stdin, stdout, stderr = self.ssh_client.exec_command(command)
@@ -163,7 +166,7 @@ class SeafoilConnexion(QObject):
     # Send a yaml configuration file to the seafoil box
     def seafoil_send_config(self, file_name, yaml_data):
         # Test if connected
-        if not self.check_if_connected():
+        if not self.connect():
             return False
 
         # Create temporary yaml file (test if directory exists)
@@ -188,6 +191,7 @@ class SeafoilConnexion(QObject):
 
         # Remove the temporary file
         os.remove(config_file)
+        return True
 
     # Read a yaml configuration file from the seafoil box
     def seafoil_read_config(self, file_name):

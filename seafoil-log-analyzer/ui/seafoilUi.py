@@ -21,19 +21,35 @@ class SeafoilUiConfiguration:
 
         self.configuration_ui_was_connected = False
 
-
-
         # connect the pushButton_send_config to function on_send_config_clicked
         self.ui.pushButton_send_config.clicked.connect(self.on_send_config_clicked)
 
         # connect the pushButton_remove_config to function on_remove_config_clicked
         self.ui.pushButton_remove_config.clicked.connect(self.on_remove_config_clicked)
 
+        # connect the pushButton_start_software to function on_start_software_clicked
+        self.ui.pushButton_start_software.clicked.connect(self.on_start_software_clicked)
+
         # Seafoil Configuration
         self.sc = SeafoilConfiguration()
         self.update_ui_from_configuration()
 
         self.connect_value_changed_configuration(True)
+
+    def on_start_software_clicked(self):
+        # open a dialog box to confirm the software was started
+        if self.sc.sc.seafoil_service_start():
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Information)
+            msg.setText("The software was started.")
+            msg.setWindowTitle("Information")
+            msg.exec_()
+        else:
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Warning)
+            msg.setText("The software was not started.")
+            msg.setWindowTitle("Warning")
+            msg.exec_()
 
     def connect_value_changed_configuration(self, enable):
         if enable and not self.configuration_ui_was_connected:
@@ -54,8 +70,6 @@ class SeafoilUiConfiguration:
             self.ui.doubleSpinBox_height_high.valueChanged.disconnect(self.on_change_configuration)
             self.ui.comboBox_configuration_list.currentIndexChanged.disconnect(self.on_change_index_configuration)
             self.configuration_ui_was_connected = False
-
-
 
     def update_ui_from_configuration(self):
         self.connect_value_changed_configuration(False)
@@ -111,6 +125,9 @@ class SeafoilUiConfiguration:
         self.update_ui_from_configuration()
 
     def on_send_config_clicked(self):
+        # Set the button as disabled
+        self.ui.pushButton_send_config.setEnabled(False)
+
         self.update_configuration_from_ui()
 
         if self.sc.upload_configuration():
@@ -127,6 +144,9 @@ class SeafoilUiConfiguration:
             msg.setText("The configuration was not sent.")
             msg.setWindowTitle("Warning")
             msg.exec_()
+
+        # Set the button as enabled
+        self.ui.pushButton_send_config.setEnabled(True)
 
 class SeafoilUiEquipement:
     def __init__(self, seafoil_ui):
