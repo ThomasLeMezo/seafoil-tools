@@ -1,8 +1,7 @@
 import sys
 from PyQt5 import QtWidgets, uic
 import os
-import gpxpy
-from db.seafoil_db import SeafoilDB
+from device.seafoil_new_session import SeafoilNewSession
 from PyQt5.QtCore import QAbstractListModel, Qt
 
 # Custom Model Class Based on a Dictionary
@@ -22,8 +21,14 @@ class DictListModel(QAbstractListModel):
             # Return the key corresponding to the row index
             val = self._data[index.row()]
 
+            type_str = ''
+            if val['type'] == 0:
+                type_str = 'rosbag'
+            elif val['type'] == 1:
+                type_str = 'gpx'
+
             # return a string representation of the key
-            return str(val['name'])
+            return str(val['name']) + ' - ' + type_str
 
     def roleNames(self):
         # Optional: Define custom roles if needed
@@ -39,16 +44,16 @@ class DictListModel(QAbstractListModel):
         self.endResetModel()
 
 
-class SeafoilUiSession(QtWidgets.QDialog):
-    def __init__(self, seafoil_directory):
+class SeafoilUiNewSession(QtWidgets.QDialog):
+    def __init__(self):
         super().__init__()
-        self.seafoil_directory = seafoil_directory
+        self.sns = SeafoilNewSession()
         self.directory = os.path.dirname(os.path.abspath(__file__))
         self.ui = uic.loadUi(self.directory + '/session.ui', self)
-        self.sdb = SeafoilDB()
 
-        self.log_list = []
-        self.model = DictListModel(self.log_list)
+
+
+        self.model = DictListModel(self.sns.log_list)
         self.ui.listView_log.setModel(self.model)
         # Enable custom context menu on the QListView
         self.listView_log.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -66,63 +71,18 @@ class SeafoilUiSession(QtWidgets.QDialog):
     # Import a gpx file
     def on_import_gpx_clicked(self):
         # Open file dialog to select a gpx file
-        file_name, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', '', 'GPX files (*.gpx)')
+        file_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', '', 'GPX files (*.gpx)')
 
         # If a file is selected
-        if file_name:
-            # Try to parse the file
-            try:
-                gpx_file = open(file_name, 'r')
-                gpx = gpxpy.parse(gpx_file)
-
-                # Get the starting time of the gpx file
-                starting_time = gpx.tracks[0].segments[0].points[0].time
-
-
-                # Determine the year, month, day and copy the file in the data folder
-                year = starting_time.year
-                month = starting_time.month
-                day = starting_time.day
-                log_folder = '/data/log/' + str(year) + '/' + str(month) + '/' + str(day) + '/'
-                folder = self.seafoil_directory + log_folder
-                os.makedirs(folder, exist_ok=True)
-                gpx_file_name = folder + os.path.basename(file_name)
-
-                # Insert the gpx file in the database
-                id, exist = self.sdb.insert_gpx(os.path.basename(file_name), log_folder, starting_time)
-
-                if exist:
-                    # Open dialog error
-                    QtWidgets.QMessageBox.warning(self, 'Information', 'This GPX file is already imported')
-                else:
-                    os.system('cp ' + file_name + ' ' + gpx_file_name)
-
-
-                # Add the gpx file in the list if it is not already in the list
-                for log in self.log_list:
-                    if log['name'] == os.path.basename(file_name):
-                        # Open dialog error
-                        QtWidgets.QMessageBox.warning(self, 'Information', 'This GPX file is already in the list')
-                        return False
-
-                self.log_list.append({'name': os.path.basename(file_name), 'timestamp': starting_time, 'type': 'gpx', 'db_id': id})
-
-                # Update the list view
-                self.update_log_list()
-
-                # Open dialog ok for success
+        if file_path:
+            if self.sns.import_gpx(file_path):
                 QtWidgets.QMessageBox.information(self, 'Success', 'GPX file added successfully')
-
-                return True
-
-            except Exception as e:
-                print(f"An error occurred: {e}")
-
-                # Open dialog error
+            else:
                 QtWidgets.QMessageBox.critical(self, 'Error', 'An error occurred while importing the GPX file')
 
-                return False
-        return False
+            # Update the list view
+            self.update_log_list()
+
 
     def show_context_menu(self, position):
         # Create the context menu
@@ -141,18 +101,15 @@ class SeafoilUiSession(QtWidgets.QDialog):
 
         if not index.isValid():
             return
-
-        # Remove the selected item from the dictionary
-        if index.row() < len(self.log_list):
-            # delete the item from the dictionary at position index.row()
-            del self.log_list[index.row()]
+        else:
+            self.sns.remove_log(index.row())
 
         # Update the model with the modified dictionary
         self.model.update_data(self.log_list)
 
     def update_log_list(self):
         # Clear the list view
-        self.model.update_data(self.log_list)
+        self.model.update_data(self.sns.log_list)
 
     def on_new_session_clicked(self):
         # Logic to execute when the button is clicked

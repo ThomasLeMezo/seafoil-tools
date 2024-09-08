@@ -12,7 +12,6 @@ done
 
 for entry in $@; do
 	if [[ "$entry" != "$START_DATE" ]]; then
-		ros2 bag reindex $DIRECTORY/$entry -s 'mcap'
 		python3 $script_file $DIRECTORY/$entry $START_DATE
 	fi
 done

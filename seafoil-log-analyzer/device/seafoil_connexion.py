@@ -1,21 +1,35 @@
+import gpxpy
 import paramiko
 import datetime
 import os
 from scp import SCPClient
 import yaml
+from db.seafoil_db import SeafoilDB
 
 class SeafoilConnexion:
 
-    def __init__(self, host='seafoil'):
-        self.host = host + ".local" # use the avahi service to find the host
+    def __init__(self):
+        self.db = SeafoilDB()
+
+        self.seafoil_box = self.db.get_seafoil_box_all()
+
+        if len(self.seafoil_box) == 0:
+            self.host = "seafoil"
+        else:
+            self.host = self.seafoil_box[-1]["name"]
+        self.host += ".local" # use the avahi service to find the host
+
+        # Default parameters
         self.username = 'pi'
         self.service_name = 'seafoil.service'
         self.ssh_client = paramiko.SSHClient()
         self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         self.is_connected = False
-        # project folder is one level above the current file
-        self.projet_folder = os.path.dirname(os.path.abspath(__file__)) + '/../'
+
+        # project folder is one level above the current file (and simplify the path)
+        self.projet_folder = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '/../')
         self.log_folder = self.projet_folder + '/data/log/'
+        self.gpx_folder = self.projet_folder + '/data/gpx/'
 
         self.stored_log_list = []
 
@@ -23,6 +37,14 @@ class SeafoilConnexion:
         # if connected, close the connection
         if self.is_connected and self.ssh_client.get_transport().is_active():
             self.ssh_client.close()
+
+    def get_file_directory(self, id, file_type, file_name):
+        if file_type == self.db.convert_log_type_from_str('rosbag'):
+            return self.log_folder + str(id) + '/' + file_name
+        elif file_type == self.db.convert_log_type_from_str('gpx'):
+            return self.gpx_folder + str(id) + '/' + file_name
+        else:
+            return
 
     def check_if_connected(self):
         if not self.is_connected or not self.ssh_client.get_transport().is_active():
@@ -221,20 +243,19 @@ class SeafoilConnexion:
         log_name = self.stored_log_list[log_id]['name']
         log_date = self.stored_log_list[log_id]['timestamp']
 
-
         # Create the log folder if it does not exist
         os.makedirs(f"{self.log_folder}", exist_ok=True)
 
-        # Create if not exists a folder for year and month
-        year = log_date.year
-        month = log_date.month
-        os.makedirs(f"{self.log_folder}/{year}", exist_ok=True)
-        os.makedirs(f"{self.log_folder}/{year}/{month}", exist_ok=True)
+        # Create new rosbag in db
+        db_id, is_downloaded, is_new = self.db.insert_log(log_name, log_date, 'rosbag')
 
-        # Test if log folder already exists
-        if os.path.exists(f"{self.log_folder}/{year}/{month}/{log_name}"):
-            print("The log folder already exists.")
-            return False
+        log_folder = f"{self.log_folder}/{db_id}"
+        os.makedirs(log_folder, exist_ok=True)
+
+        # If the rosbag already exists, verify if the log folder already exists
+        if not is_new and is_downloaded:
+            print("The log folder already exists in the database.")
+            return
 
         try:
             def progress(filename, size, sent):
@@ -243,15 +264,53 @@ class SeafoilConnexion:
             # Create an SCP client
             with SCPClient(self.ssh_client.get_transport(), progress=progress) as scp:
                 # Download the file
-                scp.get(f"/home/{self.username}/log/{log_name}", f"{self.log_folder}/{year}/{month}/", recursive=True, preserve_times=True)
+                scp.get(f"/home/{self.username}/log/{log_name}", f"{self.log_folder}/", recursive=True, preserve_times=True)
                 print("Download complete!")
 
+            # Update the db
+            self.db.set_log_download(db_id)
 
             return True
 
         except Exception as e:
             print(f"An error occurred: {e}")
+            # Remove the folder if the download failed
+            os.rmdir(log_folder)
             return False
+
+    def add_gpx_file(self, file_path):
+        # Try to parse the file
+        file_name = ''
+        try:
+            gpx_file = open(file_path, 'r')
+            gpx = gpxpy.parse(gpx_file)
+
+            # Get the starting time of the gpx file in timestamp format
+            starting_time = gpx.tracks[0].segments[0].points[0].time.timestamp()
+
+            # Insert the gpx file in the database
+            file_name = os.path.basename(file_path)
+            db_id, is_download, is_new = self.db.insert_log(os.path.basename(file_name), starting_time, 'gpx')
+            folder = self.gpx_folder + str(db_id) + '/'
+            os.makedirs(folder, exist_ok=True)
+
+            db_file_path = folder + file_name
+
+            if not is_new and is_download:
+                # Open dialog error
+                print(f'This GPX file {file_name} already exists in the database.')
+                return False, db_id
+            else:
+                # Create folder if it does not exist
+                os.system('cp ' + file_path + ' ' + db_file_path)
+                # Add path to the db
+                self.db.set_log_download(db_id)
+                print(f'The GPX file {file_name} was added successfully.')
+                return True, db_id
+
+        except Exception as e:
+            print(f'An error occurred while importing the GPX file {file_name}: {e}')
+            return False, -1
 
 if __name__ == '__main__':
     sc = SeafoilConnexion()

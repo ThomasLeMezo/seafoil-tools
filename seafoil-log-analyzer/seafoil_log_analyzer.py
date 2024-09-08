@@ -1,67 +1,90 @@
 #!/bin/python3
-
 import sys
 import os
-import pyqtgraph as pg
-from pyqtgraph.Qt import QtWidgets
-import pyqtgraph.console
-from pyqtgraph.dockarea import *
-from seafoil_bag import SeafoilBag
 
-from dock.dock_data import DockData
-from dock.dock_log import DockLog
-from dock.dock_gnss import DockGnss
-from dock.dock_observer import DockDataObserver
-from dock.dock_analysis import DockAnalysis
-from dock.dock_fusion_analysis import DockFusionAnalysis
+from PyQt5.QtWidgets import QMainWindow
+from PyQt5.QtWidgets import QApplication
+class SeafoilLogAnalyser(QMainWindow):
+    def __init__(self, filepath=None, offset_date=None):
+        super().__init__()
 
-import datetime
+        from PyQt5 import QtCore
+        from pyqtgraph.Qt import QtWidgets
+        from seafoil_bag import SeafoilBag
 
-if ('filename' in locals()):
-    print("filename = ", filename)
-else:
-    if(len(sys.argv)<2):
-        sys.exit(0)
-    filename = sys.argv[1]
+        from dock.dock_data import DockData
+        from dock.dock_log import DockLog
+        from dock.dock_gnss import DockGnss
+        from dock.dock_observer import DockDataObserver
+        from dock.dock_analysis import DockAnalysis
+        from dock.dock_fusion_analysis import DockFusionAnalysis
 
-offset_date = datetime.datetime(2019, 1, 1)
-if len(sys.argv)>=3:
-    offset_date = datetime.datetime.strptime(sys.argv[2], '%Y-%m-%d %H:%M:%S')
-    print(offset_date)
+        import datetime
 
-sfb = None
-# test if file is a .gpx
-if filename.endswith('.gpx'):
-    sfb = SeafoilBag(filename, offset_date, is_gpx=True)
-# test if file is a directory
-elif os.path.isdir(filename):
-    ## Load ros2 bag
-    sfb = SeafoilBag(filename, offset_date)
+        if filepath is None:
+            return
 
-## Display
+        if offset_date is None:
+            offset_date = datetime.datetime(2019, 1, 1)
 
-app = QtWidgets.QApplication([])
-win = QtWidgets.QMainWindow()
-win.showMaximized()
-win.setWindowTitle(sfb.seafoil_id + " log - " + sys.argv[1])
+        sfb = None
+        # test if file is a .gpx
+        if filepath.endswith('.gpx'):
+            sfb = SeafoilBag(filepath, offset_date, is_gpx=True)
+        # test if file is a directory
+        elif os.path.isdir(filepath):
+            # Call reindex on the directory (ros2 bag reindex $DIRECTORY/$entry -s 'mcap')
+            os.system(f"ros2 bag reindex {filepath} -s 'mcap'")
+            ## Load ros2 bag
+            sfb = SeafoilBag(filepath, offset_date)
 
-tab = QtWidgets.QTabWidget()
-win.setCentralWidget(tab)
+        ## Display
 
-## Data
-dock_data = DockData(sfb, tab)
-dock_data_observer = DockDataObserver(sfb, tab)
-dock_log = DockLog(sfb, tab)
-data_gnss = DockGnss(sfb, tab, win)
-data_analysis = DockAnalysis(sfb, tab, win)
-data_fusion_analysis = DockFusionAnalysis(sfb, tab, data_analysis)
+        # app = QtWidgets.QApplication.instance()
+        # if app is None:
+        #     print('app was none')
+        # app = QtWidgets.QApplication([])
+        # app.exec_()
+        # else:
+        #     print('app was not none')
 
-tab.setCurrentWidget(data_analysis)
+        win = QtWidgets.QMainWindow()
+        win.showMaximized()
+        # Get file name from filepath
+        filename = os.path.basename(filepath)
+        win.setWindowTitle(sfb.seafoil_id + " log - " + filename)
 
-win.show()
+        tab = QtWidgets.QTabWidget()
+        win.setCentralWidget(tab)
+
+        ## Data
+        dock_data = DockData(sfb, tab)
+        dock_data_observer = DockDataObserver(sfb, tab)
+        dock_log = DockLog(sfb, tab)
+        data_gnss = DockGnss(sfb, tab, win)
+        data_analysis = DockAnalysis(sfb, tab, win)
+        data_fusion_analysis = DockFusionAnalysis(sfb, tab, data_analysis)
+
+        tab.setCurrentWidget(data_analysis)
+
+        win.show()
 
 ## Start Qt event loop unless running in interactive mode or using pyside.
 if __name__ == '__main__':
-    import sys
-    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-        QtWidgets.QApplication.instance().exec_()
+    app = QApplication(sys.argv)
+    if len(sys.argv)>1:
+        filename = sys.argv[1]
+        offset_date = None
+
+        if len(sys.argv)>2:
+            import datetime
+            offset_date = datetime.datetime.strptime(sys.argv[2], "%Y-%m-%dT%H:%M:%S")
+
+        sla = SeafoilLogAnalyser(filename, offset_date)
+        sys.exit(app.exec_())
+
+    else:
+        print("Usage: seafoil_log <folderpath/filename> [offset_date]")
+        print("  filename: path to the rosbag folder or the .gpx file")
+        print("  offset_date: optional, offset date to start the log")
+        print("  example: seafoil_log /path/to/rosbag 2021-01-01T00:00:00")

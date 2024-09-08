@@ -57,33 +57,22 @@ class SeafoilDB:
         self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS session
         (
             id INTEGER PRIMARY KEY AUTOINCREMENT, 
-            time_start DATETIME DEFAULT 0,
-            time_end DATETIME DEFAULT 0,
+            start_date DATETIME DEFAULT 0,
+            end_date DATETIME DEFAULT 0,
             rider_id INTEGER,
             wind_mean_heading REAL,
             FOREIGN KEY (rider_id) REFERENCES rider(id)
         )''')
 
-        # Create table for rosbag
-        self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS rosbag
+        # Create table for log
+        self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS log
         (
             id INTEGER PRIMARY KEY AUTOINCREMENT, 
             time_created DATETIME DEFAULT CURRENT_TIMESTAMP,
-            rosbag_name TEXT,
-            folder TEXT,
+            name TEXT NOT NULL,
             session INTEGER,
-            FOREIGN KEY (session) REFERENCES session(id)
-        )''')
-
-        # Create table for gpx
-        self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS gpx
-        (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, 
-            time_created DATETIME DEFAULT CURRENT_TIMESTAMP,
-            time_start DATETIME DEFAULT 0,
-            gpx_name TEXT NOT NULL,
-            folder TEXT NOT NULL,
-            session INTEGER,
+            is_download BOOLEAN DEFAULT 0,
+            type INTEGER,
             FOREIGN KEY (session) REFERENCES session(id)
         )''')
 
@@ -169,20 +158,6 @@ class SeafoilDB:
             FOREIGN KEY (foil_mast) REFERENCES windfoil_foil_mast(id),
             FOREIGN KEY (session) REFERENCES session(id)
         )''')
-
-    # Add new gpx file to the database if it does not exist
-    def insert_gpx(self, gpx_name, folder, time_start):
-        # Test if the gpx file is already in the database and return the id if it is
-        self.sqliteCursor.execute('''SELECT id FROM gpx WHERE gpx_name = ?''', (gpx_name,))
-        row = self.sqliteCursor.fetchone()
-        if row:
-            return row['id'], True
-
-        self.sqliteCursor.execute('''INSERT INTO gpx (gpx_name, folder, time_start) VALUES (?, ?, ?)''', (gpx_name, folder, time_start))
-        self.sqliteConnection.commit()
-
-        # return the id of the last inserted row
-        return self.sqliteCursor.lastrowid, False
 
     # Set configuration for a seafoil box
     def set_configuration(self, data):
@@ -404,6 +379,72 @@ class SeafoilDB:
     # Get all windfoil equipment manufacturers
     def get_windfoil_manufacturer_all(self):
         self.sqliteCursor.execute('''SELECT DISTINCT manufacturer FROM windfoil_equipment''')
+        return self.sqliteCursor.fetchall()
+
+    # Get all windfoil session
+    def get_windfoil_session_all_sort_start_date(self):
+        self.sqliteCursor.execute('''SELECT * FROM session ORDER BY start_date DESC''')
+        return self.sqliteCursor.fetchall()
+
+    def convert_log_type_from_str(self, log_type):
+        if log_type == 'rosbag':
+            return 0
+        elif log_type == 'gpx':
+            return 1
+        return -1
+
+    def convert_log_type_from_int(self, log_type):
+        if log_type == 0:
+            return 'rosbag'
+        elif log_type == 1:
+            return 'gpx'
+        return ''
+
+    # Add new log file to the database if it does not exist and return the id
+    # type = 0 for rosbag, 1 for gpx
+    def insert_log(self, name, time_created, type='rosbag'):
+        # Test if the log file is already in the database and return the id if it is
+        self.sqliteCursor.execute('''SELECT * FROM log WHERE name = ?''', (name,))
+        row = self.sqliteCursor.fetchone()
+        if row:
+            # Return is_new, row
+            return row['id'], row['is_download'], False
+
+        type_id = self.convert_log_type_from_str(type)
+
+        self.sqliteCursor.execute('''INSERT INTO log (name, time_created, type) VALUES (?, ?, ?)''', (name, time_created, type_id))
+        self.sqliteConnection.commit()
+        # Return the if of the last inserted row, is_download = False, is_new = True
+        return self.sqliteCursor.lastrowid, False, True
+
+    # Return the log file by id
+    def get_log(self, id):
+        self.sqliteCursor.execute('''SELECT * FROM log WHERE id = ?''', (id,))
+        return self.sqliteCursor.fetchone()
+
+    # Get all logs
+    def get_all_logs(self):
+        self.sqliteCursor.execute('''SELECT * FROM log''')
+        return self.sqliteCursor.fetchall()
+
+    # Update log folder
+    def set_log_download(self, id):
+        self.sqliteCursor.execute('''UPDATE log SET is_download = 1 WHERE id = ?''', (id,))
+        self.sqliteConnection.commit()
+
+    # Update log session id
+    def update_log_session(self, id, session):
+        self.sqliteCursor.execute('''UPDATE log SET session = ? WHERE id = ?''', (session, id))
+        self.sqliteConnection.commit()
+
+    # Add new seafoil_box
+    def insert_seafoil_box(self, name):
+        self.sqliteCursor.execute('''INSERT INTO seafoil_box (name) VALUES (?)''', (name,))
+        self.sqliteConnection.commit()
+
+    # Get all seafoil_box
+    def get_seafoil_box_all(self):
+        self.sqliteCursor.execute('''SELECT * FROM seafoil_box''')
         return self.sqliteCursor.fetchall()
 
 # Test the class

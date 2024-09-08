@@ -34,8 +34,7 @@ class DockGnss(SeafoilDock):
         if (not data.is_empty()):
             pg_position = pg.PlotWidget()
             mask = np.where(data.mode > 0)
-            pg_position.plot(data.longitude[mask], data.latitude[mask][:-1], pen=(255, 0, 0), name="position",
-                             stepMode=True, symbol='+')
+            pg_position.plot(data.longitude[mask], data.latitude[mask], pen=(255, 0, 0), name="position", symbol='+')
 
             dock_position.addWidget(pg_position)
 

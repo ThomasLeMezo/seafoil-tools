@@ -3,9 +3,13 @@ import datetime
 
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtWidgets import QApplication, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
-from .seafoilUiSession import SeafoilUiSession
+
+from device.seafoil_connexion import SeafoilConnexion
+from .seafoilUiNewSession import SeafoilUiNewSession
 from device.seafoil_configuration import SeafoilConfiguration
 from device.seafoil_equipement import SeafoilEquipement
+from device.seafoil_session import SeafoilSession
+from device.seafoil_log import SeafoilLog
 import os
 
 class SeafoilUiConfiguration:
@@ -133,7 +137,7 @@ class SeafoilUiEquipement:
         for names in self.se.equipment_names:
             self.equipment_name_list[names] = None
 
-        self.update_ui_from_equipement()
+        self.update_ui_from_equipment()
 
         # Add a menu (add/remove) for each type of equipment
         self.ui.treeWidget_equipment.setContextMenuPolicy(3)
@@ -155,6 +159,10 @@ class SeafoilUiEquipement:
 
         # Get the selected item
         item = self.ui.treeWidget_equipment.currentItem()
+
+        # if item is None, return
+        if item is None:
+            return
 
         category = item.text(0)
         remove_action = None
@@ -194,9 +202,9 @@ class SeafoilUiEquipement:
         if ret == QtWidgets.QMessageBox.No:
             return
         self.se.db_remove_equipment(category, item_index.row())
-        self.update_ui_from_equipement()
+        self.update_ui_from_equipment()
 
-    def update_ui_from_equipement(self):
+    def update_ui_from_equipment(self):
         # Add items from equipment_name_list
         self.ui.treeWidget_equipment.clear()
         self.ui.treeWidget_equipment.setHeaderLabels(["Equipement"])
@@ -362,7 +370,7 @@ class SeafoilUiEquipement:
                     data['length'] = length.value()/100
 
                 self.se.db_insert_equipment(category, data)
-                self.update_ui_from_equipement()
+                self.update_ui_from_equipment()
             dialog.close()
 
         # connect the buttons to the function
@@ -372,6 +380,101 @@ class SeafoilUiEquipement:
         # show the dialog box
         dialog.show()
 
+
+class SeafoilUiSession(QtWidgets.QDialog):
+    def __init__(self, seafoil_ui):
+        super().__init__()
+        self.seafoil_ui = seafoil_ui
+        self.ui = seafoil_ui.ui
+        self.session = SeafoilSession()
+
+        self.update_ui_from_session()
+
+        # connect the menu/action_new_session to function on_new_session_clicked
+        self.ui.pushButton_new_session.clicked.connect(self.on_new_session_clicked)
+
+    def on_new_session_clicked(self):
+        # Logic to execute when the button is clicked
+        session = SeafoilUiNewSession()
+        session.exec_()
+
+    def update_ui_from_session(self):
+        # clear treeWidget_sessions
+        self.ui.tableWidget_sessions.clear()
+
+        # Set the number of rows
+        self.ui.tableWidget_sessions.setRowCount(len(self.session.session_list))
+
+        # Set the number of columns
+        self.ui.tableWidget_sessions.setColumnCount(1)
+
+        # Add items from session_list sorted by start_date year and month
+        for i, session in enumerate(self.session.session_list):
+            # start_date from unix timestamp in local time zone
+            start_date = datetime.datetime.fromtimestamp(session['start_date'])
+            self.ui.tableWidget_sessions.setItem(i, 0, QtWidgets.QTableWidgetItem(start_date.strftime('%Y-%m-%d %H:%M:%S')))
+
+        # Horizontal header labels
+        self.ui.tableWidget_sessions.setHorizontalHeaderLabels(["Start date"])
+
+        # Auto resize columns
+        self.ui.tableWidget_sessions.resizeColumnsToContents()
+
+class SeafoilUiLog(QtWidgets.QDialog):
+    def __init__(self, seafoil_ui):
+        super().__init__()
+        self.seafoil_ui = seafoil_ui
+        self.ui = seafoil_ui.ui
+        self.sl = SeafoilLog()
+
+        # Connect pushButton_upload_gpx to function on_upload_gpx_clicked
+        self.ui.pushButton_upload_gpx.clicked.connect(self.on_upload_gpx_clicked)
+
+        # Set the number of columns
+        self.ui.tableWidget_logs.setColumnCount(4)
+        # Set headers
+        self.ui.tableWidget_logs.setHorizontalHeaderLabels(["id", "date", "type", "name"])
+        # Sort by "date" latest first
+        self.update_ui_from_logs()
+        self.ui.tableWidget_logs.sortItems(1, 1)
+
+        # On double click on a row, open the log
+        self.ui.tableWidget_logs.itemDoubleClicked.connect(self.on_item_double_clicked)
+
+    def on_item_double_clicked(self, item):
+        # Get the row of the item and retrieve the value of the id column
+        row = item.row()
+        id = self.ui.tableWidget_logs.item(row, 0).text()
+        self.sl.open_log(int(id))
+
+    def on_upload_gpx_clicked(self):
+        # Open file dialog to select one or more gpx files
+        file_paths, _ = QtWidgets.QFileDialog.getOpenFileNames(self, 'Open file', '', 'GPX files (*.gpx)')
+        if len(file_paths) == 0:
+            return
+
+        # Upload the gpx files
+        self.sl.add_gpx_files(file_paths)
+        self.update_ui_from_logs()
+
+    def update_ui_from_logs(self):
+        # clear treeWidget_sessions
+        self.ui.tableWidget_logs.clearContents()
+
+        # Set the number of rows
+        self.ui.tableWidget_logs.setRowCount(len(self.sl.logs))
+
+        # Add items from session_list sorted by start_date year and month
+        for i, log in enumerate(self.sl.logs):
+            # start_date from unix timestamp in local time zone
+            self.ui.tableWidget_logs.setItem(i, 0, QtWidgets.QTableWidgetItem(str(log['id'])))
+            start_date = datetime.datetime.fromtimestamp(log['time_created'])
+            self.ui.tableWidget_logs.setItem(i, 1, QtWidgets.QTableWidgetItem(start_date.strftime('%Y-%m-%d %H:%M:%S')))
+            self.ui.tableWidget_logs.setItem(i, 2, QtWidgets.QTableWidgetItem(self.sl.db.convert_log_type_from_int(log['type'])))
+            self.ui.tableWidget_logs.setItem(i, 3, QtWidgets.QTableWidgetItem(log['name']))
+
+        # Auto resize columns
+        self.ui.tableWidget_logs.resizeColumnsToContents()
 
 class SeafoilUi(QtWidgets.QMainWindow):
     def __init__(self, seafoil_directory):
@@ -383,11 +486,7 @@ class SeafoilUi(QtWidgets.QMainWindow):
 
         self.seafoil_ui_configuration = SeafoilUiConfiguration(self, self.ui)
         self.seafoil_ui_equipment = SeafoilUiEquipement(self)
+        self.seafoil_ui_session = SeafoilUiSession(self)
+        self.seafoil_ui_log = SeafoilUiLog(self)
 
-        # connect the menu/action_new_session to function on_new_session_clicked
-        self.ui.action_new_session.triggered.connect(self.on_new_session_clicked)
 
-    def on_new_session_clicked(self):
-        # Logic to execute when the button is clicked
-        session = SeafoilUiSession(self.seafoil_ui.seafoil_directory)
-        session.exec_()

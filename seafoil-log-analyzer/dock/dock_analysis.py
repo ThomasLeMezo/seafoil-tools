@@ -575,7 +575,7 @@ class DockAnalysis(SeafoilDock):
         y_stat_min = np.zeros(len(x_vect))
         y_hist = np.zeros([len(x_vect), int((y_max - y_min) / y_resolution)])
         for i, x in enumerate(x_vect):
-            idx = np.where((data_x.equipment_data >= x) & (data_x.equipment_data < (x + x_resolution)))
+            idx = np.where((data_x.data >= x) & (data_x.data < (x + x_resolution)))
             if len(idx[0]) > min_sample:
                 y_data = np.sort(y[idx])
                 y_stat_mean[i] = np.mean(y_data)
@@ -632,6 +632,7 @@ class DockAnalysis(SeafoilDock):
             pg_plot.plot(x_vect * x_unit_conversion, y_stat_mean[:-1] * y_unit_conversion, pen=pg.mkPen((255, 0, 0), width=5), name=name_y + " mean", stepMode=True)
             pg_plot.plot(x_vect * x_unit_conversion, y_stat_max[:-1] * y_unit_conversion, pen=(0, 255, 0), name=name_y + " max (10%)", stepMode=True)
             pg_plot.plot(x_vect * x_unit_conversion, y_stat_min[:-1] * y_unit_conversion, pen=(0, 0, 255), name=name_y + " min (10%)", stepMode=True)
+
         pg_plot.addItem(pcmi)
         pg_plot.setLabel('left', name_y + " (" + unit_y + ")")
 
@@ -672,6 +673,15 @@ class DockAnalysis(SeafoilDock):
                 # Apply modulo to x_vect
                 data_x_copy = (data_x - x_center) % (x_max - x_min) - (x_max - x_min)/2.
                 plot_taj.setData(data_x_copy*x_unit_conversion, y*y_unit_conversion)
+
+                # Find the max in y_hist_local positive and negative
+                max_hist_positive = np.max(y_hist_local[x_vect_local > 0])
+                max_hist_negative = np.max(y_hist_local[x_vect_local < 0])
+
+                # Add text legend with the max value
+
+
+
 
             spinbox.sigValueChanged.connect(update_x_center)
             update_x_center()
