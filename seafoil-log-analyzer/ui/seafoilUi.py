@@ -2,7 +2,7 @@ import sys
 import datetime
 
 from PyQt5 import QtWidgets, uic
-from PyQt5.QtWidgets import QApplication, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QApplication, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QDialog
 
 from device.seafoil_connexion import SeafoilConnexion
 from .seafoilUiNewSession import SeafoilUiNewSession
@@ -12,6 +12,154 @@ from device.seafoil_equipement import SeafoilEquipement
 from device.seafoil_session import SeafoilSession
 from device.seafoil_log import SeafoilLog
 import os
+
+def new_equipment_dialog_box(ui, se, category, item_index, is_new):
+    # Create the dialog box
+    dialog = QtWidgets.QDialog(ui)
+    dialog.setWindowTitle(f"{category} configuration - {'NOUVEAU' if is_new else 'Update'}")
+    dialog.setModal(True)
+
+    # Create the layout
+    layout = QVBoxLayout()
+    dialog.setLayout(layout)
+
+    # Create a form layout
+    form = QtWidgets.QFormLayout()
+    layout.addLayout(form)
+
+    # Create the fields
+    # editing combo box
+    manufacturer = QtWidgets.QComboBox()
+    form.addRow("Manufacturer", manufacturer)
+    manufacturer.setEditable(True) # set editable
+    # provide a list of manufacturers
+    manufacturer.addItems(se.manufacturers_list)
+    # default value
+    manufacturer.setCurrentText("")
+
+    model = QtWidgets.QLineEdit()
+    form.addRow("Model", model)
+
+    year = QtWidgets.QSpinBox()
+    year.setMinimum(2010)
+    year.setMaximum(2030)
+    year.setValue(datetime.datetime.now().year)
+    form.addRow("Year", year)
+
+    comment = QtWidgets.QPlainTextEdit()
+    form.addRow("Comment", comment)
+
+    if category == 'Board':
+        volume = QtWidgets.QSpinBox()
+        volume.setSuffix(" L")
+        volume.setMaximum(300)
+        form.addRow("Volume", volume)
+        width = QtWidgets.QSpinBox()
+        width.setSuffix(" cm")
+        width.setMaximum(150)
+        form.addRow("Width", width)
+        length = QtWidgets.QDoubleSpinBox()
+        length.setSuffix(" m")
+        length.setMaximum(3)
+        length.setDecimals(2)
+        form.addRow("Length", length)
+    elif category == 'Sail':
+        size = QtWidgets.QDoubleSpinBox()
+        size.setSuffix(" m²")
+        size.setMaximum(20)
+        size.setDecimals(1)
+        form.addRow("Size", size)
+    elif category == 'Front foil':
+        surface = QtWidgets.QSpinBox()
+        surface.setSuffix(" cm²")
+        surface.setMaximum(2000)
+        form.addRow("Surface", surface)
+    elif category == 'Stabilizer':
+        surface = QtWidgets.QSpinBox()
+        surface.setSuffix(" cm²")
+        surface.setMaximum(1000)
+        form.addRow("Surface", surface)
+    elif category == 'Foil mast':
+        length = QtWidgets.QSpinBox()
+        length.setMaximum(150)
+        length.setSuffix(" cm")
+        form.addRow("Length", length)
+    elif category == 'Fuselage':
+        length = QtWidgets.QDoubleSpinBox()
+        length.setSuffix(" cm")
+        length.setMaximum(150)
+        length.setDecimals(1)
+        form.addRow("Length", length)
+
+    # Add the buttons
+    buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+    layout.addWidget(buttons)
+
+    # display the dialog box
+    if not is_new:
+        item = ui.treeWidget_equipment.currentItem()
+        if item is None:
+            return
+        index = item_index.row()
+        data = se.equipment_data[se.equipment_names.index(category)][index]
+        manufacturer.setCurrentText(data['manufacturer'])
+        model.setText(data['model'])
+        year.setValue(data['year'])
+        comment.setPlainText(data['comment'])
+        if category == 'Board':
+            volume.setValue(int(data['volume']))
+            width.setValue(int(data['width']*100))
+            length.setValue(data['length'])
+        elif category == 'Sail':
+            size.setValue(data['surface'])
+        elif category == 'Front foil':
+            surface.setValue(int(data['surface']*1e4))
+        elif category == 'Stabilizer':
+            surface.setValue(int(data['surface']*1e4))
+        elif category == 'Foil mast':
+            length.setValue(int(data['length']*100))
+        elif category == 'Fuselage':
+            length.setValue(data['length']*100)
+
+    def on_button_clicked(button):
+        if button.text() == buttons.button(buttons.Ok).text():
+            data = {}
+            data['index'] = item_index.row() if not is_new else None
+            data['manufacturer'] = manufacturer.currentText()
+            data['model'] = model.text()
+            data['year'] = year.value()
+            data['comment'] = comment.toPlainText()
+            if category == 'Board':
+                data['volume'] = volume.value()
+                data['width'] = width.value()/100
+                data['length'] = length.value()
+            elif category == 'Sail':
+                data['surface'] = size.value()
+            elif category == 'Front foil':
+                data['surface'] = surface.value()/1e4
+            elif category == 'Stabilizer':
+                data['surface'] = surface.value()/1e4
+            elif category == 'Foil mast':
+                data['length'] = length.value()/100
+            elif category == 'Fuselage':
+                data['length'] = length.value()/100
+
+            se.db_insert_equipment(category, data)
+            dialog.accept()
+        else:
+            dialog.reject()
+
+    # connect the buttons to the function and return the result
+
+    buttons.accepted.connect(lambda: on_button_clicked(buttons.button(buttons.Ok)))
+    buttons.rejected.connect(lambda: on_button_clicked(buttons.button(buttons.Cancel)))
+
+    # Wait for dialog to close
+    result = dialog.exec_()
+    if result == QtWidgets.QDialog.Accepted:
+        return True
+    else:
+        return False
 
 class SeafoilUiConfiguration:
 
@@ -170,9 +318,10 @@ class SeafoilUiEquipement:
     def on_item_double_clicked(self, item, column):
         # Case of a top level item
         if item.parent() is None:
-            self.equipment_dialog_box(item.text(0), None, True)
+            new_equipment_dialog_box(self.ui, self.se, item.text(0), None, True)
         else:
-            self.equipment_dialog_box(item.parent().text(0), self.ui.treeWidget_equipment.currentIndex(), False)
+            new_equipment_dialog_box(self.ui, self.se, item.parent().text(0), self.ui.treeWidget_equipment.currentIndex(), False)
+        self.update_ui_from_equipment()
 
     def show_context_menu(self, position):
         # Create the context menu
@@ -197,6 +346,7 @@ class SeafoilUiEquipement:
             category = item_top.text(0)
             update_action = menu.addAction("Update " + category)
             remove_action = menu.addAction("Remove " + category)
+            add_action = menu.addAction("Add " + category)
         else:
             add_action = menu.addAction("Add " + category)
 
@@ -206,9 +356,10 @@ class SeafoilUiEquipement:
         if is_child and action == remove_action:
             self.remove_selected_item(category, item_index)
         elif is_child and action == update_action:
-            self.equipment_dialog_box(category, item_index,False)
+            new_equipment_dialog_box(self.ui, self.se, category, item_index,False)
         elif action == add_action:
-            self.equipment_dialog_box(category,item_index, True)
+            new_equipment_dialog_box(self.ui, self.se, category,item_index, True)
+        self.update_ui_from_equipment()
 
     def remove_selected_item(self, category, item_index):
         if not item_index.isValid():
@@ -226,6 +377,7 @@ class SeafoilUiEquipement:
         self.update_ui_from_equipment()
 
     def update_ui_from_equipment(self):
+        self.se.update()
         # Add items from equipment_name_list
         self.ui.treeWidget_equipment.clear()
         self.ui.treeWidget_equipment.setHeaderLabels(["Equipement"])
@@ -234,172 +386,13 @@ class SeafoilUiEquipement:
             self.ui.treeWidget_equipment.addTopLevelItem(item)
             self.equipment_name_list[name] = item
 
-        def equipment_text(data):
-            return f"{data['manufacturer']} {data['model']}, {data['year']}"
-        def equipment_text_postfix(data, category):
-            if category == 'Board':
-                return f" [{data['volume']:.0f} L, {data['width']*100:.0f} cm, {data['length']:.0f} m]"
-            elif category == 'Sail':
-                return f" [{data['surface']:.1f} m²]"
-            elif category == 'Front foil':
-                return f" [{data['surface']*1e4:.0f} cm²]"
-            elif category == 'Stabilizer':
-                return f" [{data['surface']:.0f} m²]"
-            elif category == 'Foil mast':
-                return f" [{data['length']*100:.0f} cm]"
-            elif category == 'Fuselage':
-                return f" [{data['length']*100:.0f} cm]"
-            else:
-                return ""
-
-        for i, equipment_type in enumerate(self.se.equipment_data):
-            if equipment_type is not None and len(equipment_type)>0:
-                for equipment in equipment_type:
-                    text = equipment_text(equipment) + equipment_text_postfix(equipment, self.se.equipment_names[i])
+        for i, equipments_in_type in enumerate(self.se.equipment_data):
+            if equipments_in_type is not None and len(equipments_in_type)>0:
+                for equipment in equipments_in_type:
+                    text = self.se.get_equipment_name(equipment, self.se.equipment_names[i])
                     self.equipment_name_list[self.se.equipment_names[i]].addChild(QTreeWidgetItem([text]))
         self.ui.treeWidget_equipment.expandAll()
 
-    def equipment_dialog_box(self, category, item_index, is_new):
-        # Create the dialog box
-        dialog = QtWidgets.QDialog(self.ui)
-        dialog.setWindowTitle(f"{category} configuration - {'NOUVEAU' if is_new else 'Update'}")
-        dialog.setModal(True)
-
-        # Create the layout
-        layout = QVBoxLayout()
-        dialog.setLayout(layout)
-
-        # Create a form layout
-        form = QtWidgets.QFormLayout()
-        layout.addLayout(form)
-
-        # Create the fields
-        # editing combo box
-        manufacturer = QtWidgets.QComboBox()
-        form.addRow("Manufacturer", manufacturer)
-        manufacturer.setEditable(True) # set editable
-        # provide a list of manufacturers
-        manufacturer.addItems(self.se.manufacturers_list)
-        # default value
-        manufacturer.setCurrentText("")
-
-        model = QtWidgets.QLineEdit()
-        form.addRow("Model", model)
-
-        year = QtWidgets.QSpinBox()
-        year.setMinimum(2010)
-        year.setMaximum(2030)
-        year.setValue(datetime.datetime.now().year)
-        form.addRow("Year", year)
-
-        comment = QtWidgets.QPlainTextEdit()
-        form.addRow("Comment", comment)
-
-        if category == 'Board':
-            volume = QtWidgets.QSpinBox()
-            volume.setSuffix(" L")
-            volume.setMaximum(300)
-            form.addRow("Volume", volume)
-            width = QtWidgets.QSpinBox()
-            width.setSuffix(" cm")
-            width.setMaximum(150)
-            form.addRow("Width", width)
-            length = QtWidgets.QDoubleSpinBox()
-            length.setSuffix(" m")
-            length.setMaximum(3)
-            length.setDecimals(2)
-            form.addRow("Length", length)
-        elif category == 'Sail':
-            size = QtWidgets.QDoubleSpinBox()
-            size.setSuffix(" m²")
-            size.setMaximum(20)
-            size.setDecimals(1)
-            form.addRow("Size", size)
-        elif category == 'Front foil':
-            surface = QtWidgets.QSpinBox()
-            surface.setSuffix(" cm²")
-            surface.setMaximum(2000)
-            form.addRow("Surface", surface)
-        elif category == 'Stabilizer':
-            surface = QtWidgets.QSpinBox()
-            surface.setSuffix(" cm²")
-            surface.setMaximum(1000)
-            form.addRow("Surface", surface)
-        elif category == 'Foil mast':
-            length = QtWidgets.QSpinBox()
-            length.setMaximum(150)
-            length.setSuffix(" cm")
-            form.addRow("Length", length)
-        elif category == 'Fuselage':
-            length = QtWidgets.QDoubleSpinBox()
-            length.setSuffix(" cm")
-            length.setMaximum(150)
-            length.setDecimals(1)
-            form.addRow("Length", length)
-
-        # Add the buttons
-        buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
-        layout.addWidget(buttons)
-
-        # display the dialog box
-        if not is_new:
-            item = self.ui.treeWidget_equipment.currentItem()
-            if item is None:
-                return
-            index = item_index.row()
-            data = self.se.equipment_data[self.se.equipment_names.index(category)][index]
-            manufacturer.setCurrentText(data['manufacturer'])
-            model.setText(data['model'])
-            year.setValue(data['year'])
-            comment.setPlainText(data['comment'])
-            if category == 'Board':
-                volume.setValue(int(data['volume']))
-                width.setValue(int(data['width']*100))
-                length.setValue(data['length'])
-            elif category == 'Sail':
-                size.setValue(data['surface'])
-            elif category == 'Front foil':
-                surface.setValue(int(data['surface']*1e4))
-            elif category == 'Stabilizer':
-                surface.setValue(int(data['surface']*1e4))
-            elif category == 'Foil mast':
-                length.setValue(int(data['length']*100))
-            elif category == 'Fuselage':
-                length.setValue(data['length']*100)
-
-        def on_button_clicked(button):
-            if button.text() == buttons.button(buttons.Ok).text():
-                data = {}
-                data['index'] = item_index.row() if not is_new else None
-                data['manufacturer'] = manufacturer.currentText()
-                data['model'] = model.text()
-                data['year'] = year.value()
-                data['comment'] = comment.toPlainText()
-                if category == 'Board':
-                    data['volume'] = volume.value()
-                    data['width'] = width.value()/100
-                    data['length'] = length.value()
-                elif category == 'Sail':
-                    data['surface'] = size.value()
-                elif category == 'Front foil':
-                    data['surface'] = surface.value()/1e4
-                elif category == 'Stabilizer':
-                    data['surface'] = surface.value()/1e4
-                elif category == 'Foil mast':
-                    data['length'] = length.value()/100
-                elif category == 'Fuselage':
-                    data['length'] = length.value()/100
-
-                self.se.db_insert_equipment(category, data)
-                self.update_ui_from_equipment()
-            dialog.close()
-
-        # connect the buttons to the function
-        buttons.accepted.connect(lambda: on_button_clicked(buttons.button(buttons.Ok)))
-        buttons.rejected.connect(lambda: on_button_clicked(buttons.button(buttons.Cancel)))
-
-        # show the dialog box
-        dialog.show()
 
 
 class SeafoilUiSession(QtWidgets.QDialog):
@@ -416,8 +409,9 @@ class SeafoilUiSession(QtWidgets.QDialog):
 
     def on_new_session_clicked(self):
         # Logic to execute when the button is clicked
-        session = SeafoilUiNewSession()
-        session.exec_()
+        # non-blocking dialog box
+        new_session = SeafoilUiNewSession()
+        new_session.exec_()
 
     def update_ui_from_session(self):
         # clear treeWidget_sessions
@@ -550,5 +544,18 @@ class SeafoilUi(QtWidgets.QMainWindow):
         self.seafoil_ui_equipment = SeafoilUiEquipement(self)
         self.seafoil_ui_session = SeafoilUiSession(self)
         self.seafoil_ui_log = SeafoilUiLog(self)
+
+        # connect the tabWidget change index
+        self.ui.tabWidget.currentChanged.connect(self.on_tabWidget_changed)
+
+    def on_tabWidget_changed(self, index):
+        if index == 0:
+            self.seafoil_ui_session.update_ui_from_session()
+        elif index == 1:
+            self.seafoil_ui_log.update_ui_from_logs()
+        elif index == 2:
+            self.seafoil_ui_equipment.update_ui_from_equipment()
+        elif index == 3:
+            self.seafoil_ui_configuration.update_ui_from_configuration()
 
 

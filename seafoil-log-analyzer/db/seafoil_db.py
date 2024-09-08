@@ -68,7 +68,8 @@ class SeafoilDB:
         self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS log
         (
             id INTEGER PRIMARY KEY AUTOINCREMENT, 
-            starting_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            starting_time DATETIME DEFAULT 0,
+            date_added DATETIME DEFAULT CURRENT_TIMESTAMP,
             name TEXT NOT NULL,
             session INTEGER,
             is_download BOOLEAN DEFAULT 0,
@@ -427,14 +428,14 @@ class SeafoilDB:
         self.sqliteCursor.execute('''DELETE FROM log WHERE id = ?''', (id,))
         self.sqliteConnection.commit()
 
-    # Get all logs
+    # Get all logs downloaded
     def get_all_logs(self):
-        self.sqliteCursor.execute('''SELECT * FROM log''')
+        self.sqliteCursor.execute('''SELECT * FROM log WHERE is_download = 1''')
         return self.sqliteCursor.fetchall()
 
-    # Return True if the name and starting_time are not in the database
+    # Return True if the name and starting_time are not in the database or the file is not downloaded
     def is_new_log(self, name):
-        self.sqliteCursor.execute('''SELECT * FROM log WHERE name = ?''', (name,))
+        self.sqliteCursor.execute('''SELECT * FROM log WHERE name = ? AND is_download = 1''', (name,))
         return self.sqliteCursor.fetchone() is None
 
     # Update log folder
@@ -456,6 +457,17 @@ class SeafoilDB:
     def get_seafoil_box_all(self):
         self.sqliteCursor.execute('''SELECT * FROM seafoil_box''')
         return self.sqliteCursor.fetchall()
+
+    # Get all riders
+    def get_all_riders(self):
+        self.sqliteCursor.execute('''SELECT * FROM rider''')
+        return self.sqliteCursor.fetchall()
+
+    # Add new rider
+    def add_rider(self, first_name, last_name):
+        self.sqliteCursor.execute('''INSERT INTO rider (first_name, last_name) VALUES (?, ?)''', (first_name, last_name))
+        self.sqliteConnection.commit()
+
 
 # Test the class
 if __name__ == '__main__':

@@ -185,6 +185,11 @@ class SeafoilConnexion(QObject):
                 scp.put(config_file, f"/home/{self.username}/config/default/" + file_name)
                 print("File sent successfully.")
 
+            # Remove .bkp files
+            command = f"rm /home/{self.username}/config/default/*.bkp"
+            stdin, stdout, stderr = self.ssh_client.exec_command(command)
+
+
         except Exception as e:
             print(f"An error occurred: {e}")
             return False
@@ -296,24 +301,28 @@ class SeafoilConnexion(QObject):
             return False
 
     def seafoil_download_logs(self, log_list):
+        log_added = []
         success = True
         self.remaining_log_to_download = len(log_list)
         for log_id in log_list:
-            if not self.seafoil_download_log(log_id):
+            ret, db_id = self.seafoil_download_log(log_id)
+            if not ret:
                 success = False
+            else:
+                log_added.append(self.stored_log_list[log_id]['id'])
             self.remaining_log_to_download -= 1
 
         # Update the log list
         self.seafoil_get_log_list()
 
-        return success
+        return success, log_added
 
     # Download a log folder from the seafoil to data/log folder
     def seafoil_download_log(self, log_id):
         # Test if the log_id is valid
         if log_id < 0 or log_id >= len(self.stored_log_list):
             print("Invalid log id.")
-            return False
+            return False, -1
 
         # get the log name from the stored list
         log_name = self.stored_log_list[log_id]['name']
@@ -331,7 +340,7 @@ class SeafoilConnexion(QObject):
         # If the rosbag already exists, verify if the log folder already exists
         if not is_new and is_downloaded:
             print("The log folder already exists in the database.")
-            return
+            return False, db_id
 
         try:
             def progress(filename, size, sent):
@@ -348,13 +357,16 @@ class SeafoilConnexion(QObject):
             # Update the db
             self.db.set_log_download(db_id)
 
-            return True
+            return True,db_id
 
         except Exception as e:
             print(f"An error occurred: {e}")
-            # Remove the folder if the download failed
-            os.rmdir(log_folder)
-            return False
+            # Remove the folder if the download failed, if not exists, it will not do anything
+            os.system(f"rm -r {download_target}")
+            # Remove the log from the database
+            self.db.remove_log(db_id)
+            print(f"Download failed {log_name}! Remove the log from the database.")
+            return False, -1
 
     def add_gpx_file(self, file_path):
         # Try to parse the file

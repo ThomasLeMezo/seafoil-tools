@@ -36,6 +36,9 @@ class SeafoilEquipement():
         # As an array of string
         self.manufacturers_list = [data['manufacturer'] for data in self.db.get_windfoil_manufacturer_all()]
 
+    def update(self):
+        self.db_get_equipment()
+
     def db_get_equipment(self):
         for i in range(len(self.equipment_names)):
             self.equipment_data[i] = self.equipment_function_get[i]()
@@ -60,3 +63,24 @@ class SeafoilEquipement():
                 self.db_get_equipment()
                 return  True
         return False
+
+    def get_equipment_name(self, data, category):
+        return self.equipment_text(data) + self.equipment_text_postfix(data, category)
+
+    def equipment_text(self, data):
+        return f"{data['manufacturer']} {data['model']}, {data['year']}"
+    def equipment_text_postfix(self, data, category):
+        if category == 'Board':
+            return f" [{data['volume']:.0f} L, {data['width']*100:.0f} cm, {data['length']:.0f} m]"
+        elif category == 'Sail':
+            return f" [{data['surface']:.1f} m²]"
+        elif category == 'Front foil':
+            return f" [{data['surface']*1e4:.0f} cm²]"
+        elif category == 'Stabilizer':
+            return f" [{data['surface']:.0f} m²]"
+        elif category == 'Foil mast':
+            return f" [{data['length']*100:.0f} cm]"
+        elif category == 'Fuselage':
+            return f" [{data['length']*100:.0f} cm]"
+        else:
+            return ""

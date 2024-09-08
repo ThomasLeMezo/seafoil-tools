@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>521</width>
-    <height>691</height>
+    <height>376</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -24,11 +24,36 @@
        <string>Logs</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_2">
-       <item row="0" column="0">
-        <widget class="QComboBox" name="comboBox_rider"/>
-       </item>
-       <item row="1" column="0" rowspan="3">
+       <item row="4" column="0" rowspan="3">
         <widget class="QListView" name="listView_log"/>
+       </item>
+       <item row="1" column="0">
+        <widget class="QPushButton" name="pushButton_upload_gpx">
+         <property name="text">
+          <string>Ajouter gpx</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QPushButton" name="pushButton_upload_log">
+         <property name="text">
+          <string>Télécharger log boitier</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QComboBox" name="comboBox_rider">
+         <property name="editable">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QPushButton" name="pushButton_search_log">
+         <property name="text">
+          <string>Recherche log</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>
@@ -37,38 +62,122 @@
        <string>Matériel</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-       <item row="0" column="0" colspan="2">
-        <widget class="QColumnView" name="columnView"/>
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_4">
+         <property name="text">
+          <string>Board</string>
+         </property>
+        </widget>
        </item>
-       <item row="1" column="0">
+       <item row="0" column="1">
+        <widget class="QComboBox" name="comboBox_board"/>
+       </item>
+       <item row="2" column="0">
         <widget class="QLabel" name="label">
          <property name="text">
           <string>Rake</string>
          </property>
         </widget>
        </item>
-       <item row="2" column="0">
+       <item row="2" column="1">
+        <widget class="QDoubleSpinBox" name="doubleSpinBox">
+         <property name="suffix">
+          <string> deg</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>Sail</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="label_6">
+         <property name="text">
+          <string>Front foil</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
         <widget class="QLabel" name="label_2">
          <property name="text">
           <string>Cale stab</string>
          </property>
         </widget>
        </item>
-       <item row="3" column="0">
+       <item row="6" column="1">
+        <widget class="QDoubleSpinBox" name="doubleSpinBox_2">
+         <property name="suffix">
+          <string> deg</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="label_7">
+         <property name="text">
+          <string>Stabilizer</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
         <widget class="QLabel" name="label_3">
          <property name="text">
           <string>Position pied de mât</string>
          </property>
         </widget>
        </item>
-       <item row="1" column="1">
-        <widget class="QDoubleSpinBox" name="doubleSpinBox"/>
+       <item row="7" column="0">
+        <widget class="QLabel" name="label_8">
+         <property name="text">
+          <string>Foil mast</string>
+         </property>
+        </widget>
        </item>
-       <item row="2" column="1">
-        <widget class="QDoubleSpinBox" name="doubleSpinBox_2"/>
+       <item row="8" column="0">
+        <widget class="QLabel" name="label_9">
+         <property name="text">
+          <string>Fuselage</string>
+         </property>
+        </widget>
        </item>
        <item row="3" column="1">
-        <widget class="QSpinBox" name="spinBox"/>
+        <widget class="QComboBox" name="comboBox_sail"/>
+       </item>
+       <item row="4" column="1">
+        <widget class="QComboBox" name="comboBox_front_foil"/>
+       </item>
+       <item row="5" column="1">
+        <widget class="QComboBox" name="comboBox_stabilizer"/>
+       </item>
+       <item row="7" column="1">
+        <widget class="QComboBox" name="comboBox_foil_mast"/>
+       </item>
+       <item row="8" column="1">
+        <widget class="QComboBox" name="comboBox_fuselage"/>
+       </item>
+       <item row="1" column="1">
+        <widget class="QDoubleSpinBox" name="doubleSpinBox">
+         <property name="suffix">
+          <string> cm</string>
+         </property>
+         <property name="decimals">
+          <number>1</number>
+         </property>
+         <property name="minimum">
+          <double>100.000000000000000</double>
+         </property>
+         <property name="maximum">
+          <double>200.000000000000000</double>
+         </property>
+         <property name="singleStep">
+          <double>0.500000000000000</double>
+         </property>
+         <property name="value">
+          <double>135.000000000000000</double>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>

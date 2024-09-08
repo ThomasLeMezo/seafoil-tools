@@ -140,7 +140,6 @@ class DockAnalysis(SeafoilDock):
         if not data_gnss.is_empty():
             self.yaw, self.yaw_diff = compute_diff_yaw(data_gnss.track, data_gnss.time, 25*3)
 
-
         self.pg_profile, self.pg_speed = self.plot_height_velocity()
 
         self.add_height_velocity()
@@ -654,6 +653,7 @@ class DockAnalysis(SeafoilDock):
         if modulo_x:
             # Add a spin box to change the center value of the x axis
             spinbox = pg.SpinBox(value=x_min*x_unit_conversion, bounds=[x_min*x_unit_conversion, x_max*x_unit_conversion], step=x_resolution*x_unit_conversion)
+            spinbox.setValue(self.sfb.configuration["analysis"]["wind_heading"])
             def update_x_center():
                 half_range = (x_max - x_min)/2
                 x_center = ((spinbox.value()/x_unit_conversion+(x_max - x_min)/2.)%(x_max - x_min))
@@ -674,13 +674,17 @@ class DockAnalysis(SeafoilDock):
                 data_x_copy = (data_x - x_center) % (x_max - x_min) - (x_max - x_min)/2.
                 plot_taj.setData(data_x_copy*x_unit_conversion, y*y_unit_conversion)
 
-                # Find the max in y_hist_local positive and negative
-                max_hist_positive = np.max(y_hist_local[x_vect_local > 0])
-                max_hist_negative = np.max(y_hist_local[x_vect_local < 0])
+                # Find the max value of the histogram
+                # Find the indices of all '1's in the matrix (transposed)
+                # Get the first last of '1' by row, which is closest to the top ([-1])
+                # Get the column ([1])
+                max_hist_positive = (np.argwhere(np.transpose(y_hist_local[x_vect_local >= 0]))[-1][1]+1)*x_resolution
+                max_hist_negative = 180 - (np.argwhere(np.transpose(y_hist_local[x_vect_local < 0]))[-1][1]+1)*x_resolution
+                # Add in the legend the max value of the histogram
+                pg_plot.setTitle("Max left: " + str(max_hist_negative) + " Max right: " + str(max_hist_positive))
 
-                # Add text legend with the max value
-
-
+                self.sfb.configuration["analysis"]["wind_heading"] = spinbox.value()
+                # print("Wind heading", spinbox.value(), self.sfb.configuration["analysis"]["wind_heading"])
 
 
             spinbox.sigValueChanged.connect(update_x_center)

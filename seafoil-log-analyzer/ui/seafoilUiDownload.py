@@ -145,6 +145,9 @@ class SeafoilUiDownload(QtWidgets.QDialog):
         self.ui.pushButton_delete_log.setEnabled(True)
 
     def download_logs(self):
+        # Disable the download button
+        self.ui.pushButton_download.setEnabled(False)
+
         # Get the checked items
         checked_logs = []
         for index in range(self.listWidget_logs.count()):
@@ -152,10 +155,21 @@ class SeafoilUiDownload(QtWidgets.QDialog):
                 checked_logs.append(index)
 
         # Call SeafoilConnexion download_logs
-        self.sc.seafoil_download_logs(checked_logs)
+        msg = None
+        success, log_added = self.sc.seafoil_download_logs(checked_logs)
+        if success:
+            msg = QMessageBox.information(self, 'Download Logs', f'{len(checked_logs)} logs have been downloaded', QMessageBox.Ok)
+        else:
+            msg = QMessageBox.warning(self, 'Download Logs', f'An error occured while downloading the logs', QMessageBox.Ok)
+        msg.setWindowFlags(Qt.WindowStaysOnTopHint)
+        msg.exec_()
 
         # Update the log list
         self.update_log_list()
+
+        self.ui.pushButton_download.setEnabled(True)
+
+        return log_added
 
     def delete_logs(self):
         # Get the checked items

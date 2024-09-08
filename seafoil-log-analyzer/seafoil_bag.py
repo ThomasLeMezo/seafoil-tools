@@ -1,4 +1,5 @@
 #!/bin/python3
+import os
 
 from msg.seafoil_gps_fix import SeafoilGpsFix
 from msg.seafoil_profile import SeafoilProfile
@@ -18,6 +19,8 @@ from gpx.seafoil_gpx import SeafoilGpx
 
 import datetime
 import numpy as np
+
+import yaml
 
 class SeafoilBag():
 	def __init__(self, bag_path="", offset_date=datetime.datetime(2019, 1, 1, 0, 0), is_gpx=False):
@@ -61,4 +64,34 @@ class SeafoilBag():
 		# 	if len(self.log_parameter.value[idx[0]]) > 0:
 		# 		self.seafoil_id = str(self.log_parameter.value[idx[0]][0].string_value)
 		print("Seafoil id: " + self.seafoil_id)
+
+		self.configuration_file_name = os.path.dirname(bag_path) + "/configuration.yaml"
+		self.configuration = {}
+
+		if not self.load_configurations():
+			# Save a default configuration file
+			self.configuration = {
+				"analysis": {
+					"wind_heading": 0,
+				}
+			}
+			self.save_configuration()
+
+	def __del__(self):
+		print("SeafoilBag deleted")
+		self.save_configuration()
+
+	def save_configuration(self):
+		with open(self.configuration_file_name, 'w') as file:
+			yaml.dump(self.configuration, file)
+
+	def load_configurations(self):
+		# Test if file exists
+		if os.path.exists(self.configuration_file_name):
+			with open(self.configuration_file_name, 'r') as file:
+				self.configuration = yaml.load(file, Loader=yaml.FullLoader)
+			return True
+		else:
+			return False
+
 		
