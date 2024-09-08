@@ -27,3 +27,7 @@ class SeafoilLog:
         sla = SeafoilLogAnalyser(file_path)
 
         return True
+
+    def remove_log(self, db_id):
+        self.db.remove_log(db_id)
+        self.logs = self.db.get_all_logs()

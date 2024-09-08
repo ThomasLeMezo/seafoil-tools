@@ -4,6 +4,7 @@ import os
 
 from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtWidgets import QApplication
+
 class SeafoilLogAnalyser(QMainWindow):
     def __init__(self, filepath=None, offset_date=None):
         super().__init__()
@@ -39,15 +40,6 @@ class SeafoilLogAnalyser(QMainWindow):
             sfb = SeafoilBag(filepath, offset_date)
 
         ## Display
-
-        # app = QtWidgets.QApplication.instance()
-        # if app is None:
-        #     print('app was none')
-        # app = QtWidgets.QApplication([])
-        # app.exec_()
-        # else:
-        #     print('app was not none')
-
         win = QtWidgets.QMainWindow()
         win.showMaximized()
         # Get file name from filepath
@@ -82,7 +74,6 @@ if __name__ == '__main__':
 
         sla = SeafoilLogAnalyser(filename, offset_date)
         sys.exit(app.exec_())
-
     else:
         print("Usage: seafoil_log <folderpath/filename> [offset_date]")
         print("  filename: path to the rosbag folder or the .gpx file")

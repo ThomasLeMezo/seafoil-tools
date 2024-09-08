@@ -436,10 +436,38 @@ class SeafoilUiLog(QtWidgets.QDialog):
         self.ui.tableWidget_logs.setHorizontalHeaderLabels(["id", "date", "type", "name"])
         # Sort by "date" latest first
         self.update_ui_from_logs()
+
         self.ui.tableWidget_logs.sortItems(1, 1)
 
         # On double click on a row, open the log
         self.ui.tableWidget_logs.itemDoubleClicked.connect(self.on_item_double_clicked)
+
+        # Add menu to remove item
+        self.ui.tableWidget_logs.setContextMenuPolicy(3)
+        self.ui.tableWidget_logs.customContextMenuRequested.connect(self.show_context_menu)
+
+    def show_context_menu(self, position):
+        # Create the context menu
+        menu = QtWidgets.QMenu(self.ui.tableWidget_logs)
+
+        # Get the selected items
+        selected_items = self.ui.tableWidget_logs.selectedItems()
+        if len(selected_items) == 0:
+            return
+        # Remove items where column is not 0
+        item = [i for i in selected_items if i.column() == 0]
+
+        remove_action = menu.addAction(f"Remove log ({len(item)})")
+
+        # Execute the menu and get the selected action
+        action = menu.exec_(self.ui.tableWidget_logs.mapToGlobal(position))
+
+        if action == remove_action:
+            for i in range(len(item)):
+                self.sl.remove_log(int(item[i].text()))
+
+        # Update the ui
+        self.update_ui_from_logs()
 
     def on_item_double_clicked(self, item):
         # Get the row of the item and retrieve the value of the id column
@@ -460,6 +488,7 @@ class SeafoilUiLog(QtWidgets.QDialog):
     def update_ui_from_logs(self):
         # clear treeWidget_sessions
         self.ui.tableWidget_logs.clearContents()
+        self.ui.tableWidget_logs.setSortingEnabled(False)
 
         # Set the number of rows
         self.ui.tableWidget_logs.setRowCount(len(self.sl.logs))
@@ -475,6 +504,8 @@ class SeafoilUiLog(QtWidgets.QDialog):
 
         # Auto resize columns
         self.ui.tableWidget_logs.resizeColumnsToContents()
+        self.ui.tableWidget_logs.setSortingEnabled(True)
+
 
 class SeafoilUi(QtWidgets.QMainWindow):
     def __init__(self, seafoil_directory):

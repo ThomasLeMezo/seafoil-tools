@@ -422,6 +422,11 @@ class SeafoilDB:
         self.sqliteCursor.execute('''SELECT * FROM log WHERE id = ?''', (id,))
         return self.sqliteCursor.fetchone()
 
+    # Remove log
+    def remove_log(self, id):
+        self.sqliteCursor.execute('''DELETE FROM log WHERE id = ?''', (id,))
+        self.sqliteConnection.commit()
+
     # Get all logs
     def get_all_logs(self):
         self.sqliteCursor.execute('''SELECT * FROM log''')
