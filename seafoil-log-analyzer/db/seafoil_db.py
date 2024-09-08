@@ -68,7 +68,7 @@ class SeafoilDB:
         self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS log
         (
             id INTEGER PRIMARY KEY AUTOINCREMENT, 
-            time_created DATETIME DEFAULT CURRENT_TIMESTAMP,
+            starting_time DATETIME DEFAULT CURRENT_TIMESTAMP,
             name TEXT NOT NULL,
             session INTEGER,
             is_download BOOLEAN DEFAULT 0,
@@ -402,7 +402,7 @@ class SeafoilDB:
 
     # Add new log file to the database if it does not exist and return the id
     # type = 0 for rosbag, 1 for gpx
-    def insert_log(self, name, time_created, type='rosbag'):
+    def insert_log(self, name, starting_time, type='rosbag'):
         # Test if the log file is already in the database and return the id if it is
         self.sqliteCursor.execute('''SELECT * FROM log WHERE name = ?''', (name,))
         row = self.sqliteCursor.fetchone()
@@ -412,7 +412,7 @@ class SeafoilDB:
 
         type_id = self.convert_log_type_from_str(type)
 
-        self.sqliteCursor.execute('''INSERT INTO log (name, time_created, type) VALUES (?, ?, ?)''', (name, time_created, type_id))
+        self.sqliteCursor.execute('''INSERT INTO log (name, starting_time, type) VALUES (?, ?, ?)''', (name, starting_time, type_id))
         self.sqliteConnection.commit()
         # Return the if of the last inserted row, is_download = False, is_new = True
         return self.sqliteCursor.lastrowid, False, True
@@ -431,6 +431,11 @@ class SeafoilDB:
     def get_all_logs(self):
         self.sqliteCursor.execute('''SELECT * FROM log''')
         return self.sqliteCursor.fetchall()
+
+    # Return True if the name and starting_time are not in the database
+    def is_new_log(self, name):
+        self.sqliteCursor.execute('''SELECT * FROM log WHERE name = ?''', (name,))
+        return self.sqliteCursor.fetchone() is None
 
     # Update log folder
     def set_log_download(self, id):

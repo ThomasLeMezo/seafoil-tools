@@ -2,13 +2,26 @@ import gpxpy
 import paramiko
 import datetime
 import os
+
+from PyQt5.QtCore import pyqtSignal, QObject
 from scp import SCPClient
 import yaml
 from db.seafoil_db import SeafoilDB
+from enum import IntEnum
 
-class SeafoilConnexion:
+class StateConnexion(IntEnum):
+    Disconnected = 0
+    SeafoilServiceStop = 1
+    DownloadLogList = 2
+    DownloadLog = 3
+    Error = 4
+
+class SeafoilConnexion(QObject):
+    # Create signal for progress bar
+    signal_download_log = pyqtSignal(int, int)
 
     def __init__(self):
+        super().__init__()
         self.db = SeafoilDB()
 
         self.seafoil_box = self.db.get_seafoil_box_all()
@@ -29,22 +42,24 @@ class SeafoilConnexion:
         # project folder is one level above the current file (and simplify the path)
         self.projet_folder = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '/../')
         self.log_folder = self.projet_folder + '/data/log/'
-        self.gpx_folder = self.projet_folder + '/data/gpx/'
 
         self.stored_log_list = []
+
+        self.connexion_state = StateConnexion.Disconnected
+
+        self.remaining_log_to_download = 0
 
     def __del__(self):
         # if connected, close the connection
         if self.is_connected and self.ssh_client.get_transport().is_active():
             self.ssh_client.close()
 
-    def get_file_directory(self, id, file_type, file_name):
-        if file_type == self.db.convert_log_type_from_str('rosbag'):
-            return self.log_folder + str(id) + '/' + file_name
-        elif file_type == self.db.convert_log_type_from_str('gpx'):
-            return self.gpx_folder + str(id) + '/' + file_name
-        else:
-            return
+    def get_file_directory(self, id, file_name):
+        ret = self.log_folder + str(id) + '/' + file_name
+        # if file name is a gpx file
+        if not file_name.endswith('.gpx'):
+            ret += "/"
+        return ret
 
     def check_if_connected(self):
         if not self.is_connected or not self.ssh_client.get_transport().is_active():
@@ -224,13 +239,70 @@ class SeafoilConnexion:
                 date, time, _, name = line.split(' ')
                 # convert date and time as datetime object
                 timestamp = datetime.datetime.strptime((date + ' ' + time)[:23], '%Y-%m-%d %H:%M:%S.%f')
-                self.stored_log_list.append({'name': name, 'timestamp': timestamp, 'id': i})
+                timestamp_ros =  datetime.datetime.strptime(name, 'rosbag2_%Y_%m_%d-%H_%M_%S')
+                is_new_log = self.db.is_new_log(name)
+                self.stored_log_list.append({'name': name, 'timestamp': timestamp, 'timestamp_ros': timestamp_ros, 'id': i, 'is_new': is_new_log})
 
             return self.stored_log_list
 
         except Exception as e:
             print(f"An error occurred: {e}")
             return False
+
+    def seafoil_delete_logs(self, log_list):
+        success = True
+        for log_id in log_list:
+            if not self.seafoil_delete_log(log_id):
+                success = False
+
+        # Update the log list
+        self.seafoil_get_log_list()
+
+        return success
+
+    def seafoil_delete_log(self, log_id):
+        # Test if the log_id is valid
+        if log_id < 0 or log_id >= len(self.stored_log_list):
+            print("Invalid log id.")
+            return False
+
+        # get the log name from the stored list
+        log_name = self.stored_log_list[log_id]['name']
+
+        try:
+            # Command to delete the log folder
+            command = f"rm -r /home/{self.username}/log/{log_name}"
+
+            # Execute the command
+            stdin, stdout, stderr = self.ssh_client.exec_command(command)
+
+            # Read the output
+            output = stdout.read().decode().strip()
+
+            # Determine if the folder was deleted
+            if output == '':
+                print(f"The log folder '{log_name}' was deleted.")
+                return True
+            else:
+                print(f"An error occurred: {output}")
+                return False
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return False
+
+    def seafoil_download_logs(self, log_list):
+        success = True
+        self.remaining_log_to_download = len(log_list)
+        for log_id in log_list:
+            if not self.seafoil_download_log(log_id):
+                success = False
+            self.remaining_log_to_download -= 1
+
+        # Update the log list
+        self.seafoil_get_log_list()
+
+        return success
 
     # Download a log folder from the seafoil to data/log folder
     def seafoil_download_log(self, log_id):
@@ -241,7 +313,7 @@ class SeafoilConnexion:
 
         # get the log name from the stored list
         log_name = self.stored_log_list[log_id]['name']
-        log_date = self.stored_log_list[log_id]['timestamp']
+        log_date = self.stored_log_list[log_id]['timestamp_ros'].timestamp()
 
         # Create the log folder if it does not exist
         os.makedirs(f"{self.log_folder}", exist_ok=True)
@@ -249,8 +321,8 @@ class SeafoilConnexion:
         # Create new rosbag in db
         db_id, is_downloaded, is_new = self.db.insert_log(log_name, log_date, 'rosbag')
 
-        log_folder = f"{self.log_folder}/{db_id}"
-        os.makedirs(log_folder, exist_ok=True)
+        download_target = f"{self.log_folder}/{db_id}"
+        os.makedirs(download_target, exist_ok=True)
 
         # If the rosbag already exists, verify if the log folder already exists
         if not is_new and is_downloaded:
@@ -259,12 +331,14 @@ class SeafoilConnexion:
 
         try:
             def progress(filename, size, sent):
-                print("%s's progress: %.2f%%   \r" % (filename, float(sent)/float(size)*100) )
+                # print("%s's progress: %.2f%%   \r" % (filename, float(sent)/float(size)*100) )
+                # Emit the signal
+                self.signal_download_log.emit(int(float(sent)/float(size)*100), self.remaining_log_to_download)
 
             # Create an SCP client
             with SCPClient(self.ssh_client.get_transport(), progress=progress) as scp:
                 # Download the file
-                scp.get(f"/home/{self.username}/log/{log_name}", f"{self.log_folder}/", recursive=True, preserve_times=True)
+                scp.get(f"/home/{self.username}/log/{log_name}", f"{download_target}/", recursive=True, preserve_times=True)
                 print("Download complete!")
 
             # Update the db
@@ -291,7 +365,7 @@ class SeafoilConnexion:
             # Insert the gpx file in the database
             file_name = os.path.basename(file_path)
             db_id, is_download, is_new = self.db.insert_log(os.path.basename(file_name), starting_time, 'gpx')
-            folder = self.gpx_folder + str(db_id) + '/'
+            folder = self.log_folder + str(db_id) + '/'
             os.makedirs(folder, exist_ok=True)
 
             db_file_path = folder + file_name
@@ -311,6 +385,36 @@ class SeafoilConnexion:
         except Exception as e:
             print(f'An error occurred while importing the GPX file {file_name}: {e}')
             return False, -1
+
+    def remove_log(self, db_id):
+        # Get the log name from the database
+        log = self.db.get_log(db_id)
+        log_name = log['name']
+
+        # Remove the log from the database
+        self.db.remove_log(db_id)
+
+        # Remove the log folder
+        os.system(f"rm -r {self.log_folder}/{db_id}")
+
+        print(f"The log '{log_name}' was removed.")
+
+    def process_log(self):
+        if self.connexion_state == StateConnexion.Disconnected:
+            if self.connect():
+                self.connexion_state = StateConnexion.SeafoilServiceStop
+
+        elif self.connexion_state == StateConnexion.SeafoilServiceStop:
+            if self.seafoil_service_stop():
+                self.connexion_state = StateConnexion.DownloadLogList
+            else:
+                self.connexion_state = StateConnexion.Disconnected
+
+        elif self.connexion_state == StateConnexion.DownloadLogList:
+            if self.seafoil_get_log_list():
+                self.connexion_state = StateConnexion.DownloadLog
+            else:
+                self.connexion_state = StateConnexion.Disconnected
 
 if __name__ == '__main__':
     sc = SeafoilConnexion()

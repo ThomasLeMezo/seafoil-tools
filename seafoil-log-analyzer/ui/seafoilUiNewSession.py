@@ -51,38 +51,15 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
         self.directory = os.path.dirname(os.path.abspath(__file__))
         self.ui = uic.loadUi(self.directory + '/session.ui', self)
 
-
-
         self.model = DictListModel(self.sns.log_list)
         self.ui.listView_log.setModel(self.model)
         # Enable custom context menu on the QListView
         self.listView_log.setContextMenuPolicy(Qt.CustomContextMenu)
         self.listView_log.customContextMenuRequested.connect(self.show_context_menu)
 
-        # Connect the buttons to the functions
-        # self.ui.pushButton_upload_log.clicked.connect(self.on_upload_log_clicked)
-        self.ui.pushButton_upload_gpx.clicked.connect(self.on_import_gpx_clicked)
-        # self.ui.pushButton_search_log.clicked.connect(self.on_search_log_clicked)
-
         # Connect ok and cancel buttons
         # self.ui.buttonBox.accepted.connect(self.accept)
         self.ui.buttonBox.rejected.connect(self.reject)
-
-    # Import a gpx file
-    def on_import_gpx_clicked(self):
-        # Open file dialog to select a gpx file
-        file_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', '', 'GPX files (*.gpx)')
-
-        # If a file is selected
-        if file_path:
-            if self.sns.import_gpx(file_path):
-                QtWidgets.QMessageBox.information(self, 'Success', 'GPX file added successfully')
-            else:
-                QtWidgets.QMessageBox.critical(self, 'Error', 'An error occurred while importing the GPX file')
-
-            # Update the list view
-            self.update_log_list()
-
 
     def show_context_menu(self, position):
         # Create the context menu

@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QApplication, QTreeWidget, QTreeWidgetItem, QVBoxLay
 
 from device.seafoil_connexion import SeafoilConnexion
 from .seafoilUiNewSession import SeafoilUiNewSession
+from .seafoilUiDownload import SeafoilUiDownload
 from device.seafoil_configuration import SeafoilConfiguration
 from device.seafoil_equipement import SeafoilEquipement
 from device.seafoil_session import SeafoilSession
@@ -446,6 +447,16 @@ class SeafoilUiLog(QtWidgets.QDialog):
         self.ui.tableWidget_logs.setContextMenuPolicy(3)
         self.ui.tableWidget_logs.customContextMenuRequested.connect(self.show_context_menu)
 
+        # Connect pushButton_upload_log to function on_upload_log_clicked
+        self.ui.pushButton_upload_log.clicked.connect(self.on_upload_log_clicked)
+
+    def on_upload_log_clicked(self):
+        download = SeafoilUiDownload()
+        download.exec_()
+
+        # On close, update the ui
+        self.update_ui_from_logs()
+
     def show_context_menu(self, position):
         # Create the context menu
         menu = QtWidgets.QMenu(self.ui.tableWidget_logs)
@@ -497,7 +508,7 @@ class SeafoilUiLog(QtWidgets.QDialog):
         for i, log in enumerate(self.sl.logs):
             # start_date from unix timestamp in local time zone
             self.ui.tableWidget_logs.setItem(i, 0, QtWidgets.QTableWidgetItem(str(log['id'])))
-            start_date = datetime.datetime.fromtimestamp(log['time_created'])
+            start_date = datetime.datetime.fromtimestamp(log['starting_time'])
             self.ui.tableWidget_logs.setItem(i, 1, QtWidgets.QTableWidgetItem(start_date.strftime('%Y-%m-%d %H:%M:%S')))
             self.ui.tableWidget_logs.setItem(i, 2, QtWidgets.QTableWidgetItem(self.sl.db.convert_log_type_from_int(log['type'])))
             self.ui.tableWidget_logs.setItem(i, 3, QtWidgets.QTableWidgetItem(log['name']))

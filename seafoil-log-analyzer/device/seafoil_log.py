@@ -12,6 +12,8 @@ class SeafoilLog:
         self.logs = self.db.get_all_logs()
         self.sc = SeafoilConnexion()
 
+        self.opended_log = []
+
     def add_gpx_files(self, file_paths):
         for file_path in file_paths:
             self.sc.add_gpx_file(file_path)
@@ -20,14 +22,11 @@ class SeafoilLog:
     def open_log(self, db_id):
         log = self.db.get_log(db_id)
 
-        file_path = self.sc.get_file_directory(log['id'], log['type'], log['name'])
+        file_path = self.sc.get_file_directory(log['id'], log['name'])
         print(file_path)
 
-        # Call open_log(file_path) in new process
-        sla = SeafoilLogAnalyser(file_path)
-
-        return True
+        self.opended_log.append(SeafoilLogAnalyser(file_path))
 
     def remove_log(self, db_id):
-        self.db.remove_log(db_id)
+        self.sc.remove_log(db_id)
         self.logs = self.db.get_all_logs()

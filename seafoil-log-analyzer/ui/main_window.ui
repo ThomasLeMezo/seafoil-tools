@@ -89,7 +89,17 @@
         <item>
          <widget class="QPushButton" name="pushButton_upload_log">
           <property name="text">
-           <string>Télécharger boitier</string>
+           <string>Télécharger log boitier</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_add_basevitesse">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string>Base de Vitesse</string>
           </property>
          </widget>
         </item>

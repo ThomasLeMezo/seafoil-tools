@@ -1,0 +1,175 @@
+import sys
+from PyQt5 import QtWidgets, uic
+import os
+
+from PyQt5.QtWidgets import QListWidgetItem, QMessageBox
+
+from device.seafoil_connexion import SeafoilConnexion
+from device.seafoil_connexion import StateConnexion
+from device.seafoil_new_session import SeafoilNewSession
+from PyQt5.QtCore import QAbstractListModel, Qt, QThread, QTimer, pyqtSignal
+from PyQt5 import QtCore
+
+class WorkerThread(QThread):
+    # Define a signal to communicate with the main thread
+    timer_signal = pyqtSignal()
+
+    def __init__(self, interval=1000, stop_worker_thread=None):
+        super().__init__()
+        self.interval = interval
+        # Connect the stop_worker_thread signal to the stop method
+        stop_worker_thread.connect(self.stop)
+
+    def run(self):
+        # Create a QTimer within the worker thread
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.send_signal)  # Connect the timeout signal to a method
+        self.timer.start(self.interval)  # Start the timer with the specified interval
+
+        # Start the event loop
+        self.exec_()
+
+    def send_signal(self):
+        # Emit a signal with a message each time the timer fires
+        self.timer_signal.emit()
+
+    def stop(self):
+        print("Stopping the worker thread")
+        # Stop the timer and thread
+        self.timer.stop()
+        self.quit()
+        self.wait()
+
+class SeafoilUiDownload(QtWidgets.QDialog):
+    stop_worker_thread = pyqtSignal()
+
+    def __init__(self):
+        super().__init__()
+        self.sns = SeafoilNewSession()
+        self.directory = os.path.dirname(os.path.abspath(__file__))
+        self.ui = uic.loadUi(self.directory + '/download.ui', self)
+        self.sc = SeafoilConnexion()
+
+        # Create and start the worker thread
+        self.worker_thread = WorkerThread(interval=250, stop_worker_thread=self.stop_worker_thread)  # Timer interval set to 1000 ms (1 second)
+        self.worker_thread.timer_signal.connect(self.update_ui)  # Connect the signal to update_label method
+        self.worker_thread.start()
+
+        self.loading_symbol_state = 0
+
+        # Connect the pushButton_download
+        self.ui.pushButton_download.clicked.connect(self.download_logs)
+
+        # Connect the pushButton_delete_log
+        self.ui.pushButton_delete_log.clicked.connect(self.delete_logs)
+
+        # Connect to the signal from the SeafoilConnexion
+        self.sc.signal_download_log.connect(self.update_progress_bar)
+        self.ui.progressBar.setFormat("%p% (%v)")
+
+        # Create a timer to call process_log every second
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.process_timer)
+        self.timer.start(1000)
+
+    def __del__(self):
+        self.stop_worker_thread.emit()
+
+    def update_progress_bar(self, progress, remaining_log_to_download):
+        self.ui.progressBar.setValue(progress)
+        self.ui.progressBar.setFormat(f"%p% ({remaining_log_to_download})")
+
+    def add_loading_symbol(self):
+        self.loading_symbol_state = (self.loading_symbol_state + 1) % 4
+        return '.' * self.loading_symbol_state
+
+    def process_timer(self):
+        # Call SeafoilConnexion process_log
+        self.sc.process_log()
+
+        if self.sc.connexion_state == StateConnexion.DownloadLog:
+            self.update_log_list()
+            # stop timer
+            self.timer.stop()
+            self.stop_worker_thread.emit()
+            self.update_ui()
+
+    def update_ui(self):
+        # Connexion state
+        if self.sc.connexion_state == StateConnexion.Disconnected:
+            self.ui.label_connexion.setText(f"Connexion{self.add_loading_symbol()}")
+        elif self.sc.connexion_state > StateConnexion.Disconnected:
+            self.ui.label_connexion.setText(f"Connected")
+            self.ui.label_connexion.setStyleSheet("color: green")
+
+        # Stop software state
+        if self.sc.connexion_state < StateConnexion.SeafoilServiceStop:
+            self.ui.label_stop_software.setText(f"Stop Software")
+            self.ui.label_stop_software.setStyleSheet("color: gray")
+        elif self.sc.connexion_state == StateConnexion.SeafoilServiceStop:
+            self.ui.label_stop_software.setText(f"Stop Software{self.add_loading_symbol()}")
+            self.ui.label_stop_software.setStyleSheet("color: black")
+        else:
+            self.ui.label_stop_software.setText(f"Software Stopped")
+            self.ui.label_stop_software.setStyleSheet("color: green")
+
+        # Download log list state
+        if self.sc.connexion_state < StateConnexion.DownloadLogList:
+            self.ui.label_download_log_list.setText(f"Download Log List")
+            self.ui.label_download_log_list.setStyleSheet("color: gray")
+        elif self.sc.connexion_state == StateConnexion.DownloadLogList:
+            self.ui.label_download_log_list.setText(f"Download Log List{self.add_loading_symbol()}")
+            self.ui.label_download_log_list.setStyleSheet("color: black")
+        else:
+            self.ui.label_download_log_list.setText(f"Log List Downloaded")
+            self.ui.label_download_log_list.setStyleSheet("color: green")
+
+    def update_log_list(self):
+        self.listWidget_logs.clear()
+        # Add items to the list widget with checkboxes
+        for log in self.sc.stored_log_list:
+            item_text = str(log['id']) + ' - ' + log['name']
+            if log['is_new']:
+                item_text += ' [NEW]'
+            item = QListWidgetItem(item_text)
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)  # Set the item as checkable
+            if log['is_new']:
+                item.setCheckState(Qt.Checked)
+            else:
+                item.setCheckState(Qt.Unchecked)  # Set the initial state to unchecked
+            self.listWidget_logs.addItem(item)
+
+        # Enable the download button
+        self.ui.pushButton_download.setEnabled(True)
+        # Enable the delete button
+        self.ui.pushButton_delete_log.setEnabled(True)
+
+    def download_logs(self):
+        # Get the checked items
+        checked_logs = []
+        for index in range(self.listWidget_logs.count()):
+            if self.listWidget_logs.item(index).checkState() == Qt.Checked:
+                checked_logs.append(index)
+
+        # Call SeafoilConnexion download_logs
+        self.sc.seafoil_download_logs(checked_logs)
+
+        # Update the log list
+        self.update_log_list()
+
+    def delete_logs(self):
+        # Get the checked items
+        selected_logs = []
+        for index in range(self.listWidget_logs.count()):
+            if self.listWidget_logs.item(index).isSelected():
+                selected_logs.append(index)
+
+        # Open a Dialog to confirm the deletion
+        msg = QMessageBox.question(self, 'Delete Logs', f'Are you sure you want to delete the selected {len(selected_logs)} logs?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if msg == QMessageBox.Yes:
+            # Call SeafoilConnexion delete_logs
+            self.sc.seafoil_delete_logs(selected_logs)
+            # Update the log list
+            self.update_log_list()
+        else:
+            pass
