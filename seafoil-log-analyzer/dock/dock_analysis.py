@@ -1,5 +1,5 @@
 #!/bin/python3
-
+import os
 import sys
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtWidgets
@@ -384,7 +384,7 @@ class DockAnalysis(SeafoilDock):
         # interpolate data_height to data_gnss.time_gnss
         f_height = interpolate.interp1d(data_height.time, data_height.height, bounds_error=False, kind="zero")
         height = f_height(data_gnss.time)
-        print(height)
+        # print(height)
 
         f_imu_roll = interpolate.interp1d(data_imu.time, data_imu.roll, bounds_error=False, kind="zero")
         roll = f_imu_roll(data_gnss.time)
@@ -416,11 +416,12 @@ class DockAnalysis(SeafoilDock):
         # f_wind_velocity = interpolate.interp1d(data_wind.time, data_wind.velocity, bounds_error=False, kind="zero")
         # wind_velocity = f_wind_velocity(data_gnss.time)
 
-        print(self.sfb.seafoil_id)
+        # from sfb.file_name, get the name of the last folder
+        folder = os.path.basename(os.path.dirname(self.sfb.file_name))
+
         filepath = QFileDialog.getSaveFileName(self.win, "Save file",
-                                               str(data_gnss.bag_path) + "_" + self.sfb.seafoil_id + ".gpx",
+                                               f"{self.sfb.file_name}/{folder}.gpx",
                                                "GPX (*.gpx)")
-        print(filepath)
         if filepath[0] == '':
             return
 

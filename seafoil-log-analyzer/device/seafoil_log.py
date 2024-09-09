@@ -14,6 +14,9 @@ class SeafoilLog:
 
         self.opended_log = []
 
+    def update(self):
+        self.logs = self.db.get_all_logs()
+
     def add_gpx_files(self, file_paths):
         list_added = []
         for file_path in file_paths:

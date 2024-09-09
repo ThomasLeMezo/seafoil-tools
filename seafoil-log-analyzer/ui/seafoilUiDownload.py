@@ -161,7 +161,6 @@ class SeafoilUiDownload(QtWidgets.QDialog):
             msg = QMessageBox.information(self, 'Download Logs', f'{len(checked_logs)} logs have been downloaded', QMessageBox.Ok)
         else:
             msg = QMessageBox.warning(self, 'Download Logs', f'An error occured while downloading the logs', QMessageBox.Ok)
-        msg.setWindowFlags(Qt.WindowStaysOnTopHint)
         msg.exec_()
 
         # Update the log list

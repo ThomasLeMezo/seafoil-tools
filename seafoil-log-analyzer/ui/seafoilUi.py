@@ -511,6 +511,7 @@ class SeafoilUiLog(QtWidgets.QDialog):
         self.update_ui_from_logs()
 
     def update_ui_from_logs(self):
+        self.sl.update()
         # clear treeWidget_sessions
         self.ui.tableWidget_logs.clearContents()
         self.ui.tableWidget_logs.setSortingEnabled(False)
