@@ -12,6 +12,8 @@ class SeafoilConfiguration():
         self.sc = SeafoilConnexion()
         self.db = SeafoilDB()
 
+        self.seafoil_box_name = self.db.get_seafoil_box_first()
+
         self.v500 = 30.0
         self.v1850 = 30.0
         self.voice_interval = 5000

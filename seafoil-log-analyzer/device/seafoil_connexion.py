@@ -29,7 +29,7 @@ class SeafoilConnexion(QObject):
         if len(self.seafoil_box) == 0:
             self.host = "seafoil"
         else:
-            self.host = self.seafoil_box[-1]["name"]
+            self.host = self.seafoil_box[0]["name"]
         self.host += ".local" # use the avahi service to find the host
 
         # Default parameters

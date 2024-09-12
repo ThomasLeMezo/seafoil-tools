@@ -11,7 +11,17 @@ from device.seafoil_configuration import SeafoilConfiguration
 from device.seafoil_equipement import SeafoilEquipement
 from device.seafoil_session import SeafoilSession
 from device.seafoil_log import SeafoilLog
+from device.seafoil_git import SeafoilGit
 import os
+
+def upload_gpx(ui, sl):
+    # Open file dialog to select one or more gpx files
+    file_paths, _ = QtWidgets.QFileDialog.getOpenFileNames(ui, 'Open file', '', 'GPX files (*.gpx)')
+    if len(file_paths) == 0:
+        return
+
+    # Upload the gpx files
+    return sl.add_gpx_files(file_paths)
 
 def new_equipment_dialog_box(ui, se, category, item_index, is_new):
     # Create the dialog box
@@ -178,11 +188,25 @@ class SeafoilUiConfiguration:
         # connect the pushButton_start_software to function on_start_software_clicked
         self.ui.pushButton_start_software.clicked.connect(self.on_start_software_clicked)
 
+        # connect the pushButton_identification to function on_identification_clicked
+        self.ui.pushButton_identification.clicked.connect(self.on_identification_clicked)
+
         # Seafoil Configuration
         self.sc = SeafoilConfiguration()
         self.update_ui_from_configuration()
 
         self.connect_value_changed_configuration(True)
+
+    def on_identification_clicked(self):
+        name = self.sc.db.get_seafoil_box_first()
+        # Open a dialog box to enter the identification
+        text, ok = QtWidgets.QInputDialog.getText(self.seafoil_ui, 'Identification', 'Enter the name of the seafoil box:', QtWidgets.QLineEdit.Normal, name)
+
+        if ok:
+            if name is None:
+                self.sc.db.insert_seafoil_box(text)
+            else:
+                self.sc.db.rename_seafoil_box_first(text)
 
     def on_start_software_clicked(self):
         # open a dialog box to confirm the software was started
@@ -501,13 +525,7 @@ class SeafoilUiLog(QtWidgets.QDialog):
         self.sl.open_log(int(id))
 
     def on_upload_gpx_clicked(self):
-        # Open file dialog to select one or more gpx files
-        file_paths, _ = QtWidgets.QFileDialog.getOpenFileNames(self, 'Open file', '', 'GPX files (*.gpx)')
-        if len(file_paths) == 0:
-            return
-
-        # Upload the gpx files
-        self.sl.add_gpx_files(file_paths)
+        upload_gpx(self, self.sl)
         self.update_ui_from_logs()
 
     def update_ui_from_logs(self):
@@ -540,6 +558,7 @@ class SeafoilUi(QtWidgets.QMainWindow):
         # Get directory of the current file
         self.seafoil_directory = seafoil_directory
         self.ui = uic.loadUi(self.seafoil_directory + '/ui/main_window.ui', self)
+        self.sg = SeafoilGit()
 
         self.seafoil_ui_configuration = SeafoilUiConfiguration(self, self.ui)
         self.seafoil_ui_equipment = SeafoilUiEquipement(self)
@@ -548,6 +567,32 @@ class SeafoilUi(QtWidgets.QMainWindow):
 
         # connect the tabWidget change index
         self.ui.tabWidget.currentChanged.connect(self.on_tabWidget_changed)
+
+        # connect menu action actionMise_jour to function on_actionMise_jour_triggered
+        self.ui.actionMise_jour.triggered.connect(self.update_git)
+
+    def update_git(self):
+        # Get the current tag
+        current_tag = self.sg.get_current_tag()
+        # Get the latest tag
+        latest_tag = self.sg.get_last_tag()
+
+        # If the current tag is not the latest tag open a dialog box to update
+        if current_tag != latest_tag:
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Information)
+            msg.setText(f"Current version: {current_tag}\nLatest version: {latest_tag}")
+            msg.setWindowTitle("Update")
+            msg.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
+            ret = msg.exec_()
+            if ret == QtWidgets.QMessageBox.Ok:
+                self.sg.update_to_last_tag()
+        else:
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Information)
+            msg.setText(f"Current version: {current_tag}\nLatest version: {latest_tag}")
+            msg.setWindowTitle("Update")
+            msg.exec_()
 
     def on_tabWidget_changed(self, index):
         if index == 0:

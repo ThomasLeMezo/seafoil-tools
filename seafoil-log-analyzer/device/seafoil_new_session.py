@@ -2,6 +2,7 @@ import subprocess, os
 from db.seafoil_db import SeafoilDB
 from device.seafoil_connexion import SeafoilConnexion
 from device.seafoil_equipement import SeafoilEquipement
+from device.seafoil_log import SeafoilLog
 
 # class to manage the sessions
 class SeafoilNewSession():
@@ -10,6 +11,7 @@ class SeafoilNewSession():
         self.db = SeafoilDB()
         self.sc = SeafoilConnexion()
         self.se = SeafoilEquipement()
+        self.sl = SeafoilLog()
 
         self.log_list = []
         self.rider_list = []

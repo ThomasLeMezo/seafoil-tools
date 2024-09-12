@@ -24,7 +24,7 @@ class SeafoilDB:
     def create_db(self):
 
         # Ceate table for seafoil box
-        self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS seafoil_box
+        self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS seafoil_box_identification
         (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT
@@ -450,13 +450,22 @@ class SeafoilDB:
 
     # Add new seafoil_box
     def insert_seafoil_box(self, name):
-        self.sqliteCursor.execute('''INSERT INTO seafoil_box (name) VALUES (?)''', (name,))
+        self.sqliteCursor.execute('''INSERT INTO seafoil_box_identification (name) VALUES (?)''', (name,))
         self.sqliteConnection.commit()
 
     # Get all seafoil_box
     def get_seafoil_box_all(self):
-        self.sqliteCursor.execute('''SELECT * FROM seafoil_box''')
+        self.sqliteCursor.execute('''SELECT * FROM seafoil_box_identification''')
         return self.sqliteCursor.fetchall()
+
+    def get_seafoil_box_first(self):
+        self.sqliteCursor.execute('''SELECT * FROM seafoil_box_identification LIMIT 1''')
+        return self.sqliteCursor.fetchone()
+
+    # Rename seafoil_box first
+    def rename_seafoil_box_first(self, name):
+        self.sqliteCursor.execute('''UPDATE seafoil_box_identification SET name = ? LIMIT 1''', (name,))
+        self.sqliteConnection.commit()
 
     # Get all riders
     def get_all_riders(self):

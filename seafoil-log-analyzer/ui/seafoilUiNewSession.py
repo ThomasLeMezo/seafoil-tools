@@ -114,7 +114,18 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
         for i, comboBox in enumerate(self.comboBox_list):
             comboBox.currentIndexChanged.connect(lambda index, i=i: self.on_change_equipment_index(index, i))
 
+        # connect pushButton_upload_gpx to the upload_gpx method
+        self.ui.pushButton_upload_gpx.clicked.connect(self.on_upload_gpx_clicked)
+
         self.update_ui_from_configuration()
+
+    def on_upload_gpx_clicked(self):
+        # Call the upload_gpx function from seafoilUi.py
+        # list_added = upload_gpx(self, self.sns.sl)
+        # for db_id in list_added:
+        #     self.sns.add_log_to_list(db_id)
+        # self.model.update_data(self.sns.log_list)
+        pass
 
     def on_change_equipment_index(self, index, equipment_type):
         self.update_configuration_from_ui()

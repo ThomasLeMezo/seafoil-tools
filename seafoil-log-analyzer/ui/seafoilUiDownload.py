@@ -75,6 +75,8 @@ class SeafoilUiDownload(QtWidgets.QDialog):
     def __del__(self):
         self.stop_worker_thread.emit()
 
+
+
     def update_progress_bar(self, progress, remaining_log_to_download):
         self.ui.progressBar.setValue(progress)
         self.ui.progressBar.setFormat(f"%p% ({remaining_log_to_download})")
