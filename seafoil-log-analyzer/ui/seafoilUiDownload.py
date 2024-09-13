@@ -72,10 +72,10 @@ class SeafoilUiDownload(QtWidgets.QDialog):
         self.timer.timeout.connect(self.process_timer)
         self.timer.start(1000)
 
+        self.log_downloaded = []
+
     def __del__(self):
         self.stop_worker_thread.emit()
-
-
 
     def update_progress_bar(self, progress, remaining_log_to_download):
         self.ui.progressBar.setValue(progress)
@@ -170,7 +170,8 @@ class SeafoilUiDownload(QtWidgets.QDialog):
 
         self.ui.pushButton_download.setEnabled(True)
 
-        return log_added
+        # Add log_added to log_downloaded
+        self.log_downloaded += log_added
 
     def delete_logs(self):
         # Get the checked items

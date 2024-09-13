@@ -306,10 +306,9 @@ class SeafoilConnexion(QObject):
         self.remaining_log_to_download = len(log_list)
         for log_id in log_list:
             ret, db_id = self.seafoil_download_log(log_id)
-            if not ret:
-                success = False
-            else:
+            if db_id is not None:
                 log_added.append(self.stored_log_list[log_id]['id'])
+            success &= ret
             self.remaining_log_to_download -= 1
 
         # Update the log list
@@ -366,7 +365,7 @@ class SeafoilConnexion(QObject):
             # Remove the log from the database
             self.db.remove_log(db_id)
             print(f"Download failed {log_name}! Remove the log from the database.")
-            return False, -1
+            return False, None
 
     def add_gpx_file(self, file_path):
         # Try to parse the file

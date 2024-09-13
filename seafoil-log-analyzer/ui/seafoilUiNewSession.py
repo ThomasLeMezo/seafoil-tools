@@ -7,6 +7,9 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton
 from device.seafoil_new_session import SeafoilNewSession
 from PyQt5.QtCore import QAbstractListModel, Qt, QDateTime
 from ui.seafoilUi import upload_gpx
+from ui.seafoilUiDownload import SeafoilUiDownload
+from ui.seafoilUiSearchLog import SeafoilUiSearchLog
+
 
 class TwoFieldInputDialog(QDialog):
     def __init__(self, windows_title, first_label_text, second_label_text):
@@ -116,9 +119,40 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
         # connect pushButton_upload_gpx to the upload_gpx method
         self.ui.pushButton_upload_gpx.clicked.connect(self.on_upload_gpx_clicked)
 
+        # connect pushButton_upload_log to the upload_log method
+        self.ui.pushButton_upload_log.clicked.connect(self.on_upload_log_clicked)
+
+        # connect pushButton_search_log to the search_log method
+        self.ui.pushButton_search_log.clicked.connect(self.on_search_log_list)
+
         # Connect ok and cancel buttons
         self.ui.buttonBox.accepted.connect(self.accept)
         self.ui.buttonBox.rejected.connect(self.reject)
+
+    def on_upload_log_clicked(self):
+        download = SeafoilUiDownload()
+        download.exec_()
+
+        # Get the list of logs to add
+        log_list_id = download.log_downloaded
+
+        for db_id in log_list_id:
+            self.sns.add_log_to_list(db_id)
+        self.model.update_data(self.sns.log_list)
+
+    def on_search_log_list(self):
+        # Open the search log dialog
+
+        search_log = SeafoilUiSearchLog()
+        search_log.exec_()
+
+        # Get the list of logs to add
+        log_list_id = search_log.selected_logs
+        for db_id in log_list_id:
+            self.sns.add_log_to_list(db_id)
+
+        # Update the model with the modified dictionary
+        self.model.update_data(self.sns.log_list)
 
     def accept(self):
         self.update_configuration_from_ui()
@@ -174,12 +208,10 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
         self.ui.doubleSpinBox_mast_foot_position.setValue(self.sns.se.mast_foot_position)
 
         # Update dateTimeEdit_start
-        print(QDateTime.fromSecsSinceEpoch(self.sns.session['start_date']))
-        print(self.sns.session['start_date'])
-        self.ui.dateTimeEdit_start.setDateTime(QDateTime.fromSecsSinceEpoch(self.sns.session['start_date']))
+        self.ui.dateTimeEdit_start.setDateTime(QDateTime.fromSecsSinceEpoch(int(self.sns.session['start_date'])))
 
         # Update dateTimeEdit_end
-        self.ui.dateTimeEdit_end.setDateTime(QDateTime.fromSecsSinceEpoch(self.sns.session['end_date']))
+        self.ui.dateTimeEdit_end.setDateTime(QDateTime.fromSecsSinceEpoch(int(self.sns.session['end_date'])))
 
     def update_configuration_from_ui(self):
         # Get the selected index
@@ -246,7 +278,7 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
             self.sns.remove_log(index.row())
 
         # Update the model with the modified dictionary
-        self.model.update_data(self.log_list)
+        self.model.update_data(self.sns.log_list)
 
     def update_log_list(self):
         # Clear the list view

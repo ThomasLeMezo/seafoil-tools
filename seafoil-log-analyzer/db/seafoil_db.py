@@ -435,6 +435,11 @@ class SeafoilDB:
         self.sqliteCursor.execute('''SELECT * FROM log WHERE is_download = 1''')
         return self.sqliteCursor.fetchall()
 
+    # Get all logs with no session associated
+    def get_unaffected_logs(self):
+        self.sqliteCursor.execute('''SELECT * FROM log WHERE session IS NULL''')
+        return self.sqliteCursor.fetchall()
+
     # Get all logs associated with a session
     def get_logs_by_session(self, session_id):
         self.sqliteCursor.execute('''SELECT * FROM log WHERE session = ?''', (session_id,))
@@ -527,6 +532,11 @@ class SeafoilDB:
 
     def associate_log_to_session(self, log_id, session_id):
         self.sqliteCursor.execute('''UPDATE log SET session = ? WHERE id = ?''', (session_id, log_id))
+        self.sqliteConnection.commit()
+
+    # Desassociate log to session
+    def desassociate_log_to_session(self, log_id):
+        self.sqliteCursor.execute('''UPDATE log SET session = NULL WHERE id = ?''', (log_id,))
         self.sqliteConnection.commit()
 
 

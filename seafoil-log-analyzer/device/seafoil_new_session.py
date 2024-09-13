@@ -54,6 +54,7 @@ class SeafoilNewSession():
 
         # Associate the logs to the session
         self.sl.associate_logs_to_session(self.session_id)
+        self.sl.desassociate_log_to_session()
 
         # Update the session list
         self.sl.update()

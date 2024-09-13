@@ -10,6 +10,8 @@ from device.seafoil_equipement import SeafoilEquipement
 from device.seafoil_session import SeafoilSession
 from device.seafoil_log import SeafoilLog
 from device.seafoil_git import SeafoilGit
+from ui.seafoilUiLogTableWidget import SeafoilUiLogTableWidget
+
 
 def upload_gpx(ui, sl):
     # Open file dialog to select one or more gpx files
@@ -519,22 +521,7 @@ class SeafoilUiLog(QtWidgets.QDialog):
         # Connect pushButton_upload_gpx to function on_upload_gpx_clicked
         self.ui.pushButton_upload_gpx.clicked.connect(self.on_upload_gpx_clicked)
 
-        # Set the number of columns
-        columns = ["id", "date", "type", "name", "session"]
-        self.ui.tableWidget_logs.setColumnCount(len(columns))
-        # Set headers
-        self.ui.tableWidget_logs.setHorizontalHeaderLabels(columns)
-        # Sort by "date" latest first
-        self.update_ui_from_logs()
-
-        self.ui.tableWidget_logs.sortItems(1, 1)
-
-        # On double click on a row, open the log
-        self.ui.tableWidget_logs.itemDoubleClicked.connect(self.on_item_double_clicked)
-
-        # Add menu to remove item
-        self.ui.tableWidget_logs.setContextMenuPolicy(3)
-        self.ui.tableWidget_logs.customContextMenuRequested.connect(self.show_context_menu)
+        self.seafoil_log_table_widget = SeafoilUiLogTableWidget(self.ui.tableWidget_logs, self.sl, True, True)
 
         # Connect pushButton_upload_log to function on_upload_log_clicked
         self.ui.pushButton_upload_log.clicked.connect(self.on_upload_log_clicked)
@@ -544,63 +531,11 @@ class SeafoilUiLog(QtWidgets.QDialog):
         download.exec_()
 
         # On close, update the ui
-        self.update_ui_from_logs()
-
-    def show_context_menu(self, position):
-        # Create the context menu
-        menu = QtWidgets.QMenu(self.ui.tableWidget_logs)
-
-        # Get the selected items
-        selected_items = self.ui.tableWidget_logs.selectedItems()
-        if len(selected_items) == 0:
-            return
-        # Remove items where column is not 0
-        item = [i for i in selected_items if i.column() == 0]
-
-        remove_action = menu.addAction(f"Remove log ({len(item)})")
-
-        # Execute the menu and get the selected action
-        action = menu.exec_(self.ui.tableWidget_logs.mapToGlobal(position))
-
-        if action == remove_action:
-            for i in range(len(item)):
-                self.sl.remote_remove_log(int(item[i].text()))
-
-        # Update the ui
-        self.update_ui_from_logs()
-
-    def on_item_double_clicked(self, item):
-        # Get the row of the item and retrieve the value of the id column
-        row = item.row()
-        id = self.ui.tableWidget_logs.item(row, 0).text()
-        self.sl.open_log(int(id))
+        self.seafoil_log_table_widget.update_ui_from_logs()
 
     def on_upload_gpx_clicked(self):
         upload_gpx(self, self.sl)
         self.update_ui_from_logs()
-
-    def update_ui_from_logs(self):
-        self.sl.update()
-        # clear treeWidget_sessions
-        self.ui.tableWidget_logs.clearContents()
-        self.ui.tableWidget_logs.setSortingEnabled(False)
-
-        # Set the number of rows
-        self.ui.tableWidget_logs.setRowCount(len(self.sl.logs))
-
-        # Add items from session_list sorted by start_date year and month
-        for i, log in enumerate(self.sl.logs):
-            # start_date from unix timestamp in local time zone
-            self.ui.tableWidget_logs.setItem(i, 0, QtWidgets.QTableWidgetItem(str(log['id'])))
-            start_date = datetime.datetime.fromtimestamp(log['starting_time'])
-            self.ui.tableWidget_logs.setItem(i, 1, QtWidgets.QTableWidgetItem(start_date.strftime('%Y-%m-%d %H:%M:%S')))
-            self.ui.tableWidget_logs.setItem(i, 2, QtWidgets.QTableWidgetItem(self.sl.db.convert_log_type_from_int(log['type'])))
-            self.ui.tableWidget_logs.setItem(i, 3, QtWidgets.QTableWidgetItem(log['name']))
-            self.ui.tableWidget_logs.setItem(i, 4, QtWidgets.QTableWidgetItem(str(log['session'])))
-
-        # Auto resize columns
-        self.ui.tableWidget_logs.resizeColumnsToContents()
-        self.ui.tableWidget_logs.setSortingEnabled(True)
 
 
 class SeafoilUi(QtWidgets.QMainWindow):
@@ -650,7 +585,7 @@ class SeafoilUi(QtWidgets.QMainWindow):
         if index == 0:
             self.seafoil_ui_session.update_ui_from_session()
         elif index == 1:
-            self.seafoil_ui_log.update_ui_from_logs()
+            self.seafoil_ui_log.seafoil_log_table_widget.update_ui_from_logs()
         elif index == 2:
             self.seafoil_ui_equipment.update_ui_from_equipment()
         elif index == 3:
