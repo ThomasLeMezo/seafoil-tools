@@ -38,8 +38,8 @@ class TwoFieldInputDialog(QDialog):
         layout.addWidget(self.first_input)
         layout.addWidget(self.second_label)
         layout.addWidget(self.second_input)
-        button_layout.addWidget(self.ok_button)
         button_layout.addWidget(self.cancel_button)
+        button_layout.addWidget(self.ok_button)
         layout.addLayout(button_layout)
 
         self.setLayout(layout)
@@ -109,6 +109,9 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
         self.listView_log.setContextMenuPolicy(Qt.CustomContextMenu)
         self.listView_log.customContextMenuRequested.connect(self.show_context_menu)
 
+        # Enable double click to launch log
+        self.listView_log.doubleClicked.connect(self.open_log_from_list)
+
         self.update_ui_from_configuration()
 
         # connect the change rider index
@@ -128,6 +131,10 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
         # Connect ok and cancel buttons
         self.ui.buttonBox.accepted.connect(self.accept)
         self.ui.buttonBox.rejected.connect(self.reject)
+
+    def open_log_from_list(self, index):
+        # Get the row of the item and retrieve the value of the id column
+        self.sns.sl.open_log_from_index(index.row())
 
     def on_upload_log_clicked(self):
         download = SeafoilUiDownload()

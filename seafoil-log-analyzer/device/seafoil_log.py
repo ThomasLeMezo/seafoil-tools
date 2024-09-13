@@ -60,6 +60,12 @@ class SeafoilLog:
         # Create new SeafoilLogAnalyser object
         self.opended_log.append(SeafoilLogAnalyser(file_path))
 
+    def open_log_from_index(self, index):
+        if 0 <= index < len(self.logs):
+            self.open_log(self.logs[index]['id'])
+            return True
+        return False
+
     def remote_remove_log(self, db_id):
         self.sc.remove_log(db_id)
         self.logs = self.db.get_all_logs()
