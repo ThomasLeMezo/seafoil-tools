@@ -103,7 +103,7 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
         self.comboBox_list = [self.ui.comboBox_board, self.ui.comboBox_sail, self.ui.comboBox_front_foil, self.ui.comboBox_stabilizer,
                               self.ui.comboBox_foil_mast, self.ui.comboBox_fuselage]
 
-        self.model = DictListModel(self.sns.log_list)
+        self.model = DictListModel(self.sns.sl.logs)
         self.ui.listView_log.setModel(self.model)
         # Enable custom context menu on the QListView
         self.listView_log.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -143,9 +143,11 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
         # Get the list of logs to add
         log_list_id = download.log_downloaded
 
+        del download
+
         for db_id in log_list_id:
             self.sns.add_log_to_list(db_id)
-        self.model.update_data(self.sns.log_list)
+        self.update_ui_from_configuration()
 
     def on_search_log_list(self):
         # Open the search log dialog
@@ -158,10 +160,18 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
         for db_id in log_list_id:
             self.sns.add_log_to_list(db_id)
 
-        # Update the model with the modified dictionary
-        self.model.update_data(self.sns.log_list)
+        self.update_ui_from_configuration()
 
     def accept(self):
+        # if there is no log, issue a msg error box
+        if self.sns.sl.is_empty():
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Critical)
+            msg.setText("No log in the list")
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            return
+
         self.update_configuration_from_ui()
         self.sns.save()
         super().accept()
@@ -173,7 +183,7 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
             return
         for db_id in list_added:
             self.sns.add_log_to_list(db_id)
-        self.model.update_data(self.sns.log_list)
+        self.update_ui_from_configuration()
 
     def on_change_equipment_index(self, index, equipment_type):
         self.update_configuration_from_ui()
@@ -187,6 +197,9 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
 
     # Update ui from rider list
     def update_ui_from_configuration(self):
+        self.sns.compute_times()
+        self.model.update_data(self.sns.sl.logs)
+
         # Update the comboBox_configuration_list
         self.ui.comboBox_rider.clear()
         for rider in self.sns.rider_list:
@@ -214,11 +227,13 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
         # Update mast foot position
         self.ui.doubleSpinBox_mast_foot_position.setValue(self.sns.se.mast_foot_position)
 
-        # Update dateTimeEdit_start
-        self.ui.dateTimeEdit_start.setDateTime(QDateTime.fromSecsSinceEpoch(int(self.sns.session['start_date'])))
+        # Update label_starting_date
+        if self.sns.session['start_date'] is not None:
+            self.ui.label_starting_date.setText(QDateTime.fromSecsSinceEpoch(int(self.sns.session['start_date'])).toString('yyyy-MM-dd hh:mm:ss'))
 
-        # Update dateTimeEdit_end
-        self.ui.dateTimeEdit_end.setDateTime(QDateTime.fromSecsSinceEpoch(int(self.sns.session['end_date'])))
+        # Update label_ending_date
+        if self.sns.session['end_date'] is not None:
+            self.ui.label_ending_date.setText(QDateTime.fromSecsSinceEpoch(int(self.sns.session['end_date'])).toString('yyyy-MM-dd hh:mm:ss'))
 
     def update_configuration_from_ui(self):
         # Get the selected index
@@ -243,11 +258,6 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
         self.sns.se.stab_shim = self.ui.doubleSpinBox_stab_shim.value()
         # Update mast foot position
         self.sns.se.mast_foot_position = self.ui.doubleSpinBox_mast_foot_position.value()
-
-        # Update dateTimeEdit_start in posix format
-        self.sns.session['start_date'] = self.ui.dateTimeEdit_start.dateTime().toSecsSinceEpoch()
-        # Update dateTimeEdit_end
-        self.sns.session['end_date'] = self.ui.dateTimeEdit_end.dateTime().toSecsSinceEpoch()
 
     def on_change_rider_index(self, index):
         self.update_configuration_from_ui()
@@ -285,7 +295,7 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
             self.sns.remove_log(index.row())
 
         # Update the model with the modified dictionary
-        self.model.update_data(self.sns.log_list)
+        self.update_ui_from_configuration()
 
     def update_log_list(self):
         # Clear the list view

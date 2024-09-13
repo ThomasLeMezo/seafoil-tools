@@ -71,7 +71,7 @@ class SeafoilConnexion(QObject):
     def connect(self):
         try:
             if not self.is_connected or not self.ssh_client.get_transport().is_active():
-                self.ssh_client.connect(self.host, username=self.username, auth_timeout=5, banner_timeout=5)
+                self.ssh_client.connect(self.host, username=self.username, auth_timeout=3, banner_timeout=3)
                 print(f"Connected to the server {self.host} as {self.username}.")
                 self.is_connected = True
             return True

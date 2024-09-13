@@ -21,9 +21,29 @@ class SeafoilLog:
         self.opended_log = []
         self.removed_logs = []
 
+        self.starting_time = None
+        self.ending_time = None
+
+    def is_empty(self):
+        return len(self.logs) == 0
+
+    def compute_times(self):
+        for log in self.logs:
+            if self.starting_time is None:
+                self.starting_time = log['starting_time']
+            elif log['starting_time'] is not None:
+                self.starting_time = min(self.starting_time, log['starting_time'])
+
+            if self.ending_time is None:
+                self.ending_time = log['ending_time']
+            elif log['ending_time'] is not None:
+                self.ending_time = max(self.ending_time, log['ending_time'])
+
     def update(self):
         if self.session_id is not None:
             self.logs = self.db.get_logs_by_session(self.session_id)
+            self.starting_time = self.db.get_starting_time_session(self.session_id)['starting_time']
+            self.ending_time = self.db.get_ending_time_session(self.session_id)['ending_time']
         elif self.load_all_logs:
             if self.load_only_unaffected:
                 self.logs = self.db.get_unaffected_logs()

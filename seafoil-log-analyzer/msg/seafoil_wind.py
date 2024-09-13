@@ -36,7 +36,7 @@ class SeafoilWind(SeafoilData):
         self.temperature[self.k] = msg.temperature
         self.roll[self.k] = msg.roll
         self.pitch[self.k] = msg.pitch
-        self.heading[self.k] = msg.heading
+        self.heading[self.k] = msg.wind_heading
         self.direction_north[self.k] = msg.direction_north
         return
 

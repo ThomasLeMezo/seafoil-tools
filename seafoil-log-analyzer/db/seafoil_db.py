@@ -69,6 +69,7 @@ class SeafoilDB:
         (
             id INTEGER PRIMARY KEY AUTOINCREMENT, 
             starting_time DATETIME DEFAULT 0,
+            ending_time DATETIME DEFAULT 0,
             date_added DATETIME DEFAULT CURRENT_TIMESTAMP,
             name TEXT NOT NULL,
             session INTEGER,
@@ -445,6 +446,16 @@ class SeafoilDB:
         self.sqliteCursor.execute('''SELECT * FROM log WHERE session = ?''', (session_id,))
         return self.sqliteCursor.fetchall()
 
+    # Get starting_time of a session (older log)
+    def get_starting_time_session(self, session_id):
+        self.sqliteCursor.execute('''SELECT MIN(starting_time) as starting_time FROM log WHERE session = ?''', (session_id,))
+        return self.sqliteCursor.fetchone()
+
+    # Get ending_time of a session (newer log)
+    def get_ending_time_session(self, session_id):
+        self.sqliteCursor.execute('''SELECT MAX(ending_time) as ending_time FROM log WHERE session = ?''', (session_id,))
+        return self.sqliteCursor.fetchone()
+
     # Return True if the name and starting_time are not in the database or the file is not downloaded
     def is_new_log(self, name):
         self.sqliteCursor.execute('''SELECT * FROM log WHERE name = ? AND is_download = 1''', (name,))
@@ -488,6 +499,11 @@ class SeafoilDB:
     def add_rider(self, first_name, last_name):
         self.sqliteCursor.execute('''INSERT INTO rider (first_name, last_name) VALUES (?, ?)''', (first_name, last_name))
         self.sqliteConnection.commit()
+
+    # Get rider by id
+    def get_rider(self, rider_id):
+        self.sqliteCursor.execute('''SELECT * FROM rider WHERE id = ?''', (rider_id,))
+        return self.sqliteCursor.fetchone()
 
     # Get rider of a session
     def get_session(self, session_id):

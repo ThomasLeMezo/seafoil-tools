@@ -336,7 +336,7 @@ class DockDataObserver(SeafoilDock):
             track = f_gnss_track(data_wind.time)
 
             # Convert Heading from [0, 380] to [-180, 180]
-            wind_heading = (data_wind.heading.astype(np.int32) - 180) % 360 - 180
+            wind_heading = (data_wind.wind_heading.astype(np.int32) - 180) % 360 - 180
             # Convert wind direction from [0, 380] to [-180, 180]
             wind_direction = (data_wind.direction.astype(np.int32) - 180) % 360 - 180
 

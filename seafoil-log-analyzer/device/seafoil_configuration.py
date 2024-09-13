@@ -21,6 +21,7 @@ class SeafoilConfiguration():
         self.height_high = 0.5
         self.height_too_high = 0.8
         self.min_speed_sound = 8.0
+        self.wind_heading = 0
 
         self.yaml_observer = None
         self.yaml_observer_path = self.config_file_name
@@ -50,6 +51,7 @@ class SeafoilConfiguration():
         self.yaml_observer['observer']['voice_text']['ros__parameters']['mean_target_velocity_v1850'] = self.v1850
         self.yaml_observer['observer']['voice_text']['ros__parameters']['loop_dt'] = self.voice_interval
         self.yaml_observer['observer']['voice_text']['ros__parameters']['gnss_cog_enable_voice'] = self.heading_enable
+        self.yaml_observer['observer']['voice_text']['ros__parameters']['wind_heading'] = self.wind_heading
         self.yaml_observer['observer']['height_audio']['ros__parameters']['height_high'] = self.height_high
         self.yaml_observer['observer']['height_audio']['ros__parameters']['height_too_high'] = self.height_too_high
         self.yaml_observer['observer']['height_audio']['ros__parameters']['minimum_speed'] = self.min_speed_sound

@@ -2,7 +2,7 @@ import sys
 from PyQt5 import QtWidgets, uic
 import os
 
-from PyQt5.QtWidgets import QListWidgetItem, QMessageBox
+from PyQt5.QtWidgets import QListWidgetItem, QMessageBox, QApplication
 
 from device.seafoil_connexion import SeafoilConnexion
 from device.seafoil_connexion import StateConnexion
@@ -75,13 +75,25 @@ class SeafoilUiDownload(QtWidgets.QDialog):
         self.log_downloaded = []
 
     def __del__(self):
+        self.timer.stop()
         self.stop_worker_thread.emit()
+
+    # close event
+    def closeEvent(self, event):
+        self.timer.stop()
+        self.stop_worker_thread.emit()
+        event.accept()
 
     def update_progress_bar(self, progress, remaining_log_to_download):
         self.ui.progressBar.setValue(progress)
         self.ui.progressBar.setFormat(f"%p% ({remaining_log_to_download})")
+        # Refresh ui
+        QApplication.processEvents()
 
     def add_loading_symbol(self):
+        # Refresh ui
+        QApplication.processEvents()
+
         self.loading_symbol_state = (self.loading_symbol_state + 1) % 4
         return '.' * self.loading_symbol_state
 
@@ -126,6 +138,9 @@ class SeafoilUiDownload(QtWidgets.QDialog):
             self.ui.label_download_log_list.setText(f"Log List Downloaded")
             self.ui.label_download_log_list.setStyleSheet("color: green")
 
+        # Refresh ui
+        QApplication.processEvents()
+
     def update_log_list(self):
         self.listWidget_logs.clear()
         # Add items to the list widget with checkboxes
@@ -149,6 +164,8 @@ class SeafoilUiDownload(QtWidgets.QDialog):
     def download_logs(self):
         # Disable the download button
         self.ui.pushButton_download.setEnabled(False)
+        # Refresh ui
+        QApplication.processEvents()
 
         # Get the checked items
         checked_logs = []

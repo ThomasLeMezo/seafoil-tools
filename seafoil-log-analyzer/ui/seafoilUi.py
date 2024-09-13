@@ -253,6 +253,7 @@ class SeafoilUiConfiguration:
         self.ui.spinBox_voice_interval.setValue(self.sc.voice_interval)
         self.ui.doubleSpinBox_height_too_high.setValue(self.sc.height_too_high)
         self.ui.doubleSpinBox_height_high.setValue(self.sc.height_high)
+        self.ui.spinBox_heading.setValue(self.sc.wind_heading)
 
         # Update the comboBox_configuration_list
         self.ui.comboBox_configuration_list.clear()
@@ -273,6 +274,7 @@ class SeafoilUiConfiguration:
         self.sc.voice_interval = self.ui.spinBox_voice_interval.value()
         self.sc.height_too_high = self.ui.doubleSpinBox_height_too_high.value()
         self.sc.height_high = self.ui.doubleSpinBox_height_high.value()
+        self.sc.wind_heading = self.ui.spinBox_heading.value()
 
     def on_change_configuration(self):
         # Set the minimum of doubleSpinBox_height_too_high to doubleSpinBox_height_high
@@ -301,6 +303,9 @@ class SeafoilUiConfiguration:
     def on_send_config_clicked(self):
         # Set the button as disabled
         self.ui.pushButton_send_config.setEnabled(False)
+
+        # Refresh ui
+        QApplication.processEvents()
 
         self.update_configuration_from_ui()
 
@@ -428,9 +433,9 @@ class SeafoilUiSession(QtWidgets.QDialog):
         self.ui = seafoil_ui.ui
         self.session = SeafoilSession()
 
-
-        self.ui.tableWidget_sessions.setColumnCount(2) # Set the number of columns
-        self.ui.tableWidget_sessions.setHorizontalHeaderLabels(["Id", "Start date"]) # Set headers
+        columns = ["Id", "Start date", "Rider"]
+        self.ui.tableWidget_sessions.setColumnCount(len(columns))
+        self.ui.tableWidget_sessions.setHorizontalHeaderLabels(columns)
         self.update_ui_from_session() # Sort by "date" latest first
 
         self.ui.tableWidget_sessions.sortItems(1, 1)
@@ -503,9 +508,21 @@ class SeafoilUiSession(QtWidgets.QDialog):
         # Add items from session_list sorted by start_date year and month
         for i, session in enumerate(self.session.session_list):
             self.ui.tableWidget_sessions.setItem(i, 0, QtWidgets.QTableWidgetItem(str(session['id'])))
+
             # start_date from unix timestamp in local time zone
-            start_date = datetime.datetime.fromtimestamp(session['start_date'])
-            self.ui.tableWidget_sessions.setItem(i, 1, QtWidgets.QTableWidgetItem(start_date.strftime('%Y-%m-%d %H:%M:%S')))
+            if session['start_date'] is not None:
+                start_date = datetime.datetime.fromtimestamp(session['start_date'])
+                self.ui.tableWidget_sessions.setItem(i, 1, QtWidgets.QTableWidgetItem(start_date.strftime('%Y-%m-%d %H:%M:%S')))
+            else:
+                self.ui.tableWidget_sessions.setItem(i, 1, QtWidgets.QTableWidgetItem("Unknown"))
+
+            # Add rider name
+            if session['rider_id'] is not None:
+                rider = self.session.db.get_rider(session['rider_id'])
+                if rider is not None:
+                    self.ui.tableWidget_sessions.setItem(i, 2, QtWidgets.QTableWidgetItem(f"{rider['first_name']} {rider['last_name']}"))
+                else:
+                    self.ui.tableWidget_sessions.setItem(i, 2, QtWidgets.QTableWidgetItem("Unknown"))
 
         # Auto resize columns
         self.ui.tableWidget_sessions.setSortingEnabled(True)
