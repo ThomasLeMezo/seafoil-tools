@@ -679,10 +679,13 @@ class DockAnalysis(SeafoilDock):
                 # Find the indices of all '1's in the matrix (transposed)
                 # Get the first last of '1' by row, which is closest to the top ([-1])
                 # Get the column ([1])
-                max_hist_positive = (np.argwhere(np.transpose(y_hist_local[x_vect_local >= 0]))[-1][1]+1)*x_resolution
-                max_hist_negative = 180 - (np.argwhere(np.transpose(y_hist_local[x_vect_local < 0]))[-1][1]+1)*x_resolution
-                # Add in the legend the max value of the histogram
-                pg_plot.setTitle("Max left: " + str(max_hist_negative) + " Max right: " + str(max_hist_positive))
+                try:
+                    max_hist_positive = (np.argwhere(np.transpose(y_hist_local[x_vect_local >= 0]))[-1][1]+1)*x_resolution
+                    max_hist_negative = 180 - (np.argwhere(np.transpose(y_hist_local[x_vect_local < 0]))[-1][1]+1)*x_resolution
+                    # Add in the legend the max value of the histogram
+                    pg_plot.setTitle("Max left: " + str(max_hist_negative) + " Max right: " + str(max_hist_positive))
+                except:
+                    pg_plot.setTitle("Max left: (error) Max right: (error)")
 
                 self.sfb.configuration["analysis"]["wind_heading"] = spinbox.value()
                 # print("Wind heading", spinbox.value(), self.sfb.configuration["analysis"]["wind_heading"])

@@ -114,7 +114,7 @@ class SeafoilDB:
         )''')
 
         # Create table for windfoil back foil
-        self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS windfoil_back_foil
+        self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS windfoil_stabilizer
         (
             id INTEGER PRIMARY KEY,
             surface REAL,
@@ -146,8 +146,9 @@ class SeafoilDB:
             board INTEGER,
             sail INTEGER,
             front_foil INTEGER,
-            back_foil INTEGER,
+            stabilizer INTEGER,
             foil_mast INTEGER,
+            fuselage INTEGER,
             session INTEGER,
             rake REAL,
             stab_shim REAL,
@@ -155,8 +156,9 @@ class SeafoilDB:
             FOREIGN KEY (board) REFERENCES windfoil_board(id),
             FOREIGN KEY (sail) REFERENCES windfoil_sail(id),
             FOREIGN KEY (front_foil) REFERENCES windfoil_front_foil(id),
-            FOREIGN KEY (back_foil) REFERENCES windfoil_back_foil(id),
+            FOREIGN KEY (stabilizer) REFERENCES windfoil_stabilizer(id),
             FOREIGN KEY (foil_mast) REFERENCES windfoil_foil_mast(id),
+            FOREIGN KEY (fuselage) REFERENCES windfoil_fuselage(id),
             FOREIGN KEY (session) REFERENCES session(id)
         )''')
 
@@ -241,9 +243,9 @@ class SeafoilDB:
         self.sqliteCursor.execute('''SELECT * FROM windfoil_equipment LEFT JOIN windfoil_front_foil ON windfoil_equipment.id = windfoil_front_foil.id WHERE windfoil_front_foil.id IS NOT NULL''')
         return self.sqliteCursor.fetchall()
 
-    # Get all windfoil_equipment and windfoil_back_foil where id is in windfoil_back_foil (left join)
-    def get_windfoil_back_foil_all(self):
-        self.sqliteCursor.execute('''SELECT * FROM windfoil_equipment LEFT JOIN windfoil_back_foil ON windfoil_equipment.id = windfoil_back_foil.id WHERE windfoil_back_foil.id IS NOT NULL''')
+    # Get all windfoil_equipment and windfoil_stabilizer where id is in windfoil_stabilizer (left join)
+    def get_windfoil_stabilizer_all(self):
+        self.sqliteCursor.execute('''SELECT * FROM windfoil_equipment LEFT JOIN windfoil_stabilizer ON windfoil_equipment.id = windfoil_stabilizer.id WHERE windfoil_stabilizer.id IS NOT NULL''')
         return self.sqliteCursor.fetchall()
 
     # Get all windfoil_equipment and windfoil_foil_mast where id is in windfoil_foil_mast (left join)
@@ -313,14 +315,14 @@ class SeafoilDB:
             return data['id']
 
     # Add new windfoil back foil to the database if it does not exist (data is a dict)
-    def insert_windfoil_back_foil(self, data):
+    def insert_windfoil_stabilizer(self, data):
         equipment_id = self.insert_windfoil_equipment(data)
         if data['id'] is None: # Add the back foil with the id of the last inserted row
-            self.sqliteCursor.execute('''INSERT INTO windfoil_back_foil (id, surface) VALUES (?, ?)''', (equipment_id, data['surface']))
+            self.sqliteCursor.execute('''INSERT INTO windfoil_stabilizer (id, surface) VALUES (?, ?)''', (equipment_id, data['surface']))
             self.sqliteConnection.commit()
             return equipment_id
         else: # Update the back foil
-            self.sqliteCursor.execute('''UPDATE windfoil_back_foil SET surface = ? WHERE id = ?''', (data['surface'], data['id']))
+            self.sqliteCursor.execute('''UPDATE windfoil_stabilizer SET surface = ? WHERE id = ?''', (data['surface'], data['id']))
             self.sqliteConnection.commit()
             return data['id']
 
@@ -360,9 +362,9 @@ class SeafoilDB:
         self.sqliteConnection.commit()
 
     # Remove windfoil back foil by id
-    def remove_windfoil_back_foil(self, id):
+    def remove_windfoil_stabilizer(self, id):
         self.remove_windfoil_equipment(id)
-        self.sqliteCursor.execute('''DELETE FROM windfoil_back_foil WHERE id = ?''', (id,))
+        self.sqliteCursor.execute('''DELETE FROM windfoil_stabilizer WHERE id = ?''', (id,))
         self.sqliteConnection.commit()
 
     # Remove windfoil foil mast by id
@@ -433,6 +435,11 @@ class SeafoilDB:
         self.sqliteCursor.execute('''SELECT * FROM log WHERE is_download = 1''')
         return self.sqliteCursor.fetchall()
 
+    # Get all logs associated with a session
+    def get_logs_by_session(self, session_id):
+        self.sqliteCursor.execute('''SELECT * FROM log WHERE session = ?''', (session_id,))
+        return self.sqliteCursor.fetchall()
+
     # Return True if the name and starting_time are not in the database or the file is not downloaded
     def is_new_log(self, name):
         self.sqliteCursor.execute('''SELECT * FROM log WHERE name = ? AND is_download = 1''', (name,))
@@ -475,6 +482,51 @@ class SeafoilDB:
     # Add new rider
     def add_rider(self, first_name, last_name):
         self.sqliteCursor.execute('''INSERT INTO rider (first_name, last_name) VALUES (?, ?)''', (first_name, last_name))
+        self.sqliteConnection.commit()
+
+    # Get rider of a session
+    def get_session(self, session_id):
+        self.sqliteCursor.execute('''SELECT * FROM session WHERE id = ?''', (session_id,))
+        return self.sqliteCursor.fetchone()
+
+    # Get session setup by session id
+    def get_session_setup(self, session_id):
+        self.sqliteCursor.execute('''SELECT * FROM windfoil_session_setup WHERE session = ?''', (session_id,))
+        return self.sqliteCursor.fetchone()
+
+    # Remove session and associated setup
+    def remove_session(self, session_id):
+        self.sqliteCursor.execute('''DELETE FROM session WHERE id = ?''', (session_id,))
+        self.sqliteCursor.execute('''DELETE FROM windfoil_session_setup WHERE session = ?''', (session_id,))
+        self.sqliteConnection.commit()
+
+    # Update session or create a new one
+    def save_session(self, session):
+        # If the session does not exist, create a new one
+        if 'id' not in session or session['id'] is None:
+            self.sqliteCursor.execute('''INSERT INTO session (start_date, end_date, rider_id, wind_mean_heading) VALUES (?, ?, ?, ?)''', (session['start_date'], session['end_date'], session['rider_id'], session['wind_mean_heading']))
+            self.sqliteConnection.commit()
+            return self.sqliteCursor.lastrowid
+        # If the session exist, update it
+        else:
+            self.sqliteCursor.execute('''UPDATE session SET start_date = ?, end_date = ?, rider_id = ?, wind_mean_heading = ? WHERE id = ?''', (session['start_date'], session['end_date'], session['rider_id'], session['wind_mean_heading'], session['id']))
+            self.sqliteConnection.commit()
+            return session['id']
+
+    def save_session_setup(self, session_setup):
+        # If the key session_id does not exist, create a new one
+        if 'id' not in session_setup or session_setup['id'] is None:
+            self.sqliteCursor.execute('''INSERT INTO windfoil_session_setup (start_time, end_time, board, sail, front_foil, stabilizer, foil_mast, session, rake, stab_shim, mast_foot_position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (session_setup['start_time'], session_setup['end_time'], session_setup['board'], session_setup['sail'], session_setup['front_foil'], session_setup['stabilizer'], session_setup['foil_mast'], session_setup['session'], session_setup['rake'], session_setup['stab_shim'], session_setup['mast_foot_position']))
+            self.sqliteConnection.commit()
+            return self.sqliteCursor.lastrowid
+        # If the session setup exist, update it
+        else:
+            self.sqliteCursor.execute('''UPDATE windfoil_session_setup SET start_time = ?, end_time = ?, board = ?, sail = ?, front_foil = ?, stabilizer = ?, foil_mast = ?, session = ?, rake = ?, stab_shim = ?, mast_foot_position = ? WHERE id = ?''', (session_setup['start_time'], session_setup['end_time'], session_setup['board'], session_setup['sail'], session_setup['front_foil'], session_setup['stabilizer'], session_setup['foil_mast'], session_setup['session'], session_setup['rake'], session_setup['stab_shim'], session_setup['mast_foot_position'], session_setup['id']))
+            self.sqliteConnection.commit()
+            return session_setup['id']
+
+    def associate_log_to_session(self, log_id, session_id):
+        self.sqliteCursor.execute('''UPDATE log SET session = ? WHERE id = ?''', (session_id, log_id))
         self.sqliteConnection.commit()
 
 

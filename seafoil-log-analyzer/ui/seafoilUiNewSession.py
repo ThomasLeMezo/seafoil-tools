@@ -5,7 +5,8 @@ import os
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout
 
 from device.seafoil_new_session import SeafoilNewSession
-from PyQt5.QtCore import QAbstractListModel, Qt
+from PyQt5.QtCore import QAbstractListModel, Qt, QDateTime
+from ui.seafoilUi import upload_gpx
 
 class TwoFieldInputDialog(QDialog):
     def __init__(self, windows_title, first_label_text, second_label_text):
@@ -89,10 +90,10 @@ class DictListModel(QAbstractListModel):
 
 
 class SeafoilUiNewSession(QtWidgets.QDialog):
-    def __init__(self):
+    def __init__(self, session_id = None):
         super().__init__()
 
-        self.sns = SeafoilNewSession()
+        self.sns = SeafoilNewSession(session_id)
         self.directory = os.path.dirname(os.path.abspath(__file__))
         self.ui = uic.loadUi(self.directory + '/session.ui', self)
 
@@ -105,9 +106,7 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
         self.listView_log.setContextMenuPolicy(Qt.CustomContextMenu)
         self.listView_log.customContextMenuRequested.connect(self.show_context_menu)
 
-        # Connect ok and cancel buttons
-        # self.ui.buttonBox.accepted.connect(self.accept)
-        self.ui.buttonBox.rejected.connect(self.reject)
+        self.update_ui_from_configuration()
 
         # connect the change rider index
         self.ui.comboBox_rider.currentIndexChanged.connect(self.on_change_rider_index)
@@ -117,15 +116,23 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
         # connect pushButton_upload_gpx to the upload_gpx method
         self.ui.pushButton_upload_gpx.clicked.connect(self.on_upload_gpx_clicked)
 
-        self.update_ui_from_configuration()
+        # Connect ok and cancel buttons
+        self.ui.buttonBox.accepted.connect(self.accept)
+        self.ui.buttonBox.rejected.connect(self.reject)
+
+    def accept(self):
+        self.update_configuration_from_ui()
+        self.sns.save()
+        super().accept()
 
     def on_upload_gpx_clicked(self):
         # Call the upload_gpx function from seafoilUi.py
-        # list_added = upload_gpx(self, self.sns.sl)
-        # for db_id in list_added:
-        #     self.sns.add_log_to_list(db_id)
-        # self.model.update_data(self.sns.log_list)
-        pass
+        list_added = upload_gpx(self, self.sns.sl)
+        if list_added is None:
+            return
+        for db_id in list_added:
+            self.sns.add_log_to_list(db_id)
+        self.model.update_data(self.sns.log_list)
 
     def on_change_equipment_index(self, index, equipment_type):
         self.update_configuration_from_ui()
@@ -156,8 +163,23 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
                 comboBox.addItem(self.sns.se.get_equipment_name(equipment, self.sns.se.equipment_names[i]))
             comboBox.addItem("** New **")
 
-            if self.sns.equipment_current_index[i] is not None:
-                comboBox.setCurrentIndex(self.sns.equipment_current_index[i])
+            if self.sns.se.equipment_current_index[i] is not None:
+                comboBox.setCurrentIndex(self.sns.se.equipment_current_index[i])
+
+        # Update rake
+        self.ui.doubleSpinBox_rake.setValue(self.sns.se.rake)
+        # Update stab shim
+        self.ui.doubleSpinBox_stab_shim.setValue(self.sns.se.stab_shim)
+        # Update mast foot position
+        self.ui.doubleSpinBox_mast_foot_position.setValue(self.sns.se.mast_foot_position)
+
+        # Update dateTimeEdit_start
+        print(QDateTime.fromSecsSinceEpoch(self.sns.session['start_date']))
+        print(self.sns.session['start_date'])
+        self.ui.dateTimeEdit_start.setDateTime(QDateTime.fromSecsSinceEpoch(self.sns.session['start_date']))
+
+        # Update dateTimeEdit_end
+        self.ui.dateTimeEdit_end.setDateTime(QDateTime.fromSecsSinceEpoch(self.sns.session['end_date']))
 
     def update_configuration_from_ui(self):
         # Get the selected index
@@ -172,9 +194,21 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
         for i, comboBox in enumerate(self.comboBox_list):
             index = comboBox.currentIndex()
             if index == len(self.sns.se.equipment_data[i]):
-                self.sns.equipment_current_index[i] = None
+                self.sns.se.equipment_current_index[i] = None
             else:
-                self.sns.equipment_current_index[i] = index
+                self.sns.se.equipment_current_index[i] = index
+
+        # Update rake
+        self.sns.se.rake = self.ui.doubleSpinBox_rake.value()
+        # Update stab shim
+        self.sns.se.stab_shim = self.ui.doubleSpinBox_stab_shim.value()
+        # Update mast foot position
+        self.sns.se.mast_foot_position = self.ui.doubleSpinBox_mast_foot_position.value()
+
+        # Update dateTimeEdit_start in posix format
+        self.sns.session['start_date'] = self.ui.dateTimeEdit_start.dateTime().toSecsSinceEpoch()
+        # Update dateTimeEdit_end
+        self.sns.session['end_date'] = self.ui.dateTimeEdit_end.dateTime().toSecsSinceEpoch()
 
     def on_change_rider_index(self, index):
         self.update_configuration_from_ui()
@@ -217,7 +251,3 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
     def update_log_list(self):
         # Clear the list view
         self.model.update_data(self.sns.log_list)
-
-    def on_new_session_clicked(self):
-        # Logic to execute when the button is clicked
-        print("Button clicked!")

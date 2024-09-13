@@ -1,18 +1,15 @@
 import sys
+import os
 import datetime
 
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtWidgets import QApplication, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QDialog
 
-from device.seafoil_connexion import SeafoilConnexion
-from .seafoilUiNewSession import SeafoilUiNewSession
-from .seafoilUiDownload import SeafoilUiDownload
 from device.seafoil_configuration import SeafoilConfiguration
 from device.seafoil_equipement import SeafoilEquipement
 from device.seafoil_session import SeafoilSession
 from device.seafoil_log import SeafoilLog
 from device.seafoil_git import SeafoilGit
-import os
 
 def upload_gpx(ui, sl):
     # Open file dialog to select one or more gpx files
@@ -170,6 +167,9 @@ def new_equipment_dialog_box(ui, se, category, item_index, is_new):
         return True
     else:
         return False
+
+from ui.seafoilUiNewSession import SeafoilUiNewSession
+from ui.seafoilUiDownload import SeafoilUiDownload
 
 class SeafoilUiConfiguration:
 
@@ -426,37 +426,87 @@ class SeafoilUiSession(QtWidgets.QDialog):
         self.ui = seafoil_ui.ui
         self.session = SeafoilSession()
 
-        self.update_ui_from_session()
+
+        self.ui.tableWidget_sessions.setColumnCount(2) # Set the number of columns
+        self.ui.tableWidget_sessions.setHorizontalHeaderLabels(["Id", "Start date"]) # Set headers
+        self.update_ui_from_session() # Sort by "date" latest first
+
+        self.ui.tableWidget_sessions.sortItems(1, 1)
+
+        # On double click on a row, open the log
+        self.ui.tableWidget_sessions.itemDoubleClicked.connect(self.on_item_double_clicked)
+
+        # Add menu to remove item
+        self.ui.tableWidget_sessions.setContextMenuPolicy(3)
+        self.ui.tableWidget_sessions.customContextMenuRequested.connect(self.show_context_menu)
 
         # connect the menu/action_new_session to function on_new_session_clicked
         self.ui.pushButton_new_session.clicked.connect(self.on_new_session_clicked)
+
+    def on_item_double_clicked(self, item):
+        # Get the row of the item and retrieve the value of the id column
+        row = item.row()
+        session_id = self.ui.tableWidget_sessions.item(row, 0).text()
+
+        # Logic to execute when the button is clicked
+        # non-blocking dialog box
+        new_session = SeafoilUiNewSession(session_id)
+        # wait for the dialog to close
+        new_session.exec_()
+
+        # On close, update the ui
+        self.update_ui_from_session()
+
+    def show_context_menu(self, position):
+        # Create the context menu
+        menu = QtWidgets.QMenu(self.ui.tableWidget_sessions)
+
+        # Get the selected items
+        selected_items = self.ui.tableWidget_sessions.selectedItems()
+        if len(selected_items) == 0:
+            return
+        # Remove items where column is not 0
+        item = [i for i in selected_items if i.column() == 0]
+
+        remove_action = menu.addAction(f"Remove session ({len(item)})")
+
+        # Execute the menu and get the selected action
+        action = menu.exec_(self.ui.tableWidget_sessions.mapToGlobal(position))
+
+        if action == remove_action:
+            for i in range(len(item)):
+                self.session.remove_session(int(item[i].text()))
+
+        # Update the ui
+        self.update_ui_from_session()
 
     def on_new_session_clicked(self):
         # Logic to execute when the button is clicked
         # non-blocking dialog box
         new_session = SeafoilUiNewSession()
         new_session.exec_()
+        # On close, update the ui
+        self.update_ui_from_session()
 
     def update_ui_from_session(self):
+        self.session.update_session_list()
+
+        self.ui.tableWidget_sessions.setSortingEnabled(True)
         # clear treeWidget_sessions
-        self.ui.tableWidget_sessions.clear()
+        self.ui.tableWidget_sessions.clearContents()
 
         # Set the number of rows
         self.ui.tableWidget_sessions.setRowCount(len(self.session.session_list))
 
-        # Set the number of columns
-        self.ui.tableWidget_sessions.setColumnCount(1)
-
         # Add items from session_list sorted by start_date year and month
         for i, session in enumerate(self.session.session_list):
+            self.ui.tableWidget_sessions.setItem(i, 0, QtWidgets.QTableWidgetItem(str(session['id'])))
             # start_date from unix timestamp in local time zone
             start_date = datetime.datetime.fromtimestamp(session['start_date'])
-            self.ui.tableWidget_sessions.setItem(i, 0, QtWidgets.QTableWidgetItem(start_date.strftime('%Y-%m-%d %H:%M:%S')))
-
-        # Horizontal header labels
-        self.ui.tableWidget_sessions.setHorizontalHeaderLabels(["Start date"])
+            self.ui.tableWidget_sessions.setItem(i, 1, QtWidgets.QTableWidgetItem(start_date.strftime('%Y-%m-%d %H:%M:%S')))
 
         # Auto resize columns
+        self.ui.tableWidget_sessions.setSortingEnabled(True)
         self.ui.tableWidget_sessions.resizeColumnsToContents()
 
 class SeafoilUiLog(QtWidgets.QDialog):
@@ -470,9 +520,10 @@ class SeafoilUiLog(QtWidgets.QDialog):
         self.ui.pushButton_upload_gpx.clicked.connect(self.on_upload_gpx_clicked)
 
         # Set the number of columns
-        self.ui.tableWidget_logs.setColumnCount(4)
+        columns = ["id", "date", "type", "name", "session"]
+        self.ui.tableWidget_logs.setColumnCount(len(columns))
         # Set headers
-        self.ui.tableWidget_logs.setHorizontalHeaderLabels(["id", "date", "type", "name"])
+        self.ui.tableWidget_logs.setHorizontalHeaderLabels(columns)
         # Sort by "date" latest first
         self.update_ui_from_logs()
 
@@ -513,7 +564,7 @@ class SeafoilUiLog(QtWidgets.QDialog):
 
         if action == remove_action:
             for i in range(len(item)):
-                self.sl.remove_log(int(item[i].text()))
+                self.sl.remote_remove_log(int(item[i].text()))
 
         # Update the ui
         self.update_ui_from_logs()
@@ -545,6 +596,7 @@ class SeafoilUiLog(QtWidgets.QDialog):
             self.ui.tableWidget_logs.setItem(i, 1, QtWidgets.QTableWidgetItem(start_date.strftime('%Y-%m-%d %H:%M:%S')))
             self.ui.tableWidget_logs.setItem(i, 2, QtWidgets.QTableWidgetItem(self.sl.db.convert_log_type_from_int(log['type'])))
             self.ui.tableWidget_logs.setItem(i, 3, QtWidgets.QTableWidgetItem(log['name']))
+            self.ui.tableWidget_logs.setItem(i, 4, QtWidgets.QTableWidgetItem(str(log['session'])))
 
         # Auto resize columns
         self.ui.tableWidget_logs.resizeColumnsToContents()

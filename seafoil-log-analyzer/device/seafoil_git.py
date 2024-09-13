@@ -48,8 +48,19 @@ class SeafoilGit():
         except Exception as e:
             print(f"Error checking out to tag: {e}")
 
+    # Update git from remote
+    def update_git_from_remote(self):
+        try:
+            self.run_git_command("git pull")
+            print("Updated git from remote")
+        except Exception as e:
+            print(f"Error updating git from remote: {e}")
+
     # Update to last tag
     def update_to_last_tag(self):
+        # Update git from remote
+        self.update_git_from_remote()
+
         last_tag = self.get_last_tag()
         if last_tag:
             self.checkout_to_tag(last_tag)

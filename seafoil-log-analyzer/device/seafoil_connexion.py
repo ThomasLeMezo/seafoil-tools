@@ -400,7 +400,7 @@ class SeafoilConnexion(QObject):
 
         except Exception as e:
             print(f'An error occurred while importing the GPX file {file_name}: {e}')
-            return False, -1
+            return False, None
 
     def remove_log(self, db_id):
         # Get the log name from the database
