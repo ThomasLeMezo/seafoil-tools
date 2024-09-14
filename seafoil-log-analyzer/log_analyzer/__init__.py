@@ -1,20 +1,20 @@
 # __init__.py
 
-from .msg.seafoil_gps_fix import SeafoilGpsFix
-from .msg.seafoil_profile import SeafoilProfile
-from .msg.seafoil_log import SeafoilLog
-from .msg.seafoil_height import SeafoilHeight
-from .msg.seafoil_height_debug import SeafoilHeightDebug
-from .msg.seafoil_raw_data import SeafoilRawData
-from .msg.seafoil_r_p_y import SeafoilRPY
-from .msg.seafoil_debug_fusion import SeafoilDebugFusion
-from .msg.seafoil_distance import SeafoilDistance
-from .msg.seafoil_battery import SeafoilBattery
-from .msg.seafoil_distance_gate import SeafoilDistanceGate
-from .msg.seafoil_manoeuvre import SeafoilManoeuvre
-from .msg.seafoil_wind import SeafoilWind
-from .msg.seafoil_wind_debug import SeafoilWindDebug
-from .msg.seafoil_gpx import SeafoilGpx
+from .seafoil_data.seafoil_gps_fix import SeafoilGpsFix
+from .seafoil_data.seafoil_profile import SeafoilProfile
+from .seafoil_data.seafoil_log import SeafoilLog
+from .seafoil_data.seafoil_height import SeafoilHeight
+from .seafoil_data.seafoil_height_debug import SeafoilHeightDebug
+from .seafoil_data.seafoil_raw_data import SeafoilRawData
+from .seafoil_data.seafoil_r_p_y import SeafoilRPY
+from .seafoil_data.seafoil_debug_fusion import SeafoilDebugFusion
+from .seafoil_data.seafoil_distance import SeafoilDistance
+from .seafoil_data.seafoil_battery import SeafoilBattery
+from .seafoil_data.seafoil_distance_gate import SeafoilDistanceGate
+from .seafoil_data.seafoil_manoeuvre import SeafoilManoeuvre
+from .seafoil_data.seafoil_wind import SeafoilWind
+from .seafoil_data.seafoil_wind_debug import SeafoilWindDebug
+from .seafoil_data.seafoil_gpx import SeafoilGpx
 #
 from .seafoil_bag import SeafoilBag
 from .seafoil_log_analyzer import SeafoilLogAnalyser

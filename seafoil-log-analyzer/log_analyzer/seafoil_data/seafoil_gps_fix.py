@@ -9,8 +9,8 @@ sys.path.append('..')
 
 
 class SeafoilGpsFix(SeafoilData):
-    def __init__(self, bag_path="", topic_name="", start_date=datetime.datetime(2019, 1, 1)):
-        SeafoilData.__init__(self, bag_path, topic_name, start_date)
+    def __init__(self, bag_path=None, topic_name=None, start_date=datetime.datetime(2019, 1, 1), data_folder=None):
+        SeafoilData.__init__(self, bag_path, topic_name, start_date, data_folder)
         self.start_date = start_date
         
         self.mode = np.empty([self.nb_elements], dtype='int16')
@@ -37,7 +37,7 @@ class SeafoilGpsFix(SeafoilData):
         self.load_message()
         self.resize_data_array()
         super().resize_data_array()
-        if self.k > 0 and not self.was_loaded_from_file:
+        if self.k > 0 and not self.is_loaded_from_file:
             self.save_data()
 
     def process_message(self, msg):
@@ -119,7 +119,7 @@ class SeafoilGpsFix(SeafoilData):
                                 satellites_visible=self.satellites_visible,)
 
     def load_message_from_file(self):
-        data = np.load(self.topic_name_dir + "/" + self.topic_name_file, allow_pickle=True)
+        data = np.load(self.topic_full_dir, allow_pickle=True)
         self.time = data['time']
         self.mode = data['mode']
         self.status = data['status']
@@ -141,5 +141,4 @@ class SeafoilGpsFix(SeafoilData):
         self.err_speed = data['err_speed']
         self.err_time = data['err_time']
         self.satellites_visible = data['satellites_visible']
-        self.k = len(self.time)
     

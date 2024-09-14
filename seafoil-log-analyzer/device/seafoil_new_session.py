@@ -76,7 +76,7 @@ class SeafoilNewSession():
         self.db.save_session_setup(data_session_setup)
 
     def update_lists(self):
-        self.rider_list = self.db.get_all_riders()
+        self.rider_list = self.db.get_rider_all()
         self.se.update()
         self.rider_current_index = self.get_rider_index(self.session['rider_id'])
 

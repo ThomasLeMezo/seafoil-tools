@@ -3,7 +3,8 @@ import os
 import datetime
 
 from PyQt5 import QtWidgets, uic
-from PyQt5.QtWidgets import QApplication, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QDialog
+from PyQt5.QtWidgets import QApplication, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QDialog, QLabel, \
+    QLineEdit, QHBoxLayout, QPushButton
 
 from device.seafoil_configuration import SeafoilConfiguration
 from device.seafoil_equipement import SeafoilEquipement
@@ -12,15 +13,65 @@ from device.seafoil_log import SeafoilLog
 from device.seafoil_git import SeafoilGit
 from ui.seafoilUiLogTableWidget import SeafoilUiLogTableWidget
 
-
-def upload_gpx(ui, sl):
+def upload_gpx(object, sl):
     # Open file dialog to select one or more gpx files
-    file_paths, _ = QtWidgets.QFileDialog.getOpenFileNames(ui, 'Open file', '', 'GPX files (*.gpx)')
+    file_paths, _ = QtWidgets.QFileDialog.getOpenFileNames(object, 'Open file', '', 'GPX files (*.gpx)')
     if len(file_paths) == 0:
         return
 
     # Upload the gpx files
     return sl.add_gpx_files(file_paths)
+
+def contains_mcap_file(directories):
+    # if directories is not a list
+    if not isinstance(directories, list):
+        directories = [directories]
+
+    directories_ok = []
+    directories_nok = []
+
+    for dir in directories:
+        # List all files in the directory
+        files = os.listdir(dir)
+
+        # Check if any file ends with ".mcap"
+        is_ok = False
+        for file in files:
+            if file.endswith(".mcap"):
+                is_ok = True
+                break
+        if not is_ok:
+            directories_nok.append(dir)
+        else:
+            directories_ok.append(dir)
+    return directories_ok, directories_nok
+
+def upload_seafoil_log(sl):
+    dialog = QtWidgets.QFileDialog()
+    dialog.setFileMode(QtWidgets.QFileDialog.Directory)
+    dialog.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
+    dialog.setOption(QtWidgets.QFileDialog.ReadOnly, True)
+
+    if dialog.exec_() == QtWidgets.QDialog.Accepted:
+        directories = dialog.selectedFiles()
+
+        directories_ok, directories_nok = contains_mcap_file(directories)
+
+        if len(directories_nok) > 0:
+            # Dialog box to confirm the directory does not contain a ".mcap" file
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Warning)
+            msg.setText("The following directories does not contain a .mcap file and will not be uploaded:\n" + "\n".join(directories_nok))
+            msg.setWindowTitle("Warning")
+            msg.exec_()
+
+        if len(directories_ok) > 0:
+            # Upload the mcap files
+            return sl.add_seafoil_log(directories_ok)
+    else:
+        print("No directory selected")
+        return None
+
 
 def new_equipment_dialog_box(ui, se, category, item_index, is_new):
     # Create the dialog box
@@ -433,7 +484,7 @@ class SeafoilUiSession(QtWidgets.QDialog):
         self.ui = seafoil_ui.ui
         self.session = SeafoilSession()
 
-        columns = ["Id", "Start date", "Rider"]
+        columns = ["Id", "Start date", "Rider", "V500", "V1850"]
         self.ui.tableWidget_sessions.setColumnCount(len(columns))
         self.ui.tableWidget_sessions.setHorizontalHeaderLabels(columns)
         self.update_ui_from_session() # Sort by "date" latest first
@@ -527,6 +578,18 @@ class SeafoilUiSession(QtWidgets.QDialog):
                 else:
                     self.ui.tableWidget_sessions.setItem(i, 2, QtWidgets.QTableWidgetItem("Unknown"))
 
+            # Add v500
+            if session['v500'] is not None:
+                self.ui.tableWidget_sessions.setItem(i, 3, QtWidgets.QTableWidgetItem(str(session['v500'])))
+            else:
+                self.ui.tableWidget_sessions.setItem(i, 3, QtWidgets.QTableWidgetItem("Unknown"))
+
+            # Add v1850
+            if session['v1850'] is not None:
+                self.ui.tableWidget_sessions.setItem(i, 4, QtWidgets.QTableWidgetItem(str(session['v1850'])))
+            else:
+                self.ui.tableWidget_sessions.setItem(i, 4, QtWidgets.QTableWidgetItem("Unknown"))
+
         # Auto resize columns
         self.ui.tableWidget_sessions.setSortingEnabled(True)
         self.ui.tableWidget_sessions.resizeColumnsToContents()
@@ -545,6 +608,13 @@ class SeafoilUiLog(QtWidgets.QDialog):
 
         # Connect pushButton_upload_log to function on_upload_log_clicked
         self.ui.pushButton_upload_log.clicked.connect(self.on_upload_log_clicked)
+
+        # Connect pushButton_import_log to function on_import_log_clicked
+        self.ui.pushButton_import_log.clicked.connect(self.on_import_log_clicked)
+
+    def on_import_log_clicked(self):
+        upload_seafoil_log(self.sl)
+        self.seafoil_log_table_widget.update_ui_from_logs()
 
     def on_upload_log_clicked(self):
         download = SeafoilUiDownload()

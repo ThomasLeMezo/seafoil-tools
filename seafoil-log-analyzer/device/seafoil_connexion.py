@@ -333,13 +333,13 @@ class SeafoilConnexion(QObject):
         # Create new rosbag in db
         db_id, is_downloaded, is_new = self.db.insert_log(log_name, log_date, type='rosbag')
 
-        download_target = f"{self.log_folder}/{db_id}"
-        os.makedirs(download_target, exist_ok=True)
-
         # If the rosbag already exists, verify if the log folder already exists
         if not is_new and is_downloaded:
             print("The log folder already exists in the database.")
             return False, db_id
+
+        download_target = f"{self.log_folder}/{db_id}"
+        os.makedirs(download_target, exist_ok=True)
 
         try:
             def progress(filename, size, sent):
@@ -365,6 +365,48 @@ class SeafoilConnexion(QObject):
             # Remove the log from the database
             self.db.remove_log(db_id)
             print(f"Download failed {log_name}! Remove the log from the database.")
+            return False, None
+
+    def import_seafoil_log(self, dir_path):
+        # Get the name of the last directory of the path
+        name = os.path.basename(dir_path)
+        timestamp_ros = None
+        try:
+            timestamp_ros =  datetime.datetime.strptime(name, 'rosbag2_%Y_%m_%d-%H_%M_%S').timestamp()
+        except ValueError:
+            print(f"Invalid directory name: {name}")
+            return False, None
+
+        # Create the log folder if it does not exist
+        os.makedirs(f"{self.log_folder}", exist_ok=True)
+
+        # Create new rosbag in db
+        db_id, is_downloaded, is_new = self.db.insert_log(name, timestamp_ros, type='rosbag')
+
+        # If the rosbag already exists, verify if the log folder already exists
+        if not is_new and is_downloaded:
+            print("The log folder already exists in the database.")
+            return False, db_id
+
+        download_target = f"{self.log_folder}/{db_id}"
+        os.makedirs(download_target, exist_ok=True)
+
+        # Copy the directory
+        try:
+            os.system(f"cp -r {dir_path} {download_target}")
+            print(f"The log folder {name} was added successfully.")
+
+            # Update the db
+            self.db.set_log_download(db_id)
+
+            return True, db_id
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            # Remove the folder if the download failed, if not exists, it will not do anything
+            os.system(f"rm -r {download_target}")
+            # Remove the log from the database
+            self.db.remove_log(db_id)
+            print(f"Add log failed {name}! Remove the log from the database.")
             return False, None
 
     def add_gpx_file(self, file_path):

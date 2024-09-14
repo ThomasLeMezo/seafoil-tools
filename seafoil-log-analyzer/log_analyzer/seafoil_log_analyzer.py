@@ -37,20 +37,7 @@ class Worker(QObject):
         win.showMaximized()
 
         self.data_loaded.emit("Loading data")
-        filename = ""
-        # test if file is a .gpx
-        if filepath.endswith('.gpx'):
-            self.sfb = SeafoilBag(filepath, offset_date, is_gpx=True)
-            # Get file name from filepath
-            filename = os.path.basename(filepath)
-        # test if file is a directory
-        elif os.path.isdir(filepath):
-            # Call reindex on the directory (ros2 bag reindex $DIRECTORY/$entry -s 'mcap')
-            os.system(f"ros2 bag reindex {filepath} -s 'mcap'")
-            ## Load ros2 bag
-            self.sfb = SeafoilBag(filepath, offset_date)
-            # Get last directory from filepath
-            filename = os.path.basename(os.path.normpath(filepath))
+        self.sfb = SeafoilBag(filepath, offset_date)
 
         tab = QtWidgets.QTabWidget()
 
@@ -77,7 +64,7 @@ class Worker(QObject):
 
         tab.setCurrentWidget(data_analysis)
 
-        win.setWindowTitle("log - " + filename)
+        win.setWindowTitle("log - " + self.sfb.file_name)
         win.setCentralWidget(tab)
 
 

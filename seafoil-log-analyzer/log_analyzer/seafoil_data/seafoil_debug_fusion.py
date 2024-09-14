@@ -9,8 +9,8 @@ sys.path.append('..')
 
 
 class SeafoilDebugFusion(SeafoilData):
-    def __init__(self, bag_path="", topic_name="", start_date=datetime.datetime(2019, 1, 1)):
-        SeafoilData.__init__(self, bag_path, topic_name, start_date)
+    def __init__(self, bag_path=None, topic_name=None, start_date=datetime.datetime(2019, 1, 1), data_folder=None):
+        SeafoilData.__init__(self, bag_path, topic_name, start_date, data_folder)
         self.start_date = start_date
         
         self.acceleration_error = np.empty([self.nb_elements], dtype='float')
@@ -30,7 +30,7 @@ class SeafoilDebugFusion(SeafoilData):
         self.load_message()
         self.resize_data_array()
         super().resize_data_array()
-        if self.k > 0 and not self.was_loaded_from_file:
+        if self.k > 0 and not self.is_loaded_from_file:
             self.save_data()
 
     def process_message(self, msg):
@@ -91,7 +91,7 @@ class SeafoilDebugFusion(SeafoilData):
                                 magnetometer_data_is_ready=self.magnetometer_data_is_ready,)
 
     def load_message_from_file(self):
-        data = np.load(self.topic_name_dir + "/" + self.topic_name_file, allow_pickle=True)
+        data = np.load(self.topic_full_dir, allow_pickle=True)
         self.time = data['time']
         self.acceleration_error = data['acceleration_error']
         self.accelerometer_ignored = data['accelerometer_ignored']
@@ -106,5 +106,4 @@ class SeafoilDebugFusion(SeafoilData):
         self.magnetometer_limit_reached = data['magnetometer_limit_reached']
         self.magnetometer_data_skipped = data['magnetometer_data_skipped']
         self.magnetometer_data_is_ready = data['magnetometer_data_is_ready']
-        self.k = len(self.time)
     

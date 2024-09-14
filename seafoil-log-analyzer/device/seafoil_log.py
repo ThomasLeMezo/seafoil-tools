@@ -3,7 +3,8 @@ import threading
 
 from db.seafoil_db import SeafoilDB
 from device.seafoil_connexion import SeafoilConnexion
-from log_analyzer.seafoil_log_analyzer import SeafoilLogAnalyser
+from log_analyzer import SeafoilBag
+from log_analyzer import SeafoilLogAnalyser
 
 # class to manage the sessions
 class SeafoilLog:
@@ -72,6 +73,23 @@ class SeafoilLog:
             is_added, db_id = self.sc.add_gpx_file(file_path)
             if db_id is not None:
                 list_added.append(db_id)
+
+        for db_id in list_added:
+            self.process_log(db_id)
+
+        self.logs = self.db.get_all_logs()
+        return list_added
+
+    def add_seafoil_log(self, dirs_path):
+        list_added = []
+        for dir_path in dirs_path:
+            is_added, db_id = self.sc.import_seafoil_log(dir_path)
+            if db_id is not None:
+                list_added.append(db_id)
+
+        for db_id in list_added:
+            self.process_log(db_id)
+
         self.logs = self.db.get_all_logs()
         return list_added
 
@@ -115,3 +133,20 @@ class SeafoilLog:
             self.logs.append(new_log)
             return True
         return False
+
+    def process_log(self, db_id):
+        log = self.db.get_log(db_id)
+        if log is None:
+            return False
+        file_path = self.sc.get_file_directory(log['id'], log['name'])
+        try:
+            # Process the log
+            print("Processing log: " + file_path)
+            sfb = SeafoilBag(file_path)
+
+            # Update db with statistics from the log
+            self.db.add_log_statistics(log['id'], sfb.get_statistics())
+            return True
+        except Exception as e:
+            print("Error processing log: " + file_path + " " + str(e))
+            return False

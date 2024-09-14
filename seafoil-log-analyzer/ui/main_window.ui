@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>765</width>
-    <height>745</height>
+    <width>966</width>
+    <height>743</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,7 +18,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab_session">
        <property name="maximumSize">
@@ -83,7 +83,7 @@
            <number>2</number>
           </property>
           <attribute name="horizontalHeaderVisible">
-           <bool>true</bool>
+           <bool>false</bool>
           </attribute>
           <attribute name="horizontalHeaderHighlightSections">
            <bool>true</bool>
@@ -129,12 +129,12 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="pushButton_add_basevitesse">
+         <widget class="QPushButton" name="pushButton_import_log">
           <property name="enabled">
-           <bool>false</bool>
+           <bool>true</bool>
           </property>
           <property name="text">
-           <string>Base de Vitesse</string>
+           <string>Importer un log boitier</string>
           </property>
          </widget>
         </item>
@@ -473,7 +473,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>765</width>
+     <width>966</width>
      <height>22</height>
     </rect>
    </property>

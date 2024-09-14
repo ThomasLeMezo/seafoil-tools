@@ -18,8 +18,8 @@ sys.path.append('..')
 
 
 class Seafoil{{ class_name }}(SeafoilData):
-    def __init__(self, bag_path="", topic_name="", start_date=datetime.datetime(2019, 1, 1)):
-        SeafoilData.__init__(self, bag_path, topic_name, start_date)
+    def __init__(self, bag_path=None, topic_name=None, start_date=datetime.datetime(2019, 1, 1), data_folder=None):
+        SeafoilData.__init__(self, bag_path, topic_name, start_date, data_folder)
         self.start_date = start_date
         {% for variable in table %}
         self.{{ variable["python_name"] }} = np.empty([self.nb_elements{%if variable["is_tab"] == True%}, {{variable["tab_count"]}}{%endif%}], dtype='{{ variable["type"] }}'){% endfor %}
@@ -27,7 +27,7 @@ class Seafoil{{ class_name }}(SeafoilData):
         self.load_message()
         self.resize_data_array()
         super().resize_data_array()
-        if self.k > 0 and not self.was_loaded_from_file:
+        if self.k > 0 and not self.is_loaded_from_file:
             self.save_data()
 
     def process_message(self, msg):
@@ -64,10 +64,9 @@ class Seafoil{{ class_name }}(SeafoilData):
                                 {{ variable["python_name"] }}=self.{{ variable["python_name"] }},{% endfor %})
 
     def load_message_from_file(self):
-        data = np.load(self.topic_name_dir + "/" + self.topic_name_file, allow_pickle=True)
+        data = np.load(self.topic_full_dir, allow_pickle=True)
         self.time = data['time']{% for variable in table %}
         self.{{ variable["python_name"] }} = data['{{ variable["python_name"] }}']{% endfor %}
-        self.k = len(self.time)
     """
 
     interface = utilities.get_interface(package_name + "/msg/" + msg_name)
@@ -135,7 +134,7 @@ class Seafoil{{ class_name }}(SeafoilData):
     tm = Template(template_msg)
     msg = tm.render(class_name=interface_name, table=table)
 
-    file_name = "../msg/seafoil_" + interface_name_lower + ".py"
+    file_name = "../seafoil_data/seafoil_" + interface_name_lower + ".py"
 
     file_object = open(file_name, "w+")
     file_object.write(msg)

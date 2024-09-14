@@ -10,41 +10,52 @@ import os
 
 
 class SeafoilData(object):
-    def __init__(self, bag_path="", topic_name="", offset_date=datetime.datetime(2019, 1, 1)):
+    def __init__(self, bag_path="", topic_name="", offset_date=datetime.datetime(2019, 1, 1), data_folder=None):
         self.bag_path = bag_path
+        self.data_folder = data_folder
         self.topic_name = topic_name
         self.offset_date = offset_date
 
-        ## Determine sotrage and converter options
-        self.serialization_format = 'cdr'
-        self.storage_options = rosbag2_py.StorageOptions(uri=self.bag_path)  # , storage_id='sqlite3'
-        self.converter_options = rosbag2_py.ConverterOptions(
-            input_serialization_format=self.serialization_format,
-            output_serialization_format=self.serialization_format)
-
-        ## Count number of messages
-        # test if bag_path is not a gpx
-        if not bag_path.endswith(".gpx"):
-            self.nb_elements = self.count_nb_message()
-            self.starting_time = self.get_starting_time()
-        else:
-            self.nb_elements = 0
-            self.starting_time = datetime.datetime(2019, 1, 1, 0, 0)
-
-        self.time = np.empty([self.nb_elements])
-        self.k = 0
-
-        self.was_loaded_from_file = False
+        self.starting_time = 0
+        self.ending_time = 0
 
         ## Topic directory for save
-        self.topic_name_dir = self.topic_name
         # split topic name and keep only part before last /
 
-        self.topic_name_dir = self.bag_path+"/data/"
+        self.topic_name_dir = self.data_folder
         if len(self.topic_name.split('/')) > 1:
             self.topic_name_dir += self.topic_name.rsplit('/', 1)[0]
         self.topic_name_file = self.topic_name.rsplit('/', 1)[-1] + ".npz"
         self.topic_full_dir = self.topic_name_dir + "/" + self.topic_name_file
+
+        # Test if data is saved in a file
+        if not os.path.exists(self.topic_full_dir):
+            ## Determine sotrage and converter options
+            self.serialization_format = 'cdr'
+            self.storage_options = rosbag2_py.StorageOptions(uri=self.bag_path)  # , storage_id='sqlite3'
+            self.converter_options = rosbag2_py.ConverterOptions(
+                input_serialization_format=self.serialization_format,
+                output_serialization_format=self.serialization_format)
+
+            ## Count number of messages
+            # test if bag_path is not a gpx
+            if not bag_path.endswith(".gpx"):
+                self.nb_elements = self.count_nb_message()
+                self.starting_time = self.get_starting_time()
+            else:
+                self.nb_elements = 0
+                self.starting_time = datetime.datetime(2019, 1, 1, 0, 0)
+
+            self.is_loaded_from_file = False
+            self.time = np.empty([self.nb_elements])
+            self.k = 0
+
+        else:
+            data = np.load(self.topic_full_dir, allow_pickle=True)
+            self.time = data['time']
+            self.k = len(self.time)
+            self.nb_elements = self.k
+            self.is_loaded_from_file = True
 
     def is_empty(self):
         if (self.k == 0):
@@ -88,10 +99,12 @@ class SeafoilData(object):
             return
 
         # test if data directory exists (data has been already saved)
-        if os.path.exists(self.topic_full_dir):
+        if self.is_loaded_from_file:
             print("Load (saved)", self.topic_name)
             self.load_message_from_file()
-            self.was_loaded_from_file = True
+            self.k = len(self.time)
+            self.starting_time = datetime.datetime.utcfromtimestamp(self.time[0])
+            self.ending_time = datetime.datetime.utcfromtimestamp(self.time[-1])
         else:
             print("Load ", self.topic_name)
             ## Open the file

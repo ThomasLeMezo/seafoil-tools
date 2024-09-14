@@ -15,38 +15,7 @@ import datetime
 import gpxpy.gpx
 import math
 
-
-def compute_speed_for_distance(data_distance, distance):
-    speed_distance = None
-    if not data_distance.is_empty():
-        # Compute the speed for 500 m
-        speed_distance = np.zeros(len(data_distance.distance))
-        d0_idx_last = 0
-        for d1_idx in range(1, len(data_distance.distance)):
-            d1 = data_distance.distance[d1_idx]
-            d0 = data_distance.distance[d0_idx_last]
-            if (d1 - d0) >= distance:
-                for d0_idx in range(d0_idx_last, d1_idx):
-                    d0 = data_distance.distance[d0_idx]
-                    if d1 - d0 <= distance:
-                        dt = data_distance.time[d1_idx] - data_distance.time[d0_idx]
-                        if dt > 0:
-                            speed_distance[d1_idx] = (d1 - d0) / dt
-                        else:
-                            speed_distance[d1_idx] = 0
-                        d0_idx_last = max(0, d0_idx - 1)
-                        break
-    return speed_distance
-
-
-def get_starting_index_for_distance_from_last_point(data_distance, distance, ending_idx):
-    starting_idx = 0
-    d1 = data_distance.distance[ending_idx]
-    for d0_idx in range(ending_idx, 0, -1):
-        d0 = data_distance.distance[d0_idx]
-        if d1 - d0 >= distance:
-            return d0_idx
-    return starting_idx
+from ..tools.seafoil_statistics import SeafoilStatistics
 
 def compute_diff_yaw(data_yaw, data_time, window_size):
     # Create vector with the same size as data_imu.yaw
@@ -130,9 +99,6 @@ class DockAnalysis(SeafoilDock):
 
         self.list_pg_yaw = []
         self.list_pg_roll_pitch = []
-
-        self.speed_v500 = compute_speed_for_distance(self.sfb.distance, 500)
-        self.speed_v1852 = compute_speed_for_distance(self.sfb.distance, 1852)
 
         self.yaw = None
         self.yaw_diff = None
@@ -312,37 +278,37 @@ class DockAnalysis(SeafoilDock):
 
             pg_speed_distance = pg.PlotWidget()
             self.set_plot_options(pg_speed_distance)
-            if (np.size(self.speed_v500) > 5):
-                pg_speed_distance.plot(data_distance.time, self.speed_v500[:-1] * 1.94384, pen=(0, 255, 0),
+            if (np.size(self.sfb.statistics.speed_v500) > 5):
+                pg_speed_distance.plot(data_distance.time, self.sfb.statistics.speed_v500[:-1] * 1.94384, pen=(0, 255, 0),
                                        name="speed 500m", stepMode=True)
-            if (np.size(self.speed_v1852) > 5):
-                pg_speed_distance.plot(data_distance.time, self.speed_v1852[:-1] * 1.94384, pen=(0, 0, 255),
+            if (np.size(self.sfb.statistics.speed_v1852) > 5):
+                pg_speed_distance.plot(data_distance.time, self.sfb.statistics.speed_v1852[:-1] * 1.94384, pen=(0, 0, 255),
                                        name="speed 1852m", stepMode=True)
 
             # Get idx and value of max speed for v500
-            if (np.size(self.speed_v500) > 5):
-                idx_max_speed_v500 = np.argmax(self.speed_v500)
-                max_speed_v500 = self.speed_v500[idx_max_speed_v500]
-                idx_start_v500 = get_starting_index_for_distance_from_last_point(data_distance, 500, idx_max_speed_v500)
+            if (np.size(self.sfb.statistics.speed_v500) > 5):
+                idx_max_speed_v500 = np.argmax(self.sfb.statistics.speed_v500)
+                max_speed_v500 = self.sfb.statistics.speed_v500[idx_max_speed_v500]
+                idx_start_v500 = self.sfb.statistics.get_starting_index_for_distance_from_last_point(data_distance, 500, idx_max_speed_v500)
                 pg_speed_distance.plot([data_distance.time[idx_max_speed_v500]], [max_speed_v500 * 1.94384], pen=None,
                                        symbol='o', symbolBrush=(0, 255, 0), symbolPen='w', symbolSize=10,
                                        name="end speed 500m")
                 pg_speed_distance.plot([data_distance.time[idx_start_v500]],
-                                       [self.speed_v500[idx_start_v500] * 1.94384], pen=None,
+                                       [self.sfb.statistics.speed_v500[idx_start_v500] * 1.94384], pen=None,
                                        symbol='o', symbolBrush=(0, 255, 0), symbolPen='w', symbolSize=10,
                                        name="start speed 500m")
 
             # Get idx and value of max speed for v1852
-            if (np.size(self.speed_v1852) > 5):
-                idx_max_speed_v1852 = np.argmax(self.speed_v1852)
-                max_speed_v1852 = self.speed_v1852[idx_max_speed_v1852]
-                idx_start_v1852 = get_starting_index_for_distance_from_last_point(data_distance, 1852,
+            if (np.size(self.sfb.statistics.speed_v1852) > 5):
+                idx_max_speed_v1852 = np.argmax(self.sfb.statistics.speed_v1852)
+                max_speed_v1852 = self.sfb.statistics.speed_v1852[idx_max_speed_v1852]
+                idx_start_v1852 = self.sfb.statistics.get_starting_index_for_distance_from_last_point(data_distance, 1852,
                                                                                   idx_max_speed_v1852)
                 pg_speed_distance.plot([data_distance.time[idx_max_speed_v1852]], [max_speed_v1852 * 1.94384], pen=None,
                                        symbol='o', symbolBrush=(0, 0, 255), symbolPen='w', symbolSize=10,
                                        name="end speed 1852m")
                 pg_speed_distance.plot([data_distance.time[idx_start_v1852]],
-                                       [self.speed_v1852[idx_start_v1852] * 1.94384], pen=None,
+                                       [self.sfb.statistics.speed_v1852[idx_start_v1852] * 1.94384], pen=None,
                                        symbol='o', symbolBrush=(0, 0, 255), symbolPen='w', symbolSize=10,
                                        name="start speed 1852m")
 
@@ -353,10 +319,10 @@ class DockAnalysis(SeafoilDock):
             pg_speed_distance.setXLink(pg_speed)
 
             self.add_label_time([pg_speed, pg_speed_distance], data_gnss.starting_time, dock_height_velocity)
-            if (np.size(self.speed_v1852) > 5):
+            if (np.size(self.sfb.statistics.speed_v1852) > 5):
                 self.add_label_with_text(dock_height_velocity,
                                          "Max speed for 500m: " + str(round(max_speed_v500 * 1.94384, 2)) + " kt")
-            if (np.size(self.speed_v1852) > 5):
+            if (np.size(self.sfb.statistics.speed_v1852) > 5):
                 self.add_label_with_text(dock_height_velocity,
                                          "Max speed for 1852m: " + str(round(max_speed_v1852 * 1.94384, 2)) + " kt")
             self.add_label_with_text(dock_height_velocity, "Max speed: " + str(round(speed_max, 2)) + " kt")
@@ -682,8 +648,13 @@ class DockAnalysis(SeafoilDock):
                 try:
                     max_hist_positive = (np.argwhere(np.transpose(y_hist_local[x_vect_local >= 0]))[-1][1]+1)*x_resolution
                     max_hist_negative = 180 - (np.argwhere(np.transpose(y_hist_local[x_vect_local < 0]))[-1][1]+1)*x_resolution
-                    # Add in the legend the max value of the histogram
-                    pg_plot.setTitle("Max left: " + str(max_hist_negative) + " Max right: " + str(max_hist_positive))
+
+                    max_hist_positive_value = (np.argwhere(np.transpose(y_hist_local[x_vect_local >= 0]))[-1][0])*y_resolution + y_min
+                    max_hist_negative_value = (np.argwhere(np.transpose(y_hist_local[x_vect_local < 0]))[-1][0])*y_resolution + y_min
+
+                    # Add in the legend the max value of the histogram (round to 2 decimals
+                    pg_plot.setTitle(f"Max left: {max_hist_negative*x_unit_conversion} [{max_hist_negative_value*y_unit_conversion:.2f} kt] "
+                                     f"Max right: {max_hist_positive*x_unit_conversion} [{max_hist_positive_value*y_unit_conversion:.2f} kt]")
                 except:
                     pg_plot.setTitle("Max left: (error) Max right: (error)")
 

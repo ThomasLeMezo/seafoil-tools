@@ -9,8 +9,8 @@ sys.path.append('..')
 
 
 class SeafoilWindDebug(SeafoilData):
-    def __init__(self, bag_path="", topic_name="", start_date=datetime.datetime(2019, 1, 1)):
-        SeafoilData.__init__(self, bag_path, topic_name, start_date)
+    def __init__(self, bag_path=None, topic_name=None, start_date=datetime.datetime(2019, 1, 1), data_folder=None):
+        SeafoilData.__init__(self, bag_path, topic_name, start_date, data_folder)
         self.start_date = start_date
         
         self.status = np.empty([self.nb_elements], dtype='uint8')
@@ -22,7 +22,7 @@ class SeafoilWindDebug(SeafoilData):
         self.load_message()
         self.resize_data_array()
         super().resize_data_array()
-        if self.k > 0 and not self.was_loaded_from_file:
+        if self.k > 0 and not self.is_loaded_from_file:
             self.save_data()
 
     def process_message(self, msg):
@@ -59,12 +59,11 @@ class SeafoilWindDebug(SeafoilData):
                                 rssi=self.rssi,)
 
     def load_message_from_file(self):
-        data = np.load(self.topic_name_dir + "/" + self.topic_name_file, allow_pickle=True)
+        data = np.load(self.topic_full_dir, allow_pickle=True)
         self.time = data['time']
         self.status = data['status']
         self.rate = data['rate']
         self.sensors = data['sensors']
         self.connected = data['connected']
         self.rssi = data['rssi']
-        self.k = len(self.time)
     
