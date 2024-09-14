@@ -459,6 +459,9 @@ class SeafoilUiSession(QtWidgets.QDialog):
         # non-blocking dialog box
         new_session = SeafoilUiNewSession(session_id)
         # wait for the dialog to close
+        new_session.show()
+
+        # wait for the dialog to close
         new_session.exec_()
 
         # On close, update the ui
@@ -552,7 +555,7 @@ class SeafoilUiLog(QtWidgets.QDialog):
 
     def on_upload_gpx_clicked(self):
         upload_gpx(self, self.sl)
-        self.update_ui_from_logs()
+        self.seafoil_log_table_widget.update_ui_from_logs()
 
 
 class SeafoilUi(QtWidgets.QMainWindow):

@@ -1,3 +1,4 @@
+import datetime
 import sys
 from PyQt5 import QtWidgets, uic
 import os
@@ -235,9 +236,16 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
         if self.sns.session['end_date'] is not None:
             self.ui.label_ending_date.setText(QDateTime.fromSecsSinceEpoch(int(self.sns.session['end_date'])).toString('yyyy-MM-dd hh:mm:ss'))
 
+        if self.sns.session['duration'] is not None:
+            self.ui.label_duration.setText(str(datetime.timedelta(seconds=self.sns.session['duration'])))
+
+        self.ui.plainTextEdit_comment.setPlainText(self.sns.session['comment'])
+
     def update_configuration_from_ui(self):
         # Get the selected index
         index = self.ui.comboBox_rider.currentIndex()
+
+        self.sns.session['comment'] = self.ui.plainTextEdit_comment.toPlainText()
 
         # If the selected index is the last one (New)
         if index == len(self.sns.rider_list):

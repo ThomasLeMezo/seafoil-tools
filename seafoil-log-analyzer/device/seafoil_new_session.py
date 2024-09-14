@@ -20,12 +20,14 @@ class SeafoilNewSession():
         self.session = self.db.get_session(session_id)
         if self.session is None:
             self.session = {'id': None,
-                            'start_date': datetime.datetime.now().timestamp(),
-                            'end_date': datetime.datetime.now().timestamp(),
+                            'start_date': None,
+                            'end_date': None,
                             'rider_id': None,
-                            'comment': None}
+                            'comment': ""}
         else:
             self.session = dict(self.session)
+
+        self.session['duration'] = None
 
         self.session_setup = self.db.get_session_setup(session_id)
         if self.session_setup is not None:
@@ -47,6 +49,7 @@ class SeafoilNewSession():
         self.sl.compute_times()
         self.session['start_date'] = self.sl.starting_time
         self.session['ending_date'] = self.sl.ending_time
+        self.session['duration'] = self.sl.log_duration
 
     def update(self):
         self.sl.update()

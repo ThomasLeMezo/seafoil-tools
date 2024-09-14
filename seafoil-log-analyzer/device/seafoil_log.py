@@ -23,6 +23,7 @@ class SeafoilLog:
 
         self.starting_time = None
         self.ending_time = None
+        self.log_duration = 0.0
 
     def is_empty(self):
         return len(self.logs) == 0
@@ -38,6 +39,9 @@ class SeafoilLog:
                 self.ending_time = log['ending_time']
             elif log['ending_time'] is not None:
                 self.ending_time = max(self.ending_time, log['ending_time'])
+
+        if self.starting_time is not None and self.ending_time is not None:
+            self.log_duration = self.ending_time - self.starting_time
 
     def update(self):
         if self.session_id is not None:
@@ -87,8 +91,12 @@ class SeafoilLog:
         return False
 
     def remote_remove_log(self, db_id):
-        self.sc.remove_log(db_id)
-        self.logs = self.db.get_all_logs()
+        if self.db.is_log_associated(db_id):
+            return False
+        else:
+            self.sc.remove_log(db_id)
+            self.logs = self.db.get_all_logs()
+            return True
 
     def remove_log_from_list(self, index):
         if 0 <= index < len(self.logs):

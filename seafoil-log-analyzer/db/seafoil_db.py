@@ -61,6 +61,7 @@ class SeafoilDB:
             end_date DATETIME DEFAULT 0,
             rider_id INTEGER,
             wind_mean_heading REAL,
+            comment TEXT,
             FOREIGN KEY (rider_id) REFERENCES rider(id)
         )''')
 
@@ -406,7 +407,7 @@ class SeafoilDB:
 
     # Add new log file to the database if it does not exist and return the id
     # type = 0 for rosbag, 1 for gpx
-    def insert_log(self, name, starting_time, type='rosbag'):
+    def insert_log(self, name, starting_time, ending_time=None, type='rosbag'):
         # Test if the log file is already in the database and return the id if it is
         self.sqliteCursor.execute('''SELECT * FROM log WHERE name = ?''', (name,))
         row = self.sqliteCursor.fetchone()
@@ -416,7 +417,7 @@ class SeafoilDB:
 
         type_id = self.convert_log_type_from_str(type)
 
-        self.sqliteCursor.execute('''INSERT INTO log (name, starting_time, type) VALUES (?, ?, ?)''', (name, starting_time, type_id))
+        self.sqliteCursor.execute('''INSERT INTO log (name, starting_time, ending_time, type) VALUES (?, ?, ?, ?)''', (name, starting_time, ending_time, type_id))
         self.sqliteConnection.commit()
         # Return the if of the last inserted row, is_download = False, is_new = True
         return self.sqliteCursor.lastrowid, False, True
@@ -425,6 +426,11 @@ class SeafoilDB:
     def get_log(self, id):
         self.sqliteCursor.execute('''SELECT * FROM log WHERE id = ?''', (id,))
         return self.sqliteCursor.fetchone()
+
+    # Test if a log has a session associated
+    def is_log_associated(self, id):
+        self.sqliteCursor.execute('''SELECT * FROM log WHERE id = ? AND session IS NOT NULL''', (id,))
+        return self.sqliteCursor.fetchone() is not None
 
     # Remove log
     def remove_log(self, id):
@@ -525,12 +531,12 @@ class SeafoilDB:
     def save_session(self, session):
         # If the session does not exist, create a new one
         if 'id' not in session or session['id'] is None:
-            self.sqliteCursor.execute('''INSERT INTO session (start_date, end_date, rider_id, wind_mean_heading) VALUES (?, ?, ?, ?)''', (session['start_date'], session['end_date'], session['rider_id'], session['wind_mean_heading']))
+            self.sqliteCursor.execute('''INSERT INTO session (start_date, end_date, rider_id, wind_mean_heading, comment) VALUES (?, ?, ?, ?, ?)''', (session['start_date'], session['end_date'], session['rider_id'], session['wind_mean_heading'], session['comment']))
             self.sqliteConnection.commit()
             return self.sqliteCursor.lastrowid
         # If the session exist, update it
         else:
-            self.sqliteCursor.execute('''UPDATE session SET start_date = ?, end_date = ?, rider_id = ?, wind_mean_heading = ? WHERE id = ?''', (session['start_date'], session['end_date'], session['rider_id'], session['wind_mean_heading'], session['id']))
+            self.sqliteCursor.execute('''UPDATE session SET start_date = ?, end_date = ?, rider_id = ?, wind_mean_heading = ?, comment = ? WHERE id = ?''', (session['start_date'], session['end_date'], session['rider_id'], session['wind_mean_heading'], session['comment'], session['id']))
             self.sqliteConnection.commit()
             return session['id']
 

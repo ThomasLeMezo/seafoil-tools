@@ -9,7 +9,7 @@ class SeafoilUiLogTableWidget():
         self.sl = seafoil_log
 
         # Set the number of columns
-        columns = ["id", "date", "type", "name", "session"]
+        columns = ["id", "date", "duration", "type", "name", "session"]
         self.tablewidget.setColumnCount(len(columns))
         # Set headers
         self.tablewidget.setHorizontalHeaderLabels(columns)
@@ -43,9 +43,14 @@ class SeafoilUiLogTableWidget():
             self.tablewidget.setItem(i, 0, QtWidgets.QTableWidgetItem(str(log['id'])))
             start_date = datetime.datetime.fromtimestamp(log['starting_time'])
             self.tablewidget.setItem(i, 1, QtWidgets.QTableWidgetItem(start_date.strftime('%Y-%m-%d %H:%M:%S')))
-            self.tablewidget.setItem(i, 2, QtWidgets.QTableWidgetItem(self.sl.db.convert_log_type_from_int(log['type'])))
-            self.tablewidget.setItem(i, 3, QtWidgets.QTableWidgetItem(log['name']))
-            self.tablewidget.setItem(i, 4, QtWidgets.QTableWidgetItem(str(log['session'])))
+            if log['ending_time'] is not None and log['starting_time'] is not None:
+                duration = log['ending_time'] - log['starting_time']
+                self.tablewidget.setItem(i, 2, QtWidgets.QTableWidgetItem(str(datetime.timedelta(seconds=duration))))
+            else:
+                self.tablewidget.setItem(i, 2, QtWidgets.QTableWidgetItem(''))
+            self.tablewidget.setItem(i, 3, QtWidgets.QTableWidgetItem(self.sl.db.convert_log_type_from_int(log['type'])))
+            self.tablewidget.setItem(i, 4, QtWidgets.QTableWidgetItem(log['name']))
+            self.tablewidget.setItem(i, 5, QtWidgets.QTableWidgetItem(str(log['session'])))
 
         # Auto resize columns
         self.tablewidget.resizeColumnsToContents()
@@ -75,7 +80,13 @@ class SeafoilUiLogTableWidget():
 
         if action == remove_action:
             for i in range(len(item)):
-                self.sl.remote_remove_log(int(item[i].text()))
+                if not self.sl.remote_remove_log(int(item[i].text())):
+                    # message failed to remove
+                    msg = QtWidgets.QMessageBox()
+                    msg.setIcon(QtWidgets.QMessageBox.Critical)
+                    msg.setText("Log protected : delete session first")
+                    msg.setWindowTitle("Error")
+                    msg.exec_()
 
         # Update the ui
         self.update_ui_from_logs()

@@ -331,7 +331,7 @@ class SeafoilConnexion(QObject):
         os.makedirs(f"{self.log_folder}", exist_ok=True)
 
         # Create new rosbag in db
-        db_id, is_downloaded, is_new = self.db.insert_log(log_name, log_date, 'rosbag')
+        db_id, is_downloaded, is_new = self.db.insert_log(log_name, log_date, type='rosbag')
 
         download_target = f"{self.log_folder}/{db_id}"
         os.makedirs(download_target, exist_ok=True)
@@ -376,10 +376,11 @@ class SeafoilConnexion(QObject):
 
             # Get the starting time of the gpx file in timestamp format
             starting_time = gpx.tracks[0].segments[0].points[0].time.timestamp()
+            ending_time = gpx.tracks[0].segments[0].points[-1].time.timestamp()
 
             # Insert the gpx file in the database
             file_name = os.path.basename(file_path)
-            db_id, is_download, is_new = self.db.insert_log(os.path.basename(file_name), starting_time, 'gpx')
+            db_id, is_download, is_new = self.db.insert_log(os.path.basename(file_name), starting_time, ending_time, 'gpx')
             folder = self.log_folder + str(db_id) + '/'
             os.makedirs(folder, exist_ok=True)
 

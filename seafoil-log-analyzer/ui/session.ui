@@ -59,7 +59,7 @@
          </property>
         </widget>
        </item>
-       <item row="7" column="0" colspan="2">
+       <item row="8" column="0" colspan="2">
         <widget class="QListView" name="listView_log"/>
        </item>
        <item row="6" column="0">
@@ -78,6 +78,20 @@
        </item>
        <item row="6" column="1">
         <widget class="QLabel" name="label_ending_date">
+         <property name="text">
+          <string>?</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0">
+        <widget class="QLabel" name="label_12">
+         <property name="text">
+          <string>Durée</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="1">
+        <widget class="QLabel" name="label_duration">
          <property name="text">
           <string>?</string>
          </property>
@@ -206,6 +220,16 @@
           <double>135.000000000000000</double>
          </property>
         </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_3">
+      <attribute name="title">
+       <string>Commentaire</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
+        <widget class="QPlainTextEdit" name="plainTextEdit_comment"/>
        </item>
       </layout>
      </widget>
