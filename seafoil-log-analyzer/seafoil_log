@@ -1,6 +1,6 @@
 #!/bin/zsh
 DIRECTORY=`pwd`
-script_file=$HOME/seafoil/seafoil-tools/seafoil-log-analyzer/seafoil_log_analyzer.py
+script_file=$HOME/seafoil/seafoil-tools/seafoil-log-analyzer/log_analyzer/seafoil_log_analyzer.py
 
 START_DATE=""
 for entry in $@; do
