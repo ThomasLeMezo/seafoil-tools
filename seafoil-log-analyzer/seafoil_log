@@ -1,17 +1,9 @@
 #!/bin/zsh
 DIRECTORY=`pwd`
-script_file=$HOME/seafoil/seafoil-tools/seafoil-log-analyzer/log_analyzer/seafoil_log_analyzer.py
+log_analyzer_path=$HOME/seafoil/seafoil-tools/seafoil-log-analyzer/
 
-START_DATE=""
-for entry in $@; do
-	if [[ "$entry" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9]{2}:[0-9]{2}:[0-9]{2}$ ]]; then
-		START_DATE="$entry"
-		echo "Starting date = " $START_DATE
-	fi
-done
+cd $log_analyzer_path
 
 for entry in $@; do
-	if [[ "$entry" != "$START_DATE" ]]; then
-		python3 $script_file $DIRECTORY/$entry $START_DATE
-	fi
+	python3 seafoil_log_launch.py $DIRECTORY/$entry
 done

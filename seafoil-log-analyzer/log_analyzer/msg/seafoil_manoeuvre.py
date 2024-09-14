@@ -3,7 +3,7 @@
 import sys
 import numpy as np
 import datetime
-from seafoil_data import SeafoilData
+from .seafoil_data import SeafoilData
 
 sys.path.append('..')
 
@@ -23,15 +23,15 @@ class SeafoilManoeuvre(SeafoilData):
             self.save_data()
 
     def process_message(self, msg):
+        self.heading_max_difference[self.k] =msg.heading_max_difference
+        self.state[self.k] =msg.state
         
-        self.heading_max_difference[self.k] = msg.heading_max_difference
-        self.state[self.k] = msg.state
         return
 
     def resize_data_array(self):
+        self.heading_max_difference = np.resize(self.heading_max_difference,self.k)
+        self.state = np.resize(self.state,self.k)
         
-        self.heading_max_difference = np.resize(self.heading_max_difference, self.k)
-        self.state = np.resize(self.state, self.k)
         return
         
     def save_data(self):

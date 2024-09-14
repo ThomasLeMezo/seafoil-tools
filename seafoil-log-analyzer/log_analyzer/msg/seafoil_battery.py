@@ -3,7 +3,7 @@
 import sys
 import numpy as np
 import datetime
-from seafoil_data import SeafoilData
+from .seafoil_data import SeafoilData
 
 sys.path.append('..')
 
@@ -35,39 +35,39 @@ class SeafoilBattery(SeafoilData):
             self.save_data()
 
     def process_message(self, msg):
+        self.temperature[self.k] =msg.temperature
+        self.voltage[self.k] =msg.voltage
+        self.flags[self.k] =msg.flags
+        self.nominal_available_capacity[self.k] =msg.nominal_available_capacity
+        self.full_available_capacity[self.k] =msg.full_available_capacity
+        self.remaining_capacity[self.k] =msg.remaining_capacity
+        self.full_charge_capacity[self.k] =msg.full_charge_capacity
+        self.average_current[self.k] =msg.average_current
+        self.standby_current[self.k] =msg.standby_current
+        self.max_load_current[self.k] =msg.max_load_current
+        self.average_power[self.k] =msg.average_power
+        self.state_of_charge[self.k] =msg.state_of_charge
+        self.internal_temperature[self.k] =msg.internal_temperature
+        self.state_of_health[self.k] =msg.state_of_health
         
-        self.temperature[self.k] = msg.temperature
-        self.voltage[self.k] = msg.voltage
-        self.flags[self.k] = msg.flags
-        self.nominal_available_capacity[self.k] = msg.nominal_available_capacity
-        self.full_available_capacity[self.k] = msg.full_available_capacity
-        self.remaining_capacity[self.k] = msg.remaining_capacity
-        self.full_charge_capacity[self.k] = msg.full_charge_capacity
-        self.average_current[self.k] = msg.average_current
-        self.standby_current[self.k] = msg.standby_current
-        self.max_load_current[self.k] = msg.max_load_current
-        self.average_power[self.k] = msg.average_power
-        self.state_of_charge[self.k] = msg.state_of_charge
-        self.internal_temperature[self.k] = msg.internal_temperature
-        self.state_of_health[self.k] = msg.state_of_health
         return
 
     def resize_data_array(self):
+        self.temperature = np.resize(self.temperature,self.k)
+        self.voltage = np.resize(self.voltage,self.k)
+        self.flags = np.resize(self.flags,self.k)
+        self.nominal_available_capacity = np.resize(self.nominal_available_capacity,self.k)
+        self.full_available_capacity = np.resize(self.full_available_capacity,self.k)
+        self.remaining_capacity = np.resize(self.remaining_capacity,self.k)
+        self.full_charge_capacity = np.resize(self.full_charge_capacity,self.k)
+        self.average_current = np.resize(self.average_current,self.k)
+        self.standby_current = np.resize(self.standby_current,self.k)
+        self.max_load_current = np.resize(self.max_load_current,self.k)
+        self.average_power = np.resize(self.average_power,self.k)
+        self.state_of_charge = np.resize(self.state_of_charge,self.k)
+        self.internal_temperature = np.resize(self.internal_temperature,self.k)
+        self.state_of_health = np.resize(self.state_of_health,self.k)
         
-        self.temperature = np.resize(self.temperature, self.k)
-        self.voltage = np.resize(self.voltage, self.k)
-        self.flags = np.resize(self.flags, self.k)
-        self.nominal_available_capacity = np.resize(self.nominal_available_capacity, self.k)
-        self.full_available_capacity = np.resize(self.full_available_capacity, self.k)
-        self.remaining_capacity = np.resize(self.remaining_capacity, self.k)
-        self.full_charge_capacity = np.resize(self.full_charge_capacity, self.k)
-        self.average_current = np.resize(self.average_current, self.k)
-        self.standby_current = np.resize(self.standby_current, self.k)
-        self.max_load_current = np.resize(self.max_load_current, self.k)
-        self.average_power = np.resize(self.average_power, self.k)
-        self.state_of_charge = np.resize(self.state_of_charge, self.k)
-        self.internal_temperature = np.resize(self.internal_temperature, self.k)
-        self.state_of_health = np.resize(self.state_of_health, self.k)
         return
         
     def save_data(self):

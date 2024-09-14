@@ -3,7 +3,7 @@ import threading
 
 from db.seafoil_db import SeafoilDB
 from device.seafoil_connexion import SeafoilConnexion
-from seafoil_log_analyzer import SeafoilLogAnalyser
+from log_analyzer.seafoil_log_analyzer import SeafoilLogAnalyser
 
 # class to manage the sessions
 class SeafoilLog:

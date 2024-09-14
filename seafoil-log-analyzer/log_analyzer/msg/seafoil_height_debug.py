@@ -3,7 +3,7 @@
 import sys
 import numpy as np
 import datetime
-from seafoil_data import SeafoilData
+from .seafoil_data import SeafoilData
 
 sys.path.append('..')
 
@@ -12,7 +12,7 @@ class SeafoilHeightDebug(SeafoilData):
     def __init__(self, bag_path="", topic_name="", start_date=datetime.datetime(2019, 1, 1)):
         SeafoilData.__init__(self, bag_path, topic_name, start_date)
         self.start_date = start_date
-
+        
         self.profile = np.empty([self.nb_elements, 128], dtype='float')
         self.interval_center = np.empty([self.nb_elements], dtype='uint8')
         self.interval_diam = np.empty([self.nb_elements], dtype='uint8')
@@ -25,19 +25,19 @@ class SeafoilHeightDebug(SeafoilData):
             self.save_data()
 
     def process_message(self, msg):
-
-        self.profile[self.k, :] = np.array(msg.profile)
-        self.interval_center[self.k] = msg.interval_center
-        self.interval_diam[self.k] = msg.interval_diam
-        self.height_unfiltered[self.k] = msg.height_unfiltered
+        self.profile[self.k, :] =np.array(msg.profile, dtype='float')
+        self.interval_center[self.k] =msg.interval_center
+        self.interval_diam[self.k] =msg.interval_diam
+        self.height_unfiltered[self.k] =msg.height_unfiltered
+        
         return
 
     def resize_data_array(self):
-
-        self.profile = np.resize(self.profile, [self.k, 128])
-        self.interval_center = np.resize(self.interval_center, self.k)
-        self.interval_diam = np.resize(self.interval_diam, self.k)
-        self.height_unfiltered = np.resize(self.height_unfiltered, self.k)
+        self.profile = np.resize(self.profile,[self.k, 128])
+        self.interval_center = np.resize(self.interval_center,self.k)
+        self.interval_diam = np.resize(self.interval_diam,self.k)
+        self.height_unfiltered = np.resize(self.height_unfiltered,self.k)
+        
         return
         
     def save_data(self):

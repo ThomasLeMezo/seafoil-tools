@@ -3,7 +3,7 @@
 import sys
 import numpy as np
 import datetime
-from seafoil_data import SeafoilData
+from .seafoil_data import SeafoilData
 
 sys.path.append('..')
 
@@ -22,13 +22,13 @@ class SeafoilHeight(SeafoilData):
             self.save_data()
 
     def process_message(self, msg):
+        self.height[self.k] =msg.height
         
-        self.height[self.k] = msg.height
         return
 
     def resize_data_array(self):
+        self.height = np.resize(self.height,self.k)
         
-        self.height = np.resize(self.height, self.k)
         return
         
     def save_data(self):

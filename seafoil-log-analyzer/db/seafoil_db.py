@@ -62,6 +62,11 @@ class SeafoilDB:
             rider_id INTEGER,
             wind_mean_heading REAL,
             comment TEXT,
+            v500 REAL,
+            v1850 REAL,
+            vmax REAL,
+            vjibe REAL,
+            vhour REAL,
             FOREIGN KEY (rider_id) REFERENCES rider(id)
         )''')
 

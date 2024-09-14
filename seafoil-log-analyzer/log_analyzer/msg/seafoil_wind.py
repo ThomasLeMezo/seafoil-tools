@@ -3,7 +3,7 @@
 import sys
 import numpy as np
 import datetime
-from seafoil_data import SeafoilData
+from .seafoil_data import SeafoilData
 
 sys.path.append('..')
 
@@ -29,27 +29,27 @@ class SeafoilWind(SeafoilData):
             self.save_data()
 
     def process_message(self, msg):
+        self.velocity[self.k] =msg.velocity
+        self.direction[self.k] =msg.direction
+        self.battery[self.k] =msg.battery
+        self.temperature[self.k] =msg.temperature
+        self.roll[self.k] =msg.roll
+        self.pitch[self.k] =msg.pitch
+        self.heading[self.k] =msg.heading
+        self.direction_north[self.k] =msg.direction_north
         
-        self.velocity[self.k] = msg.velocity
-        self.direction[self.k] = msg.direction
-        self.battery[self.k] = msg.battery
-        self.temperature[self.k] = msg.temperature
-        self.roll[self.k] = msg.roll
-        self.pitch[self.k] = msg.pitch
-        self.heading[self.k] = msg.wind_heading
-        self.direction_north[self.k] = msg.direction_north
         return
 
     def resize_data_array(self):
+        self.velocity = np.resize(self.velocity,self.k)
+        self.direction = np.resize(self.direction,self.k)
+        self.battery = np.resize(self.battery,self.k)
+        self.temperature = np.resize(self.temperature,self.k)
+        self.roll = np.resize(self.roll,self.k)
+        self.pitch = np.resize(self.pitch,self.k)
+        self.heading = np.resize(self.heading,self.k)
+        self.direction_north = np.resize(self.direction_north,self.k)
         
-        self.velocity = np.resize(self.velocity, self.k)
-        self.direction = np.resize(self.direction, self.k)
-        self.battery = np.resize(self.battery, self.k)
-        self.temperature = np.resize(self.temperature, self.k)
-        self.roll = np.resize(self.roll, self.k)
-        self.pitch = np.resize(self.pitch, self.k)
-        self.heading = np.resize(self.heading, self.k)
-        self.direction_north = np.resize(self.direction_north, self.k)
         return
         
     def save_data(self):

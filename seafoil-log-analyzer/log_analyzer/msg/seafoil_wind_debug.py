@@ -3,7 +3,7 @@
 import sys
 import numpy as np
 import datetime
-from seafoil_data import SeafoilData
+from .seafoil_data import SeafoilData
 
 sys.path.append('..')
 
@@ -26,21 +26,21 @@ class SeafoilWindDebug(SeafoilData):
             self.save_data()
 
     def process_message(self, msg):
+        self.status[self.k] =msg.status
+        self.rate[self.k] =msg.rate
+        self.sensors[self.k] =msg.sensors
+        self.connected[self.k] =msg.connected
+        self.rssi[self.k] =msg.rssi
         
-        self.status[self.k] = msg.status
-        self.rate[self.k] = msg.rate
-        self.sensors[self.k] = msg.sensors
-        self.connected[self.k] = msg.connected
-        self.rssi[self.k] = msg.rssi
         return
 
     def resize_data_array(self):
+        self.status = np.resize(self.status,self.k)
+        self.rate = np.resize(self.rate,self.k)
+        self.sensors = np.resize(self.sensors,self.k)
+        self.connected = np.resize(self.connected,self.k)
+        self.rssi = np.resize(self.rssi,self.k)
         
-        self.status = np.resize(self.status, self.k)
-        self.rate = np.resize(self.rate, self.k)
-        self.sensors = np.resize(self.sensors, self.k)
-        self.connected = np.resize(self.connected, self.k)
-        self.rssi = np.resize(self.rssi, self.k)
         return
         
     def save_data(self):
@@ -60,15 +60,11 @@ class SeafoilWindDebug(SeafoilData):
 
     def load_message_from_file(self):
         data = np.load(self.topic_name_dir + "/" + self.topic_name_file, allow_pickle=True)
-        try:
-            self.time = data['time']
-            self.status = data['status']
-            self.rate = data['rate']
-            self.sensors = data['sensors']
-            self.connected = data['connected']
-            self.rssi = data['rssi']
-            self.k = len(self.time)
-        except Exception as e:
-            pass
-
+        self.time = data['time']
+        self.status = data['status']
+        self.rate = data['rate']
+        self.sensors = data['sensors']
+        self.connected = data['connected']
+        self.rssi = data['rssi']
+        self.k = len(self.time)
     

@@ -3,12 +3,9 @@
 import sys
 import numpy as np
 import datetime
-from seafoil_data import SeafoilData
+from .seafoil_data import SeafoilData
 import gpxpy
 import gpxpy.gpx
-
-sys.path.append('..')
-
 
 class SeafoilGpx(SeafoilData):
     def __init__(self, gpx_file_name=""):

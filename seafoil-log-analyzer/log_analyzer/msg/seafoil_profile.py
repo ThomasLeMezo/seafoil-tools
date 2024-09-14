@@ -3,7 +3,7 @@
 import sys
 import numpy as np
 import datetime
-from seafoil_data import SeafoilData
+from .seafoil_data import SeafoilData
 
 sys.path.append('..')
 
@@ -13,7 +13,7 @@ class SeafoilProfile(SeafoilData):
         SeafoilData.__init__(self, bag_path, topic_name, start_date)
         self.start_date = start_date
         
-        self.profile = np.empty([self.nb_elements, 128], dtype='ubyte')
+        self.profile = np.empty([self.nb_elements, 128], dtype='uint8')
 
         self.load_message()
         self.resize_data_array()
@@ -22,12 +22,13 @@ class SeafoilProfile(SeafoilData):
             self.save_data()
 
     def process_message(self, msg):
-        self.profile[self.k, :] = np.array(msg.profile, dtype='ubyte')
+        self.profile[self.k, :] =np.array(msg.profile, dtype='uint8')
+        
         return
 
     def resize_data_array(self):
+        self.profile = np.resize(self.profile,[self.k, 128])
         
-        self.profile = np.resize(self.profile, [self.k, 128])
         return
         
     def save_data(self):

@@ -3,7 +3,7 @@
 import sys
 import numpy as np
 import datetime
-from seafoil_data import SeafoilData
+from .seafoil_data import SeafoilData
 
 sys.path.append('..')
 
@@ -16,9 +16,9 @@ class SeafoilRPY(SeafoilData):
         self.roll = np.empty([self.nb_elements], dtype='float')
         self.pitch = np.empty([self.nb_elements], dtype='float')
         self.yaw = np.empty([self.nb_elements], dtype='float')
-        self.acceleration_x = np.empty([self.nb_elements], dtype='double')
-        self.acceleration_y = np.empty([self.nb_elements], dtype='double')
-        self.acceleration_z = np.empty([self.nb_elements], dtype='double')
+        self.acceleration_x = np.empty([self.nb_elements], dtype='float')
+        self.acceleration_y = np.empty([self.nb_elements], dtype='float')
+        self.acceleration_z = np.empty([self.nb_elements], dtype='float')
 
         self.load_message()
         self.resize_data_array()
@@ -27,23 +27,23 @@ class SeafoilRPY(SeafoilData):
             self.save_data()
 
     def process_message(self, msg):
+        self.roll[self.k] =msg.roll
+        self.pitch[self.k] =msg.pitch
+        self.yaw[self.k] =msg.yaw
+        self.acceleration_x[self.k] =msg.acceleration.x
+        self.acceleration_y[self.k] =msg.acceleration.y
+        self.acceleration_z[self.k] =msg.acceleration.z
         
-        self.roll[self.k] = msg.roll
-        self.pitch[self.k] = msg.pitch
-        self.yaw[self.k] = msg.yaw
-        self.acceleration_x[self.k] = msg.acceleration.x
-        self.acceleration_y[self.k] = msg.acceleration.y
-        self.acceleration_z[self.k] = msg.acceleration.z
         return
 
     def resize_data_array(self):
+        self.roll = np.resize(self.roll,self.k)
+        self.pitch = np.resize(self.pitch,self.k)
+        self.yaw = np.resize(self.yaw,self.k)
+        self.acceleration_x = np.resize(self.acceleration_x,self.k)
+        self.acceleration_y = np.resize(self.acceleration_y,self.k)
+        self.acceleration_z = np.resize(self.acceleration_z,self.k)
         
-        self.roll = np.resize(self.roll, self.k)
-        self.pitch = np.resize(self.pitch, self.k)
-        self.yaw = np.resize(self.yaw, self.k)
-        self.acceleration_x = np.resize(self.acceleration_x, self.k)
-        self.acceleration_y = np.resize(self.acceleration_y, self.k)
-        self.acceleration_z = np.resize(self.acceleration_z, self.k)
         return
         
     def save_data(self):
@@ -60,8 +60,7 @@ class SeafoilRPY(SeafoilData):
                                 yaw=self.yaw,
                                 acceleration_x=self.acceleration_x,
                                 acceleration_y=self.acceleration_y,
-                                acceleration_z=self.acceleration_z,
-                                )
+                                acceleration_z=self.acceleration_z,)
 
     def load_message_from_file(self):
         data = np.load(self.topic_name_dir + "/" + self.topic_name_file, allow_pickle=True)

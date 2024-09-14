@@ -3,7 +3,7 @@
 import sys
 import numpy as np
 import datetime
-from seafoil_data import SeafoilData
+from .seafoil_data import SeafoilData
 
 sys.path.append('..')
 
@@ -22,13 +22,13 @@ class SeafoilDistanceGate(SeafoilData):
             self.save_data()
 
     def process_message(self, msg):
+        self.distance_gate[self.k] =msg.distance_gate
         
-        self.distance_gate[self.k] = msg.distance_gate
         return
 
     def resize_data_array(self):
+        self.distance_gate = np.resize(self.distance_gate,self.k)
         
-        self.distance_gate = np.resize(self.distance_gate, self.k)
         return
         
     def save_data(self):
