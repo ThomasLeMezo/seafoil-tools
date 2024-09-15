@@ -40,27 +40,6 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="0" colspan="2">
-        <widget class="QPushButton" name="pushButton_upload_gpx">
-         <property name="text">
-          <string>Ajouter gpx</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0" colspan="2">
-        <widget class="QPushButton" name="pushButton_upload_log">
-         <property name="text">
-          <string>Télécharger log boitier</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0" colspan="2">
-        <widget class="QPushButton" name="pushButton_search_log">
-         <property name="text">
-          <string>Recherche log</string>
-         </property>
-        </widget>
-       </item>
        <item row="4" column="0">
         <widget class="QLabel" name="label_10">
          <property name="text">
@@ -106,15 +85,12 @@
        <item row="11" column="0" colspan="2">
         <widget class="QListView" name="listView_log"/>
        </item>
-       <item row="12" column="0">
+       <item row="16" column="0">
         <widget class="QLabel" name="label_14">
          <property name="text">
           <string>Logs associés</string>
          </property>
         </widget>
-       </item>
-       <item row="13" column="0" colspan="2">
-        <widget class="QListWidget" name="listWidget_log_associated"/>
        </item>
        <item row="9" column="0">
         <widget class="QLabel" name="label_13">
@@ -141,6 +117,57 @@
           <enum>Qt::Horizontal</enum>
          </property>
         </widget>
+       </item>
+       <item row="15" column="0" colspan="2">
+        <widget class="Line" name="line_2">
+         <property name="minimumSize">
+          <size>
+           <width>20</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="12" column="0" colspan="2">
+        <widget class="QPushButton" name="pushButton_upload_gpx">
+         <property name="text">
+          <string>Ajouter gpx</string>
+         </property>
+        </widget>
+       </item>
+       <item row="13" column="0" colspan="2">
+        <widget class="QPushButton" name="pushButton_upload_log">
+         <property name="text">
+          <string>Télécharger log boitier</string>
+         </property>
+        </widget>
+       </item>
+       <item row="14" column="0" colspan="2">
+        <widget class="QPushButton" name="pushButton_search_log">
+         <property name="text">
+          <string>Recherche log</string>
+         </property>
+        </widget>
+       </item>
+       <item row="18" column="0" colspan="2">
+        <widget class="QPushButton" name="pushButton_upload_gpx_associated">
+         <property name="text">
+          <string>Ajouter gpx</string>
+         </property>
+        </widget>
+       </item>
+       <item row="19" column="0" colspan="2">
+        <widget class="QPushButton" name="pushButton_search_log_associated">
+         <property name="text">
+          <string>Recherche log</string>
+         </property>
+        </widget>
+       </item>
+       <item row="17" column="0" colspan="2">
+        <widget class="QListView" name="listView_log_associated"/>
        </item>
       </layout>
      </widget>

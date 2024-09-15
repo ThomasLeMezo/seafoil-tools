@@ -65,16 +65,20 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
         self.comboBox_list = [self.ui.comboBox_board, self.ui.comboBox_sail, self.ui.comboBox_front_foil, self.ui.comboBox_stabilizer,
                               self.ui.comboBox_foil_mast, self.ui.comboBox_fuselage]
 
-        self.model = DictListModel(self.sns.sl.logs)
-        self.ui.listView_log.setModel(self.model)
+        self.model_link = DictListModel(self.sns.sl.logs)
+        self.model_associated = DictListModel(self.sns.sl.logs_associated)
+        self.ui.listView_log.setModel(self.model_link)
+        self.ui.listView_log_associated.setModel(self.model_associated)
         # Enable custom context menu on the QListView
         self.listView_log.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.listView_log.customContextMenuRequested.connect(self.show_context_menu)
+        self.listView_log.customContextMenuRequested.connect(lambda position: self.show_context_menu(position, False))
+        # Enable custom context menu on the QListView
+        self.listView_log_associated.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.listView_log_associated.customContextMenuRequested.connect(lambda position: self.show_context_menu(position, True))
 
         # Enable double click to launch log
-        self.listView_log.doubleClicked.connect(self.open_log_from_list)
-
-        self.update_ui_from_configuration()
+        self.listView_log.doubleClicked.connect(lambda index: self.open_log_from_list(index, False))
+        self.listView_log_associated.doubleClicked.connect(lambda index: self.open_log_from_list(index, True))
 
         # connect the change rider index
         self.ui.comboBox_rider.currentIndexChanged.connect(self.on_change_rider_index)
@@ -82,21 +86,25 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
             comboBox.currentIndexChanged.connect(lambda index, i=i: self.on_change_equipment_index(index, i))
 
         # connect pushButton_upload_gpx to the upload_gpx method
-        self.ui.pushButton_upload_gpx.clicked.connect(self.on_upload_gpx_clicked)
+        self.ui.pushButton_upload_gpx.clicked.connect(lambda: self.on_upload_gpx_clicked(False))
+        self.ui.pushButton_upload_gpx_associated.clicked.connect(lambda: self.on_upload_gpx_clicked(True))
 
         # connect pushButton_upload_log to the upload_log method
         self.ui.pushButton_upload_log.clicked.connect(self.on_upload_log_clicked)
 
         # connect pushButton_search_log to the search_log method
-        self.ui.pushButton_search_log.clicked.connect(self.on_search_log_list)
+        self.ui.pushButton_search_log.clicked.connect(lambda: self.on_search_log_list(False))
+        self.ui.pushButton_search_log_associated.clicked.connect(lambda: self.on_search_log_list(True))
 
         # Connect ok and cancel buttons
         self.ui.buttonBox.accepted.connect(self.accept)
         self.ui.buttonBox.rejected.connect(self.reject)
 
-    def open_log_from_list(self, index):
+        self.update_ui_from_configuration()
+
+    def open_log_from_list(self, index, is_associated=False):
         # Get the row of the item and retrieve the value of the id column
-        self.sns.sl.open_log_from_index(index.row())
+        self.sns.sl.open_log_from_index(index.row(), is_associated)
 
     def on_upload_log_clicked(self):
         download = SeafoilUiDownload()
@@ -111,17 +119,17 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
             self.sns.add_log_to_list(db_id)
         self.update_ui_from_configuration()
 
-    def on_search_log_list(self):
+    def on_search_log_list(self, is_associated=False):
         # Open the search log dialog
+        self.update_configuration_from_ui()
 
-        search_log = SeafoilUiSearchLog()
+        search_log = SeafoilUiSearchLog(only_unlinked=(not is_associated))
         search_log.exec_()
 
         # Get the list of logs to add
         log_list_id = search_log.selected_logs
         for db_id in log_list_id:
-            self.sns.add_log_to_list(db_id)
-
+            self.sns.add_log_to_list(db_id, is_associated)
         self.update_ui_from_configuration()
 
     def accept(self):
@@ -138,13 +146,13 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
         self.sns.save()
         super().accept()
 
-    def on_upload_gpx_clicked(self):
+    def on_upload_gpx_clicked(self, is_associated=False):
         # Call the upload_gpx function from seafoilUi.py
         list_added = upload_gpx(self, self.sns.sl)
         if list_added is None:
             return
         for db_id in list_added:
-            self.sns.add_log_to_list(db_id)
+            self.sns.add_log_to_list(db_id, is_associated)
         self.update_ui_from_configuration()
 
     def on_change_equipment_index(self, index, equipment_type):
@@ -160,20 +168,26 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
     # Update ui from rider list
     def update_ui_from_configuration(self):
         self.sns.compute_times()
-        self.model.update_data(self.sns.sl.logs)
+        self.model_link.update_data(self.sns.sl.logs)
+        self.model_associated.update_data(self.sns.sl.logs_associated)
 
         # Update the comboBox_configuration_list
+        # Desactivate the signal
+        self.ui.comboBox_rider.currentIndexChanged.disconnect()
         self.ui.comboBox_rider.clear()
         for rider in self.sns.rider_list:
             self.ui.comboBox_rider.addItem(rider['first_name'] + ' ' + rider['last_name'])
         # Add "New" at the end of the list
         self.ui.comboBox_rider.addItem("** New **")
+        # Reactivate the signal
 
         if self.sns.rider_current_index is not None:
             self.ui.comboBox_rider.setCurrentIndex(self.sns.rider_current_index)
+        self.ui.comboBox_rider.currentIndexChanged.connect(self.on_change_rider_index)
 
         # Update the combo boxes
         for i, comboBox in enumerate(self.comboBox_list):
+            comboBox.currentIndexChanged.disconnect()
             comboBox.clear()
             for equipment in self.sns.se.equipment_data[i]:
                 comboBox.addItem(self.sns.se.get_equipment_name(equipment, self.sns.se.equipment_names[i]))
@@ -181,8 +195,10 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
 
             if self.sns.se.equipment_current_index[i] is not None:
                 comboBox.setCurrentIndex(self.sns.se.equipment_current_index[i])
+            comboBox.currentIndexChanged.connect(lambda index, i=i: self.on_change_equipment_index(index, i))
 
         # Update rake
+        # Desactivate all signals
         self.ui.doubleSpinBox_rake.setValue(self.sns.se.rake)
         # Update stab shim
         self.ui.doubleSpinBox_stab_shim.setValue(self.sns.se.stab_shim)
@@ -243,29 +259,29 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
                 self.sns.rider_current_index = 0
             self.update_ui_from_configuration()
 
-    def show_context_menu(self, position):
+    def show_context_menu(self, position, is_associated=False):
         # Create the context menu
         menu = QtWidgets.QMenu(self)
         remove_action = menu.addAction("Remove Item")
 
         # Execute the menu and get the selected action
-        action = menu.exec_(self.listView_log.mapToGlobal(position))
+        action = menu.exec_(self.listView_log.mapToGlobal(position) if not is_associated else self.listView_log_associated.mapToGlobal(position))
 
         if action == remove_action:
-            self.remove_selected_item()
+            self.remove_selected_item(is_associated)
 
-    def remove_selected_item(self):
+    def remove_selected_item(self, is_associated=False):
         # Get the currently selected index
-        index = self.listView_log.currentIndex()
+        index = self.listView_log.currentIndex() if not is_associated else self.listView_log_associated.currentIndex()
 
         if not index.isValid():
             return
         else:
-            self.sns.remove_log(index.row())
+            self.sns.remove_log(index.row(), is_associated)
 
         # Update the model with the modified dictionary
         self.update_ui_from_configuration()
 
     def update_log_list(self):
         # Clear the list view
-        self.model.update_data(self.sns.log_list)
+        self.model_link.update_data(self.sns.log_list)

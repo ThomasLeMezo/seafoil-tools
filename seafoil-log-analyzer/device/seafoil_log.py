@@ -8,19 +8,21 @@ from log_analyzer import SeafoilLogAnalyser
 
 # class to manage the sessions
 class SeafoilLog:
-    def __init__(self, session_id=None, load_all_logs=True, load_only_unaffected=False):
+    def __init__(self, session_id=None, load_all_logs=True, load_only_unlinked=False):
         self.db = SeafoilDB()
         self.logs = []
+        self.logs_associated = []
 
         self.session_id = session_id
         self.load_all_logs = load_all_logs
-        self.load_only_unaffected = load_only_unaffected
+        self.load_only_unlinked = load_only_unlinked
         self.update()
 
         self.sc = SeafoilConnexion()
 
         self.opended_log = []
         self.removed_logs = []
+        self.removed_logs_associated = []
 
         self.starting_time = None
         self.ending_time = None
@@ -47,24 +49,36 @@ class SeafoilLog:
     def update(self):
         if self.session_id is not None:
             self.logs = self.db.get_logs_by_session(self.session_id)
+            self.logs_associated = self.db.get_logs_associated_to_session(self.session_id)
             self.starting_time = self.db.get_starting_time_session(self.session_id)['starting_time']
             self.ending_time = self.db.get_ending_time_session(self.session_id)['ending_time']
         elif self.load_all_logs:
-            if self.load_only_unaffected:
+            if self.load_only_unlinked:
                 self.logs = self.db.get_unaffected_logs()
             else:
                 self.logs = self.db.get_all_logs()
 
     # Associate logs to the session
-    def associate_logs_to_session(self, session_id):
+    def link_logs_to_session(self, session_id):
         for log in self.logs:
             self.db.add_session_log_link(log['id'], session_id)
-        self.update()
+        # self.update()
 
-    def desassociate_log_to_session(self, session_id):
+    def unlink_log_to_session(self, session_id):
         for log in self.removed_logs:
-            self.db.remove_session_log_association(log['id'], session_id)
+            self.db.remove_session_log_link(log['id'], session_id)
         self.removed_logs = []
+        # self.update()
+
+    def associate_log_to_session(self, session_id):
+        for log in self.logs_associated:
+            self.db.add_session_log_association(log['id'], session_id)
+        # self.update()
+
+    def unassociate_log_to_session(self, session_id):
+        for log in self.removed_logs_associated:
+            self.db.remove_session_log_association(log['id'], session_id)
+        self.removed_logs_associated = []
         self.update()
 
     def add_gpx_files(self, file_paths):
@@ -102,10 +116,15 @@ class SeafoilLog:
         # Create new SeafoilLogAnalyser object
         self.opended_log.append(SeafoilLogAnalyser(file_path))
 
-    def open_log_from_index(self, index):
-        if 0 <= index < len(self.logs):
-            self.open_log(self.logs[index]['id'])
-            return True
+    def open_log_from_index(self, index, is_associated=False):
+        if is_associated:
+            if 0 <= index < len(self.logs_associated):
+                self.open_log(self.logs_associated[index]['id'])
+                return True
+        else:
+            if 0 <= index < len(self.logs):
+                self.open_log(self.logs[index]['id'])
+                return True
         return False
 
     def remote_remove_log(self, db_id):
@@ -116,21 +135,29 @@ class SeafoilLog:
             self.logs = self.db.get_all_logs()
             return True
 
-    def remove_log_from_list(self, index):
-        if 0 <= index < len(self.logs):
-            self.removed_logs.append(self.logs[index])
-            del self.logs[index]
-            return True
+    def remove_log_from_list(self, index, is_associated=False):
+        if is_associated:
+            if 0 <= index < len(self.logs_associated):
+                self.removed_logs_associated.append(self.logs_associated[index])
+                del self.logs_associated[index]
+                return True
+        else:
+            if 0 <= index < len(self.logs):
+                self.removed_logs.append(self.logs[index])
+                del self.logs[index]
+                return True
         return False
 
-    def add_log_to_list(self, db_id):
+    def add_log_to_list(self, db_id, is_associated=False):
         new_log = self.db.get_log(db_id)
         if new_log:
-            for log in self.logs:
-                if log['id'] == new_log['id']   :
+            for log in (self.logs if is_associated else self.logs_associated):
+                if log['id'] == new_log['id']:
                     return False
-
-            self.logs.append(new_log)
+            if is_associated:
+                self.logs_associated.append(new_log)
+            else:
+                self.logs.append(new_log)
             return True
         return False
 

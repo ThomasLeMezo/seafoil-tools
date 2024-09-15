@@ -548,6 +548,19 @@ class SeafoilDB:
                                             WHERE log.id IN (SELECT log FROM session_log_link WHERE session = ?)''', (session_id,))
         return self.sqliteCursor.fetchall()
 
+    def get_logs_associated_to_session(self, session_id):
+        self.sqliteCursor.execute('''SELECT log.*,
+                                            statistics.*,
+                                            water_sport_type.name as water_sport,
+                                            rider.first_name as rider_first_name,
+                                            rider.last_name as rider_last_name
+                                            FROM log
+                                            LEFT JOIN water_sport_type ON log.water_sport_type = water_sport_type.id
+                                            LEFT JOIN rider ON log.rider_id = rider.id
+                                            LEFT JOIN statistics ON log.statistics_id = statistics.id
+                                            WHERE log.id IN (SELECT log FROM session_log_association WHERE session = ?)''', (session_id,))
+        return self.sqliteCursor.fetchall()
+
     # Get starting_time of a session (older log found in session_log table)
     def get_starting_time_session(self, session_id):
         self.sqliteCursor.execute('''SELECT MIN(starting_time) as starting_time FROM log 

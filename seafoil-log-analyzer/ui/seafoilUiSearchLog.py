@@ -9,11 +9,11 @@ from ui.seafoilUiLogTableWidget import SeafoilUiLogTableWidget
 
 
 class SeafoilUiSearchLog(QtWidgets.QDialog):
-    def __init__(self):
+    def __init__(self, only_unlinked=True):
         super().__init__()
         self.directory = os.path.dirname(os.path.abspath(__file__))
         self.ui = uic.loadUi(self.directory + '/search_log.ui', self)
-        self.sl = SeafoilLog(load_only_unaffected=True)
+        self.sl = SeafoilLog(load_only_unlinked=only_unlinked)
 
         self.seafoil_log_table_widget = SeafoilUiLogTableWidget(self.ui.tableWidget_logs, self.sl, False, False)
 

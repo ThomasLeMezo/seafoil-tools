@@ -67,9 +67,15 @@ class SeafoilNewSession():
         # Session
         self.session_id = self.db.save_session(self.session)
 
-        # Associate the logs to the session
-        self.sl.associate_logs_to_session(self.session_id)
-        self.sl.desassociate_log_to_session(self.session_id)
+        # Link the logs to the session
+        self.sl.link_logs_to_session(self.session_id)
+        self.sl.unlink_log_to_session(self.session_id)
+
+        # Associate the logs to the session)
+        self.sl.associate_log_to_session(self.session_id)
+        self.sl.unassociate_log_to_session(self.session_id)
+
+        self.sl.update()
 
         # Update the maximum score
         self.db.update_session_max_score(self.session_id)
@@ -90,11 +96,11 @@ class SeafoilNewSession():
         self.se.update()
         self.rider_current_index = self.get_rider_index(self.session['rider_id'])
 
-    def add_log_to_list(self, db_id):
-        return self.sl.add_log_to_list(db_id)
+    def add_log_to_list(self, db_id, is_associated=False):
+        return self.sl.add_log_to_list(db_id, is_associated)
 
-    def remove_log(self, index):
-        return self.sl.remove_log_from_list(index)
+    def remove_log(self, index, is_associated=False):
+        return self.sl.remove_log_from_list(index, is_associated)
 
     def add_rider(self, first_name, last_name):
         self.db.add_rider(first_name, last_name)
