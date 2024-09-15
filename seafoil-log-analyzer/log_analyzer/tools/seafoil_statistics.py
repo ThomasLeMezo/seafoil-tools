@@ -19,7 +19,7 @@ class SeafoilStatistics:
         self.pitch_2s = None
         self.height_2s = None
 
-        self.file_save = self.sfb.data_folder + "/data/statistics.npz"
+        self.file_save = self.sfb.data_folder + "/statistics.npz"
 
         self.open_statistics()
 

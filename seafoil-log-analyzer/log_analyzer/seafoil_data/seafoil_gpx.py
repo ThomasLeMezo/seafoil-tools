@@ -90,7 +90,7 @@ class SeafoilGpx(SeafoilData):
         # Save data (compressed)
         if not os.path.exists(self.topic_full_dir):
             np.savez_compressed(self.topic_full_dir,
-                                time=self.time,
+                                time=self.time+self.starting_time.timestamp(),
                                 latitude=self.latitude,
                                 longitude=self.longitude,
                                 speed=self.speed,
@@ -104,7 +104,8 @@ class SeafoilGpx(SeafoilData):
 
     def load_message_from_file(self):
         data = np.load(self.topic_full_dir, allow_pickle=True)
-        self.time = data["time"]
+        self.starting_time = datetime.datetime.utcfromtimestamp(data["time"][0])
+        self.time = data["time"] - data["time"][0]
         self.latitude = data["latitude"]
         self.longitude = data["longitude"]
         self.speed = data["speed"]

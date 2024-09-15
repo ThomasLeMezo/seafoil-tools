@@ -16,8 +16,9 @@ class SeafoilData(object):
         self.topic_name = topic_name
         self.offset_date = offset_date
 
-        self.starting_time = 0
+        self.starting_time = datetime.datetime(2019, 1, 1, 0, 0)
         self.ending_time = 0
+        self.nb_elements = 0
 
         ## Topic directory for save
         # split topic name and keep only part before last /
@@ -42,9 +43,6 @@ class SeafoilData(object):
             if not bag_path.endswith(".gpx"):
                 self.nb_elements = self.count_nb_message()
                 self.starting_time = self.get_starting_time()
-            else:
-                self.nb_elements = 0
-                self.starting_time = datetime.datetime(2019, 1, 1, 0, 0)
 
             self.is_loaded_from_file = False
             self.time = np.empty([self.nb_elements])
