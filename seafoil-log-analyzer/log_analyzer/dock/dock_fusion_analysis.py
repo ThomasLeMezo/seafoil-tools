@@ -97,7 +97,7 @@ class DockFusionAnalysis(SeafoilDock):
                     'acceleration_rejection': self.acceleration_rejection_,
                     'magnetic_rejection': self.magnetic_rejection_,
                     'recovery_trigger_period': self.recovery_trigger_period_,
-                    'bag_path': self.sfb.file_name,
+                    'bag_path': self.sfb.file_path,
                 }
             }
         }

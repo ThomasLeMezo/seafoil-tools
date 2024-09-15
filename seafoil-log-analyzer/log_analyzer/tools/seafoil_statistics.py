@@ -2,15 +2,22 @@
 import numpy as np
 import os
 
+from scipy.interpolate import interpolate
+
+
 class SeafoilStatistics:
     def __init__(self, seafoil_bag):
 
         self.sfb = seafoil_bag
+        self.time = None
         self.speed_v500 = None
         self.speed_v1852 = None
         self.max_v500 = None
         self.max_v1852 = None
         self.max_speed = None
+        self.roll_2s = None
+        self.pitch_2s = None
+        self.height_2s = None
 
         self.file_save = self.sfb.data_folder + "/data/statistics.npz"
 
@@ -21,10 +28,38 @@ class SeafoilStatistics:
             data = np.load(self.file_save)
             self.speed_v500 = data['speed_v500']
             self.speed_v1852 = data['speed_v1852']
+            self.time = data['time']
+            if 'height_2s' in data.files:
+                self.height_2s = data['height_2s']
+            if 'roll_2s' in data.files:
+                self.roll_2s = data['roll_2s']
+            if 'pitch_2s' in data.files:
+                self.pitch_2s = data['pitch_2s']
             data.close()
         except:
             self.speed_v500 = self.compute_speed_for_distance(self.sfb.distance, 500)
             self.speed_v1852 = self.compute_speed_for_distance(self.sfb.distance, 1852)
+            self.time = self.sfb.distance.time
+
+            # Interpolate roll, pitch and height to match the gps fix data
+            # interpolate data_height to data_gnss.time_gnss
+            if not self.sfb.height.is_empty():
+                height_filter = np.convolve(self.sfb.height.height, np.ones(2) / 2, mode='same')
+
+                f_height = interpolate.interp1d(self.sfb.height.time, height_filter, bounds_error=False, kind="zero")
+                self.height_2s = f_height(self.time)
+
+            if not self.sfb.rpy.is_empty():
+                # convolve roll and pitch with a 2s filter
+                roll_filter = np.convolve(self.sfb.rpy.roll, np.ones(2) / 2, mode='same')
+                pitch_filter = np.convolve(self.sfb.rpy.pitch, np.ones(2) / 2, mode='same')
+
+                f_roll = interpolate.interp1d(self.sfb.rpy.time, roll_filter, bounds_error=False, kind="zero")
+                self.roll_2s = f_roll(self.time)
+
+                f_pitch = interpolate.interp1d(self.sfb.rpy.time, pitch_filter, bounds_error=False, kind="zero")
+                self.pitch_2s = f_pitch(self.time)
+
             self.save_statistics()
 
         # Compute the max speed
@@ -38,7 +73,11 @@ class SeafoilStatistics:
             os.makedirs(os.path.dirname(self.file_save))
 
         np.savez(self.file_save, speed_v500=self.speed_v500,
-                                 speed_v1852=self.speed_v1852)
+                                 speed_v1852=self.speed_v1852,
+                                 time=self.time,
+                                 height_2s=self.height_2s,
+                                 roll_2s=self.roll_2s,
+                                 pitch_2s=self.pitch_2s)
 
     def compute_speed_for_distance(self, data_distance, distance):
         speed_distance = None

@@ -34,7 +34,8 @@ class SeafoilBag():
 		elif os.path.isdir(bag_path):
 			os.system(f"ros2 bag reindex {bag_path} -s 'mcap'")
 
-		self.file_name = bag_path
+		self.file_path = bag_path
+		self.file_name = os.path.basename(bag_path)
 		self.offset_date = offset_date
 
 		self.data_folder = os.path.dirname(bag_path) + "/data/"

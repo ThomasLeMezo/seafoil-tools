@@ -241,18 +241,18 @@ class DockData(SeafoilDock):
         ## stop_time: stop_time
 
         command_str = ("ros2 run icm20948_driver magnetic_calibration --ros-args "
-        "-p bag_path:=" + self.sfb.file_name +
+        "-p bag_path:=" + self.sfb.file_path +
         " -p topic_raw_imu_name:=/driver/raw_data" +
-        " -p start_time:=" + str(start_time + self.sfb.raw_data.starting_time.timestamp()) +
-        " -p stop_time:=" + str(stop_time + self.sfb.raw_data.starting_time.timestamp()))
+                       " -p start_time:=" + str(start_time + self.sfb.raw_data.starting_time.timestamp()) +
+                       " -p stop_time:=" + str(stop_time + self.sfb.raw_data.starting_time.timestamp()))
 
         print(command_str)
 
         os.system("ros2 run icm20948_driver magnetic_calibration --ros-args "
-                  "-p bag_path:=" + self.sfb.file_name +
+                  "-p bag_path:=" + self.sfb.file_path +
                   " -p topic_raw_imu_name:=/driver/raw_data" +
-                    " -p start_time:=" + str(start_time + self.sfb.raw_data.starting_time.timestamp()) +
-                    " -p end_time:=" + str(stop_time + self.sfb.raw_data.starting_time.timestamp()))
+                  " -p start_time:=" + str(start_time + self.sfb.raw_data.starting_time.timestamp()) +
+                  " -p end_time:=" + str(stop_time + self.sfb.raw_data.starting_time.timestamp()))
 
     def add_euler(self):
         dock_euler = Dock("Euler")

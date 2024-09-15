@@ -383,10 +383,10 @@ class DockAnalysis(SeafoilDock):
         # wind_velocity = f_wind_velocity(data_gnss.time)
 
         # from sfb.file_name, get the name of the last folder
-        folder = os.path.basename(os.path.dirname(self.sfb.file_name))
+        folder = os.path.basename(os.path.dirname(self.sfb.file_path))
 
         filepath = QFileDialog.getSaveFileName(self.win, "Save file",
-                                               f"{self.sfb.file_name}/{folder}.gpx",
+                                               f"{self.sfb.file_path}/{folder}.gpx",
                                                "GPX (*.gpx)")
         if filepath[0] == '':
             return

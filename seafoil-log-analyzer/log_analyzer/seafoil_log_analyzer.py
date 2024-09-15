@@ -64,8 +64,11 @@ class Worker(QObject):
 
         tab.setCurrentWidget(data_analysis)
 
-        win.setWindowTitle("log - " + self.sfb.file_name)
+        win.setWindowTitle("log - " + self.sfb.file_path)
         win.setCentralWidget(tab)
+
+        from log_analyzer.tools.qgis_exporter import QgisExporter
+        qgis = QgisExporter(self.sfb)
 
 
 class SeafoilLogAnalyser(QMainWindow):
