@@ -54,7 +54,7 @@ class SeafoilNewSession():
     def compute_times(self):
         self.sl.compute_times()
         self.session['start_date'] = self.sl.starting_time
-        self.session['ending_date'] = self.sl.ending_time
+        self.session['end_date'] = self.sl.ending_time
         self.session['duration'] = self.sl.log_duration
 
     def update(self):
@@ -71,6 +71,9 @@ class SeafoilNewSession():
         self.sl.associate_logs_to_session(self.session_id)
         self.sl.desassociate_log_to_session()
 
+        # Update the maximum score
+        self.db.update_session_max_score(self.session_id)
+
         # Update the session list
         self.sl.update()
 
@@ -80,6 +83,7 @@ class SeafoilNewSession():
         data_session_setup['start_time'] = self.session['start_date']
         data_session_setup['end_time'] = self.session['end_date']
         self.db.save_session_setup(data_session_setup)
+
 
     def update_lists(self):
         self.rider_list = self.db.get_rider_all()

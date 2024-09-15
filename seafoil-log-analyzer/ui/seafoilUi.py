@@ -563,36 +563,47 @@ class SeafoilUiSession(QtWidgets.QDialog):
         # Set the number of rows
         self.ui.tableWidget_sessions.setRowCount(len(self.session.session_list))
 
+        current_row = 0
+        current_column = 0
+        def add_item(row, text):
+            nonlocal current_row, current_column
+            if row != current_row:
+                current_row = row
+                current_column = 0
+            self.ui.tableWidget_sessions.setItem(row, current_column, QtWidgets.QTableWidgetItem(text))
+            current_column += 1
+
         # Add items from session_list sorted by start_date year and month
         for i, session in enumerate(self.session.session_list):
-            self.ui.tableWidget_sessions.setItem(i, 0, QtWidgets.QTableWidgetItem(str(session['id'])))
+            add_item(i, str(session['id']))
 
             # start_date from unix timestamp in local time zone
             if session['start_date'] is not None:
                 start_date = datetime.datetime.fromtimestamp(session['start_date'])
-                self.ui.tableWidget_sessions.setItem(i, 1, QtWidgets.QTableWidgetItem(start_date.strftime('%Y-%m-%d %H:%M:%S')))
+                add_item(i, start_date.strftime('%Y-%m-%d %H:%M:%S'))
             else:
-                self.ui.tableWidget_sessions.setItem(i, 1, QtWidgets.QTableWidgetItem("Unknown"))
+                add_item(i, '')
 
             # Add rider name
             if session['rider_id'] is not None:
                 rider = self.session.db.get_rider(session['rider_id'])
                 if rider is not None:
-                    self.ui.tableWidget_sessions.setItem(i, 2, QtWidgets.QTableWidgetItem(f"{rider['first_name']} {rider['last_name']}"))
+                    add_item(i, f"{rider['first_name']} {rider['last_name']}")
                 else:
-                    self.ui.tableWidget_sessions.setItem(i, 2, QtWidgets.QTableWidgetItem("Unknown"))
+                    add_item(i, '')
 
+            ms_to_kt = 1.94384
             # Add v500
             if session['v500'] is not None:
-                self.ui.tableWidget_sessions.setItem(i, 3, QtWidgets.QTableWidgetItem(str(session['v500'])))
+                add_item(i, f"{session['v500']*ms_to_kt:.2f}")
             else:
-                self.ui.tableWidget_sessions.setItem(i, 3, QtWidgets.QTableWidgetItem("Unknown"))
+                add_item(i, '')
 
             # Add v1850
             if session['v1850'] is not None:
-                self.ui.tableWidget_sessions.setItem(i, 4, QtWidgets.QTableWidgetItem(str(session['v1850'])))
+                add_item(i, f"{session['v1850']*ms_to_kt:.2f}")
             else:
-                self.ui.tableWidget_sessions.setItem(i, 4, QtWidgets.QTableWidgetItem("Unknown"))
+                add_item(i, '')
 
         # Auto resize columns
         self.ui.tableWidget_sessions.setSortingEnabled(True)

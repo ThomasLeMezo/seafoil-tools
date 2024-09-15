@@ -95,6 +95,7 @@ class SeafoilDB:
             is_processed BOOLEAN DEFAULT 0,
             name TEXT NOT NULL,
             session INTEGER,
+            associated_session INTEGER,
             is_download BOOLEAN DEFAULT 0,
             type INTEGER,
             v500 REAL,
@@ -106,7 +107,8 @@ class SeafoilDB:
             rider_id INTEGER,
             FOREIGN KEY (rider_id) REFERENCES rider(id),
             FOREIGN KEY (session) REFERENCES session(id),
-            FOREIGN KEY (session) REFERENCES session(id)
+            FOREIGN KEY (water_sport_type) REFERENCES water_sport_type(id),
+            FOREIGN KEY (associated_session) REFERENCES session(id)
         )''')
 
         # Create table for windfoil equipement
@@ -488,7 +490,7 @@ class SeafoilDB:
                                             FROM log
                                             LEFT JOIN water_sport_type ON log.water_sport_type = water_sport_type.id
                                             LEFT JOIN rider ON log.rider_id = rider.id
-                                            WHERE session IS NULL''')
+                                            WHERE session IS NULL and associated_session IS NULL''')
         return self.sqliteCursor.fetchall()
 
     # Get all logs associated with a session and add sport type (as water_sport) and rider
@@ -651,6 +653,16 @@ class SeafoilDB:
 
     def update_log_time(self, log_id, starting_time, ending_time):
         self.sqliteCursor.execute('''UPDATE log SET starting_time = ?, ending_time = ? WHERE id = ?''', (starting_time, ending_time, log_id))
+        self.sqliteConnection.commit()
+
+    # Get the maximum value of a session's log
+    def get_session_best_score(self, session_id):
+        self.sqliteCursor.execute('''SELECT MAX(v500) as v500, MAX(v1850) as v1850, MAX(vmax) as vmax, MAX(vjibe) as vjibe, MAX(vhour) as vhour FROM log WHERE session = ?''', (session_id,))
+        return self.sqliteCursor.fetchone()
+
+    def update_session_max_score(self, session_id):
+        score = self.get_session_best_score(session_id)
+        self.sqliteCursor.execute('''UPDATE session SET v500 = ?, v1850 = ?, vmax = ?, vjibe = ?, vhour = ? WHERE id = ?''', (score['v500'], score['v1850'], score['vmax'], score['vjibe'], score['vhour'], session_id))
         self.sqliteConnection.commit()
 
 # Test the class
