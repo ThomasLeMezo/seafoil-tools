@@ -82,6 +82,7 @@ class SeafoilDB:
             self.sqliteCursor.execute('''INSERT INTO water_sport_type (name) VALUES ('Windfoil')''')
             self.sqliteCursor.execute('''INSERT INTO water_sport_type (name) VALUES ('Kitefoil')''')
             self.sqliteCursor.execute('''INSERT INTO water_sport_type (name) VALUES ('Windsurf')''')
+            self.sqliteCursor.execute('''INSERT INTO water_sport_type (name) VALUES ('Wingfoil')''')
             self.sqliteConnection.commit()
 
         # Create table for log
@@ -630,6 +631,26 @@ class SeafoilDB:
 
     def update_rider(self, rider_id, first_name, last_name):
         self.sqliteCursor.execute('''UPDATE rider SET first_name = ?, last_name = ? WHERE id = ?''', (first_name, last_name, rider_id))
+        self.sqliteConnection.commit()
+
+    # Find if a rider is in the database with the first and last name, remove accent and lower case
+    def find_rider(self, first_name, last_name):
+        first_name = first_name.lower()
+        last_name = last_name.lower()
+        self.sqliteCursor.execute('''SELECT * FROM rider WHERE lower(first_name) = ? AND lower(last_name) = ?''', (first_name, last_name))
+        return self.sqliteCursor.fetchone()
+
+    def find_water_sport_type(self, name):
+        self.sqliteCursor.execute('''SELECT * FROM water_sport_type WHERE name = ?''', (name,))
+        return self.sqliteCursor.fetchone()
+
+    def add_water_sport_type(self, name):
+        self.sqliteCursor.execute('''INSERT INTO water_sport_type (name) VALUES (?)''', (name,))
+        self.sqliteConnection.commit()
+        return self.sqliteCursor.lastrowid
+
+    def update_log_time(self, log_id, starting_time, ending_time):
+        self.sqliteCursor.execute('''UPDATE log SET starting_time = ?, ending_time = ? WHERE id = ?''', (starting_time, ending_time, log_id))
         self.sqliteConnection.commit()
 
 # Test the class

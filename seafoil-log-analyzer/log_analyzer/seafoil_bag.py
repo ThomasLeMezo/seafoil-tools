@@ -38,6 +38,8 @@ class SeafoilBag():
 		self.offset_date = offset_date
 
 		self.data_folder = os.path.dirname(bag_path) + "/data/"
+		self.configuration_file_name = self.data_folder + "/configuration.yaml"
+		self.configuration = {}
 
 		# Create data folder if it does not exist
 		if not os.path.exists(self.data_folder):
@@ -80,9 +82,6 @@ class SeafoilBag():
 		# 		self.seafoil_id = str(self.log_parameter.value[idx[0]][0].string_value)
 		# print("Seafoil id: " + self.seafoil_id)
 
-		self.configuration_file_name = self.data_folder + "/configuration.yaml"
-		self.configuration = {}
-
 		if not self.load_configurations():
 			# Save a default configuration file
 			self.configuration = {
@@ -99,6 +98,9 @@ class SeafoilBag():
 		self.save_configuration()
 
 	def save_configuration(self):
+		# Create data folder if it does not exist
+		if not os.path.exists(self.data_folder):
+			os.makedirs(self.data_folder, exist_ok=True)
 		with open(self.configuration_file_name, 'w') as file:
 			yaml.dump(self.configuration, file)
 

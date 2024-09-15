@@ -23,6 +23,12 @@ class SeafoilNewSession():
                             'start_date': None,
                             'end_date': None,
                             'rider_id': None,
+                            'wind_mean_heading' : None,
+                            'v500' : None,
+                            'v1850' : None,
+                            'vmax' : None,
+                            'vjibe' : None,
+                            'vhour' : None,
                             'comment': ""}
         else:
             self.session = dict(self.session)

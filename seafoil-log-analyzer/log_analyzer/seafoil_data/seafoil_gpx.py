@@ -6,6 +6,7 @@ import datetime
 from .seafoil_data import SeafoilData
 import gpxpy
 import gpxpy.gpx
+from device.seafoil_connexion import correction_of_malformed_gpx
 
 class SeafoilGpx(SeafoilData):
     def __init__(self, gpx_file_name="", data_folder=None):
@@ -53,7 +54,7 @@ class SeafoilGpx(SeafoilData):
         # open gpx file
         gpx_file = open(self.bag_path, 'r')
         # parse gpx file
-        gpx = gpxpy.parse(gpx_file)
+        gpx = gpxpy.parse(correction_of_malformed_gpx(gpx_file.read()))
 
         self.nb_elements = len(gpx.tracks[0].segments[0].points)
         #self.start_date = gpx.tracks[0].segments[0].points[0].time

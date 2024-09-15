@@ -8,6 +8,15 @@ from scp import SCPClient
 import yaml
 from db.seafoil_db import SeafoilDB
 from enum import IntEnum
+import re
+
+def correction_of_malformed_gpx(gpx_file_content):
+    # remplace balise of the form *:* by *_* in the gpx file (only with letters around)
+    gpx_file_content = re.sub(r'([a-zA-Z]):([a-zA-Z])', r'\1_\2', gpx_file_content)
+
+    return gpx_file_content
+
+
 
 class StateConnexion(IntEnum):
     Disconnected = 0
@@ -409,12 +418,75 @@ class SeafoilConnexion(QObject):
             print(f"Add log failed {name}! Remove the log from the database.")
             return False, None
 
+    def download_gpx_file(self, url):
+        # Use requests to download the file
+        # Test if the url ends with ".gpx"
+        if not url.endswith('.gpx'):
+            print("The url is not a gpx file : ", url)
+            return False, None
+
+        try:
+            import requests
+            response = requests.get(url)
+            if response.status_code == 200:
+                # Create the log folder if it does not exist
+                os.makedirs(f"{self.log_folder}", exist_ok=True)
+
+                # Get the file name from the url
+                file_name = url.split('/')[-1]
+
+                # Create new gpx in db
+                db_id, is_downloaded, is_new = self.db.insert_log(file_name, None, type='gpx')
+
+                # If the gpx already exists, verify if the log folder already exists
+                if not is_new and is_downloaded:
+                    print("The GPX file already exists in the database.")
+                    return False, db_id
+
+                download_target = f"{self.log_folder}/{db_id}"
+                os.makedirs(download_target, exist_ok=True)
+
+                # Save the file
+                with open(f"{download_target}/{file_name}", 'wb') as file:
+                    file.write(response.content)
+
+                # Update the db
+                self.db.set_log_download(db_id)
+
+                # Update starting and ending time
+                try:
+                    # Load the gpx file
+                    f = open(f"{download_target}/{file_name}", 'r')
+                    gpx = gpxpy.parse(correction_of_malformed_gpx(f.read()))
+
+                    # Get the starting time of the gpx file in timestamp format
+                    starting_time = gpx.tracks[0].segments[0].points[0].time.timestamp()
+                    ending_time = gpx.tracks[0].segments[0].points[-1].time.timestamp()
+
+                    self.db.update_log_time(db_id, starting_time, ending_time)
+                except Exception as e:
+                    print(f"An error occurred while updating the time: {e}")
+                    # Remove the log from the database and the folder
+                    self.db.remove_log(db_id)
+                    os.system(f"rm -r {download_target}")
+                    return False, None
+
+                print(f"The GPX file {file_name} was added successfully.")
+                return True, db_id
+
+            else:
+                print(f"An error occurred while downloading the GPX file: {response.status_code}")
+                return False, None
+        except Exception as e:
+            print(f"An error occurred while downloading the GPX file: {e}")
+            return False, None
+
     def add_gpx_file(self, file_path):
         # Try to parse the file
         file_name = ''
         try:
             gpx_file = open(file_path, 'r')
-            gpx = gpxpy.parse(gpx_file)
+            gpx = gpxpy.parse(correction_of_malformed_gpx(gpx_file.read()))
 
             # Get the starting time of the gpx file in timestamp format
             starting_time = gpx.tracks[0].segments[0].points[0].time.timestamp()

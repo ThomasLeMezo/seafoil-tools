@@ -17,6 +17,9 @@ class SeafoilUiSearchLog(QtWidgets.QDialog):
 
         self.seafoil_log_table_widget = SeafoilUiLogTableWidget(self.ui.tableWidget_logs, self.sl, False, False)
 
+        # double click on a row is accepted
+        self.ui.tableWidget_logs.itemDoubleClicked.connect(self.accept)
+
         # List of selected logs
         self.selected_logs = []
 

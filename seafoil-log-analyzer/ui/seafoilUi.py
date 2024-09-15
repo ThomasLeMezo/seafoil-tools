@@ -3,6 +3,7 @@ import os
 import datetime
 
 from PyQt5 import QtWidgets, uic
+from PyQt5.QtCore import QDate
 from PyQt5.QtWidgets import QApplication, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QDialog, QLabel, \
     QLineEdit, QHBoxLayout, QPushButton
 
@@ -11,6 +12,7 @@ from device.seafoil_equipement import SeafoilEquipement
 from device.seafoil_session import SeafoilSession
 from device.seafoil_log import SeafoilLog
 from device.seafoil_git import SeafoilGit
+from device.base_de_vitesse import SeafoilBaseDeVitesse
 from ui.seafoilUiLogTableWidget import SeafoilUiLogTableWidget
 
 def upload_gpx(object, sl):
@@ -488,6 +490,8 @@ class SeafoilUiSession(QtWidgets.QDialog):
         self.ui.tableWidget_sessions.setColumnCount(len(columns))
         self.ui.tableWidget_sessions.setHorizontalHeaderLabels(columns)
         self.update_ui_from_session() # Sort by "date" latest first
+        # Set header visible
+        self.ui.tableWidget_sessions.horizontalHeader().setVisible(True)
 
         self.ui.tableWidget_sessions.sortItems(1, 1)
 
@@ -628,6 +632,102 @@ class SeafoilUiLog(QtWidgets.QDialog):
         self.seafoil_log_table_widget.update_ui_from_logs()
 
 
+class SeafoilUiBaseDeVitesse(QtWidgets.QDialog):
+    def __init__(self, seafoil_ui):
+        super().__init__()
+        self.seafoil_ui = seafoil_ui
+        self.ui = seafoil_ui.ui
+        self.bdv = SeafoilBaseDeVitesse()
+
+        self.ui.pushButton_bdv_refresh.clicked.connect(self.on_refresh_clicked)
+        self.ui.pushButton_download_gpx.clicked.connect(self.on_download_gpx_clicked)
+
+        # Set the dateEdit_bdv to the current date
+        self.ui.dateEdit_bdv.setDate(QDate.currentDate())
+
+    def on_refresh_clicked(self):
+        # Disable the button
+        self.ui.pushButton_bdv_refresh.setEnabled(False)
+        QApplication.processEvents()
+
+        # Get the date of the dateEdit_bdv
+        date = self.ui.dateEdit_bdv.date().toPyDate()
+        # Get base id
+        base_id = self.ui.spinBox_bdv_base_id.value()
+
+        # Dowlnoad the session
+        ret = self.bdv.download_day_session(date, base_id)
+        if ret is None:
+            # Dialog box to inform no log was found
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Information)
+            msg.setText("No log found.")
+            msg.setWindowTitle("Information")
+            msg.exec_()
+
+        self.update_ui_from_base_de_vitesse()
+
+        # Enable the button
+        self.ui.pushButton_bdv_refresh.setEnabled(True)
+
+    def update_ui_from_base_de_vitesse(self):
+        # Add items to the tableWidget_bdv
+        self.ui.tableWidget_bdv.clear()
+
+        # Set the number of columns and header
+        self.ui.tableWidget_bdv.setColumnCount(len(self.bdv.session_day_header))
+        self.ui.tableWidget_bdv.setHorizontalHeaderLabels(self.bdv.session_day_header)
+        # Set header visible
+        self.ui.tableWidget_bdv.horizontalHeader().setVisible(True)
+
+        self.ui.tableWidget_bdv.setRowCount(len(self.bdv.session_day))
+
+        for i, session in enumerate(self.bdv.session_day):
+            for j, key in enumerate(self.bdv.session_day_header):
+                self.ui.tableWidget_bdv.setItem(i, j, QtWidgets.QTableWidgetItem(session[key]))
+
+        # Auto resize columns
+        self.ui.tableWidget_bdv.resizeColumnsToContents()
+
+        # Update label_13_bdv_name with the name of the base
+        self.ui.label_13_bdv_name.setText(self.bdv.base_name)
+
+    def on_download_gpx_clicked(self):
+        # Set the button as disabled
+        self.ui.pushButton_download_gpx.setEnabled(False)
+        QApplication.processEvents()
+
+        # Get the list of selected items
+        selected_items = self.ui.tableWidget_bdv.selectedItems()
+        if len(selected_items) != 0:
+            # get only one item per row
+            selected_items = list(set([item.row() for item in selected_items]))
+            success_list = self.bdv.download_list_user_session(selected_items)
+            if success_list is not None:
+                # Dialog box to confirm the gpx files were downloaded
+                msg = QtWidgets.QMessageBox()
+                msg.setIcon(QtWidgets.QMessageBox.Information)
+                msg.setText(f"{len(success_list)} GPX files were downloaded.")
+                msg.setWindowTitle("Information")
+                msg.exec_()
+            else:
+                # Dialog box to warn no log was selected
+                msg = QtWidgets.QMessageBox()
+                msg.setIcon(QtWidgets.QMessageBox.Warning)
+                msg.setText("No log was downloaded (might be already in the database).")
+                msg.setWindowTitle("Warning")
+                msg.exec_()
+        else:
+            # Dialog box to inform no log was selected
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Information)
+            msg.setText("No log selected.")
+            msg.setWindowTitle("Information")
+            msg.exec_()
+
+        # Enable the button
+        self.ui.pushButton_download_gpx.setEnabled(True)
+
 class SeafoilUi(QtWidgets.QMainWindow):
     def __init__(self, seafoil_directory):
         super().__init__()
@@ -641,6 +741,7 @@ class SeafoilUi(QtWidgets.QMainWindow):
         self.seafoil_ui_equipment = SeafoilUiEquipement(self)
         self.seafoil_ui_session = SeafoilUiSession(self)
         self.seafoil_ui_log = SeafoilUiLog(self)
+        self.seafoil_ui_base_de_vitesse = SeafoilUiBaseDeVitesse(self)
 
         # connect the tabWidget change index
         self.ui.tabWidget.currentChanged.connect(self.on_tabWidget_changed)

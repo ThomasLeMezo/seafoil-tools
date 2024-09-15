@@ -71,8 +71,8 @@ class SeafoilUiLogTableWidget():
             ms_to_kt = 1.94384
 
             add_item(i, f"{log['rider_first_name']} {log['rider_last_name']}" if log['rider_last_name'] is not None else '')
-            add_item(i, f"{log['water_sport']}" if log['water_sport'] is not None else '')
             add_item(i, f"{log['session']}" if log['session'] is not None else '')
+            add_item(i, f"{log['water_sport']}" if log['water_sport'] is not None else '')
             add_item(i, f"{log['v500']*ms_to_kt:.2f}" if log['v500'] is not None else '')
             add_item(i, f"{log['v1850']*ms_to_kt:.2f}" if log['v1850'] is not None else '')
             add_item(i, f"{log['vmax']*ms_to_kt:.2f}" if log['vmax'] is not None else '')
