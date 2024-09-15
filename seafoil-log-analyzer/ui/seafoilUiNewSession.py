@@ -7,6 +7,8 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton
 
 from device.seafoil_new_session import SeafoilNewSession
 from PyQt5.QtCore import QAbstractListModel, Qt, QDateTime
+
+from ui.seafoilUi import upload_gpx
 from ui.ui_utils import TwoFieldInputDialog
 from ui.seafoilUiDownload import SeafoilUiDownload
 from ui.seafoilUiSearchLog import SeafoilUiSearchLog

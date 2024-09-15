@@ -69,7 +69,7 @@ class SeafoilNewSession():
 
         # Associate the logs to the session
         self.sl.associate_logs_to_session(self.session_id)
-        self.sl.desassociate_log_to_session()
+        self.sl.desassociate_log_to_session(self.session_id)
 
         # Update the maximum score
         self.db.update_session_max_score(self.session_id)

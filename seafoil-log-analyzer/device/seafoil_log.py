@@ -58,12 +58,12 @@ class SeafoilLog:
     # Associate logs to the session
     def associate_logs_to_session(self, session_id):
         for log in self.logs:
-            self.db.associate_log_to_session(log['id'], session_id)
+            self.db.add_session_log_link(log['id'], session_id)
         self.update()
 
-    def desassociate_log_to_session(self):
+    def desassociate_log_to_session(self, session_id):
         for log in self.removed_logs:
-            self.db.desassociate_log_to_session(log['id'])
+            self.db.remove_session_log_association(log['id'], session_id)
         self.removed_logs = []
         self.update()
 
@@ -109,7 +109,7 @@ class SeafoilLog:
         return False
 
     def remote_remove_log(self, db_id):
-        if self.db.is_log_associated(db_id):
+        if self.db.is_log_link_to_session(db_id):
             return False
         else:
             self.sc.remove_log(db_id)

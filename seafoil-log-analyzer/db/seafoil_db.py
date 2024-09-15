@@ -52,6 +52,16 @@ class SeafoilDB:
             min_speed_sound REAL
         )''')
 
+        # Create table for statistics
+        self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS statistics
+        (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            v500 REAL,
+            v1850 REAL,
+            vmax REAL,
+            vjibe REAL,
+            vhour REAL
+        )''')
 
         # Create table for session
         self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS session
@@ -62,12 +72,9 @@ class SeafoilDB:
             rider_id INTEGER,
             wind_mean_heading REAL,
             comment TEXT,
-            v500 REAL,
-            v1850 REAL,
-            vmax REAL,
-            vjibe REAL,
-            vhour REAL,
-            FOREIGN KEY (rider_id) REFERENCES rider(id)
+            statistics_id INTEGER,
+            FOREIGN KEY (rider_id) REFERENCES rider(id),
+            FOREIGN KEY (statistics_id) REFERENCES statistics(id)
         )''')
 
         # Create table for water sport type
@@ -94,21 +101,36 @@ class SeafoilDB:
             date_added DATETIME DEFAULT CURRENT_TIMESTAMP,
             is_processed BOOLEAN DEFAULT 0,
             name TEXT NOT NULL,
-            session INTEGER,
-            associated_session INTEGER,
             is_download BOOLEAN DEFAULT 0,
             type INTEGER,
-            v500 REAL,
-            v1850 REAL,
-            vmax REAL,
-            vjibe REAL,
-            vhour REAL,
+            statistics_id INTEGER,
             water_sport_type INTEGER,
             rider_id INTEGER,
             FOREIGN KEY (rider_id) REFERENCES rider(id),
-            FOREIGN KEY (session) REFERENCES session(id),
             FOREIGN KEY (water_sport_type) REFERENCES water_sport_type(id),
-            FOREIGN KEY (associated_session) REFERENCES session(id)
+            FOREIGN KEY (statistics_id) REFERENCES statistics(id)
+        )''')
+
+
+
+        # Create table for session to log link
+        self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS session_log
+        (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session INTEGER,
+            log INTEGER,
+            FOREIGN KEY (session) REFERENCES session(id),
+            FOREIGN KEY (log) REFERENCES log(id)
+        )''')
+
+        # Create table for session to log association
+        self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS session_log_association
+        (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session INTEGER,
+            log INTEGER,
+            FOREIGN KEY (session) REFERENCES session(id),   
+            FOREIGN KEY (log) REFERENCES log(id)
         )''')
 
         # Create table for windfoil equipement
@@ -418,9 +440,16 @@ class SeafoilDB:
         self.sqliteCursor.execute('''SELECT DISTINCT manufacturer FROM windfoil_equipment''')
         return self.sqliteCursor.fetchall()
 
-    # Get all windfoil session
+    # Get all windfoil session (add statistics and rider)
     def get_windfoil_session_all_sort_start_date(self):
-        self.sqliteCursor.execute('''SELECT * FROM session ORDER BY start_date DESC''')
+        self.sqliteCursor.execute('''SELECT session.*,
+                                            statistics.*,
+                                            rider.first_name as rider_first_name,
+                                            rider.last_name as rider_last_name
+                                            FROM session
+                                            LEFT JOIN statistics ON session.statistics_id = statistics.id
+                                            LEFT JOIN rider ON session.rider_id = rider.id
+                                            ORDER BY start_date DESC''')
         return self.sqliteCursor.fetchall()
 
     def convert_log_type_from_str(self, log_type):
@@ -459,60 +488,76 @@ class SeafoilDB:
         self.sqliteCursor.execute('''SELECT * FROM log WHERE id = ?''', (id,))
         return self.sqliteCursor.fetchone()
 
-    # Test if a log has a session associated
-    def is_log_associated(self, id):
-        self.sqliteCursor.execute('''SELECT * FROM log WHERE id = ? AND session IS NOT NULL''', (id,))
+    # Test if a log has a session linked (in session_log)
+    def is_log_link_to_session(self, id):
+        self.sqliteCursor.execute('''SELECT * FROM session_log_link WHERE log = ?''', (id,))
         return self.sqliteCursor.fetchone() is not None
 
     # Remove log
     def remove_log(self, id):
+        # Delete links to session
+        self.sqliteCursor.execute('''DELETE FROM session_log_link WHERE log = ?''', (id,))
+        # Delete links to session association
+        self.sqliteCursor.execute('''DELETE FROM session_log_association WHERE log = ?''', (id,))
+        # Delete log
         self.sqliteCursor.execute('''DELETE FROM log WHERE id = ?''', (id,))
         self.sqliteConnection.commit()
 
-    # Get all logs downloaded add sport type (as water_sport) and rider
+    # Get all logs downloaded add sport type (as water_sport) and rider and statistics and the id of the first session in session_log_link if it exists
     def get_all_logs(self):
-        self.sqliteCursor.execute('''SELECT log.*, 
-                                            water_sport_type.name as water_sport, 
-                                            rider.first_name as rider_first_name, 
-                                            rider.last_name as rider_last_name 
-                                            FROM log 
-                                            LEFT JOIN water_sport_type ON log.water_sport_type = water_sport_type.id 
-                                            LEFT JOIN rider ON log.rider_id = rider.id 
-                                            WHERE is_download = 1''')
+        self.sqliteCursor.execute('''SELECT log.*,
+                                            statistics.*,
+                                            water_sport_type.name as water_sport,
+                                            rider.first_name as rider_first_name,
+                                            rider.last_name as rider_last_name,
+                                            session_log_link.session as session
+                                            FROM log
+                                            LEFT JOIN water_sport_type ON log.water_sport_type = water_sport_type.id
+                                            LEFT JOIN rider ON log.rider_id = rider.id
+                                            LEFT JOIN statistics ON log.statistics_id = statistics.id
+                                            LEFT JOIN session_log_link ON log.id = session_log_link.log''')
         return self.sqliteCursor.fetchall()
 
-    # Get all logs with no session associated and add sport type (as water_sport) and rider
+    # Get all logs which are not in session_log table and add sport type (as water_sport) and rider and statistics and the id of the first session in session_log_link if it exists
     def get_unaffected_logs(self):
         self.sqliteCursor.execute('''SELECT log.*,
+                                            statistics.*,
                                             water_sport_type.name as water_sport,
                                             rider.first_name as rider_first_name,
-                                            rider.last_name as rider_last_name
+                                            rider.last_name as rider_last_name,
+                                            session_log_link.session as session
                                             FROM log
                                             LEFT JOIN water_sport_type ON log.water_sport_type = water_sport_type.id
                                             LEFT JOIN rider ON log.rider_id = rider.id
-                                            WHERE session IS NULL and associated_session IS NULL''')
+                                            LEFT JOIN statistics ON log.statistics_id = statistics.id
+                                            LEFT JOIN session_log_link ON log.id = session_log_link.log
+                                            WHERE session IS NULL''')
         return self.sqliteCursor.fetchall()
 
-    # Get all logs associated with a session and add sport type (as water_sport) and rider
+    # Get all logs associated with a session and add sport type (as water_sport) and rider and statistics
     def get_logs_by_session(self, session_id):
         self.sqliteCursor.execute('''SELECT log.*,
+                                            statistics.*,
                                             water_sport_type.name as water_sport,
                                             rider.first_name as rider_first_name,
                                             rider.last_name as rider_last_name
                                             FROM log
                                             LEFT JOIN water_sport_type ON log.water_sport_type = water_sport_type.id
                                             LEFT JOIN rider ON log.rider_id = rider.id
-                                            WHERE session = ?''', (session_id,))
+                                            LEFT JOIN statistics ON log.statistics_id = statistics.id
+                                            WHERE log.id IN (SELECT log FROM session_log_link WHERE session = ?)''', (session_id,))
         return self.sqliteCursor.fetchall()
 
-    # Get starting_time of a session (older log)
+    # Get starting_time of a session (older log found in session_log table)
     def get_starting_time_session(self, session_id):
-        self.sqliteCursor.execute('''SELECT MIN(starting_time) as starting_time FROM log WHERE session = ?''', (session_id,))
+        self.sqliteCursor.execute('''SELECT MIN(starting_time) as starting_time FROM log 
+                                            WHERE id IN (SELECT log FROM session_log_link WHERE session = ?)''', (session_id,))
         return self.sqliteCursor.fetchone()
 
-    # Get ending_time of a session (newer log)
+    # Get ending_time of a session (newer log found in session_log table)
     def get_ending_time_session(self, session_id):
-        self.sqliteCursor.execute('''SELECT MAX(ending_time) as ending_time FROM log WHERE session = ?''', (session_id,))
+        self.sqliteCursor.execute('''SELECT MAX(ending_time) as ending_time FROM log
+                                            WHERE id IN (SELECT log FROM session_log_link WHERE session = ?)''', (session_id,))
         return self.sqliteCursor.fetchone()
 
     # Return True if the name and starting_time are not in the database or the file is not downloaded
@@ -525,10 +570,45 @@ class SeafoilDB:
         self.sqliteCursor.execute('''UPDATE log SET is_download = 1 WHERE id = ?''', (id,))
         self.sqliteConnection.commit()
 
-    # Update log session id
-    def update_log_session(self, id, session):
-        self.sqliteCursor.execute('''UPDATE log SET session = ? WHERE id = ?''', (session, id))
+    # Add a link between a session and a log if it does not exist already
+    def add_session_log_link(self, log_id, session_id):
+        # Test if the association already exist
+        self.sqliteCursor.execute('''SELECT * FROM session_log_link WHERE log = ? AND session = ?''', (log_id, session_id))
+        if self.sqliteCursor.fetchone() is None:
+            self.sqliteCursor.execute('''INSERT INTO session_log_link (log, session) VALUES (?, ?)''', (log_id, session_id))
+            self.sqliteConnection.commit()
+
+    # Add an association between a session and a log if it does not exist already
+    def add_session_log_association(self, log_id, session_id):
+        # Test if the association already exist
+        self.sqliteCursor.execute('''SELECT * FROM session_log_association WHERE log = ? AND session = ?''', (log_id, session_id))
+        if self.sqliteCursor.fetchone() is None:
+            self.sqliteCursor.execute('''INSERT INTO session_log_association (log, session) VALUES (?, ?)''', (log_id, session_id))
+            self.sqliteConnection.commit()
+
+    # Remove an association between a session and a log
+    def remove_session_log_association(self, log_id, session_id):
+        self.sqliteCursor.execute('''DELETE FROM session_log_association WHERE log = ? AND session = ?''', (log_id, session_id))
         self.sqliteConnection.commit()
+
+    # Remove a link between a session and a log
+    def remove_session_log_link(self, log_id, session_id):
+        self.sqliteCursor.execute('''DELETE FROM session_log_link WHERE log = ? AND session = ?''', (log_id, session_id))
+        self.sqliteConnection.commit()
+
+    # Get all log details associated to a session in session_log_association table
+    def get_logs_associated_by_session(self, session_id):
+        self.sqliteCursor.execute('''SELECT log.*,
+                                            statistics.*,
+                                            water_sport_type.name as water_sport,
+                                            rider.first_name as rider_first_name,
+                                            rider.last_name as rider_last_name
+                                            FROM log
+                                            LEFT JOIN water_sport_type ON log.water_sport_type = water_sport_type.id
+                                            LEFT JOIN rider ON log.rider_id = rider.id
+                                            LEFT JOIN statistics ON log.statistics_id = statistics.id
+                                            WHERE log.id IN (SELECT log FROM session_log_association WHERE session = ?)''', (session_id,))
+        return self.sqliteCursor.fetchall()
 
     # Add new seafoil_box
     def insert_seafoil_box(self, name):
@@ -546,7 +626,7 @@ class SeafoilDB:
 
     # Rename seafoil_box first
     def rename_seafoil_box_first(self, name):
-        self.sqliteCursor.execute('''UPDATE seafoil_box_identification SET name = ? LIMIT 1''', (name,))
+        self.sqliteCursor.execute('''UPDATE seafoil_box_identification SET name = ? WHERE id = (SELECT id FROM seafoil_box_identification LIMIT 1)''', (name,))
         self.sqliteConnection.commit()
 
     # Get all riders
@@ -565,6 +645,16 @@ class SeafoilDB:
         self.sqliteCursor.execute('''SELECT * FROM rider WHERE id = ?''', (rider_id,))
         return self.sqliteCursor.fetchone()
 
+    # Merge two riders
+    def merge_riders(self, rider_id_keep, rider_id_remove):
+        # Update all log with the rider to remove
+        self.sqliteCursor.execute('''UPDATE log SET rider_id = ? WHERE rider_id = ?''', (rider_id_keep, rider_id_remove))
+        # Update all session with the rider to remove
+        self.sqliteCursor.execute('''UPDATE session SET rider_id = ? WHERE rider_id = ?''', (rider_id_keep, rider_id_remove))
+        # Remove the rider to remove
+        self.sqliteCursor.execute('''DELETE FROM rider WHERE id = ?''', (rider_id_remove,))
+        self.sqliteConnection.commit()
+
     # Get rider of a session
     def get_session(self, session_id):
         self.sqliteCursor.execute('''SELECT * FROM session WHERE id = ?''', (session_id,))
@@ -579,6 +669,9 @@ class SeafoilDB:
     def remove_session(self, session_id):
         self.sqliteCursor.execute('''DELETE FROM session WHERE id = ?''', (session_id,))
         self.sqliteCursor.execute('''DELETE FROM windfoil_session_setup WHERE session = ?''', (session_id,))
+        # Remove link and association
+        self.sqliteCursor.execute('''DELETE FROM session_log_link WHERE session = ?''', (session_id,))
+        self.sqliteCursor.execute('''DELETE FROM session_log_association WHERE session = ?''', (session_id,))
         self.sqliteConnection.commit()
 
     # Update session or create a new one
@@ -606,18 +699,23 @@ class SeafoilDB:
             self.sqliteConnection.commit()
             return session_setup['id']
 
-    def associate_log_to_session(self, log_id, session_id):
-        self.sqliteCursor.execute('''UPDATE log SET session = ? WHERE id = ?''', (session_id, log_id))
-        self.sqliteConnection.commit()
-
-    # Desassociate log to session
-    def desassociate_log_to_session(self, log_id):
-        self.sqliteCursor.execute('''UPDATE log SET session = NULL WHERE id = ?''', (log_id,))
-        self.sqliteConnection.commit()
-
     def add_log_statistics(self, log_id, statistics):
-        self.sqliteCursor.execute('''UPDATE log SET v500 = ?, v1850 = ?, vmax = ?, vjibe = ?, vhour = ? WHERE id = ?''', (statistics['v500'], statistics['v1850'], statistics['vmax'], statistics['vjibe'], statistics['vhour'], log_id))
-        self.sqliteConnection.commit()
+        # Test if the log already has statistics
+        self.sqliteCursor.execute('''SELECT * FROM log WHERE id = ? AND statistics_id IS NOT NULL''', (log_id,))
+        if self.sqliteCursor.fetchone():
+            # Update the statistics
+            self.sqliteCursor.execute('''UPDATE statistics SET v500 = ?, v1850 = ?, vmax = ?, vjibe = ?, vhour = ? WHERE id = ?''', (statistics['v500'], statistics['v1850'], statistics['vmax'], statistics['vjibe'], statistics['vhour'], log_id))
+            self.sqliteConnection.commit()
+        else:
+            # Create a new entry in the statistics table
+            self.sqliteCursor.execute('''INSERT INTO statistics (v500, v1850, vmax, vjibe, vhour) VALUES (?, ?, ?, ?, ?)''', (statistics['v500'], statistics['v1850'], statistics['vmax'], statistics['vjibe'], statistics['vhour']))
+            self.sqliteConnection.commit()
+            # Get the id of the last inserted row
+            statistics_id = self.sqliteCursor.lastrowid
+
+            # Update the log with the statistics id
+            self.sqliteCursor.execute('''UPDATE log SET statistics_id = ? WHERE id = ?''', (statistics_id, log_id))
+            self.sqliteConnection.commit()
 
     def get_water_sport_type_all(self):
         self.sqliteCursor.execute('''SELECT * FROM water_sport_type''')
@@ -655,15 +753,43 @@ class SeafoilDB:
         self.sqliteCursor.execute('''UPDATE log SET starting_time = ?, ending_time = ? WHERE id = ?''', (starting_time, ending_time, log_id))
         self.sqliteConnection.commit()
 
-    # Get the maximum value of a session's log
-    def get_session_best_score(self, session_id):
-        self.sqliteCursor.execute('''SELECT MAX(v500) as v500, MAX(v1850) as v1850, MAX(vmax) as vmax, MAX(vjibe) as vjibe, MAX(vhour) as vhour FROM log WHERE session = ?''', (session_id,))
+    # Get the statistics of a session from the statistics table
+    def get_session_statistics(self, session_id):
+        self.sqliteCursor.execute('''SELECT * FROM statistics WHERE id = (SELECT statistics_id FROM session WHERE id = ?)''', (session_id,))
         return self.sqliteCursor.fetchone()
 
+    # Get the maximum of statistics from the statistics logs associated with a session
     def update_session_max_score(self, session_id):
-        score = self.get_session_best_score(session_id)
-        self.sqliteCursor.execute('''UPDATE session SET v500 = ?, v1850 = ?, vmax = ?, vjibe = ?, vhour = ? WHERE id = ?''', (score['v500'], score['v1850'], score['vmax'], score['vjibe'], score['vhour'], session_id))
-        self.sqliteConnection.commit()
+        self.sqliteCursor.execute('''SELECT MAX(v500) as v500, 
+                                                 MAX(v1850) as v1850, 
+                                                 MAX(vmax) as vmax, 
+                                                 MAX(vjibe) as vjibe, 
+                                                 MAX(vhour) as vhour 
+                                                 FROM statistics 
+                                                 WHERE id IN (SELECT statistics_id FROM log 
+                                                 WHERE id IN (SELECT log FROM session_log_link 
+                                                 WHERE session = ?))''', (session_id,))
+        row = self.sqliteCursor.fetchone()
+        # Update statistics of the session in the statistics table and create a new entry if it does not exist
+        # Test if existing statistics
+        self.sqliteCursor.execute('''SELECT * FROM statistics WHERE id = (SELECT statistics_id FROM session WHERE id = ?)''', (session_id,))
+        if self.sqliteCursor.fetchone() is None:
+            # Create a new entry in the statistics table
+            self.sqliteCursor.execute('''INSERT INTO statistics (v500, v1850, vmax, vjibe, vhour) VALUES (?, ?, ?, ?, ?)''', (row['v500'], row['v1850'], row['vmax'], row['vjibe'], row['vhour']))
+            self.sqliteConnection.commit()
+            # Get the id of the last inserted row
+            statistics_id = self.sqliteCursor.lastrowid
+            # Update the session with the statistics id
+            self.sqliteCursor.execute('''UPDATE session SET statistics_id = ? WHERE id = ?''', (statistics_id, session_id))
+            self.sqliteConnection.commit()
+        else:
+            # Update the statistics
+            self.sqliteCursor.execute('''UPDATE statistics SET v500 = ?, v1850 = ?, vmax = ?, vjibe = ?, vhour = ? 
+                                                        WHERE id = (SELECT statistics_id FROM session WHERE id = ?)''',
+                                      (row['v500'], row['v1850'], row['vmax'], row['vjibe'], row['vhour'], session_id))
+            self.sqliteConnection.commit()
+        return row
+
 
 # Test the class
 if __name__ == '__main__':
