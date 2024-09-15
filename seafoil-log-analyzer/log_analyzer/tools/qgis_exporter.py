@@ -1,4 +1,5 @@
 import datetime
+import os
 
 from PyQt5.QtCore import QDateTime, QTimeZone
 from PyQt5.QtGui import QColor
@@ -8,8 +9,16 @@ from qgis._core import QgsPoint, QgsSymbol, QgsCoordinateTransformContext, QgsGr
 
 class QgisExporter():
     def __init__(self, seafoil_bag):
-
         self.sb = seafoil_bag
+
+        # Save the layer to a Shapefile using QgsVectorFileWriter
+        name = self.sb.file_name[:self.sb.file_name.rfind('.')] # remove the .* extension
+        output_path = self.sb.data_folder + "/" + name + "_track"
+
+        # return if the file already exists
+        if os.path.exists(output_path + ".gpkg"):
+            print(f"QGIS file {output_path} already exists.")
+            return
 
         from qgis.core import (
             QgsVectorLayer,
@@ -76,9 +85,7 @@ class QgisExporter():
         # layer.setRenderer(render)
         # layer.updateExtents()
 
-        # Save the layer to a Shapefile using QgsVectorFileWriter
-        name = self.sb.file_name[:self.sb.file_name.rfind('.')] # remove the .* extension
-        output_path = self.sb.data_folder + "/" + name + "_track.shp"
+
 
         error = QgsVectorFileWriter.writeAsVectorFormatV3(
             layer=layer,
