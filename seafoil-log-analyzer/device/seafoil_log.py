@@ -173,7 +173,24 @@ class SeafoilLog:
 
             # Update db with statistics from the log
             self.db.add_log_statistics(log['id'], sfb.get_statistics())
-            return True
+
+            # if log is not a gpx file, update end time
+            if not self.db.is_log_gpx(log['id']):
+                self.db.update_log_time(log['id'], sfb.get_starting_time_timestamp(), sfb.get_ending_time_timestamp())
+
         except Exception as e:
             print("Error processing log: " + file_path + " " + str(e))
             return False
+        return True
+
+    def open_log_folder(self, db_id, data_folder=False):
+        log = self.db.get_log(db_id)
+        if log is not None:
+            file_path = self.sc.get_file_directory(log['id'], log['name'])
+            if data_folder:
+                file_path += "/data"
+            # If on linux, open the folder with nautilus
+            if os.name == 'posix':
+                subprocess.Popen((["xdg-open", file_path]))
+            else:
+                os.startfile(file_path)

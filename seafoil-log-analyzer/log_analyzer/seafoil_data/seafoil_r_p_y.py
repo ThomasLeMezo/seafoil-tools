@@ -54,7 +54,7 @@ class SeafoilRPY(SeafoilData):
             # Save data (compressed)
         if not os.path.exists(self.topic_full_dir):
             np.savez_compressed(self.topic_full_dir,
-                                time=self.time,
+                                time=self.time + self.starting_time.timestamp(),
                                 roll=self.roll,
                                 pitch=self.pitch,
                                 yaw=self.yaw,
@@ -64,11 +64,14 @@ class SeafoilRPY(SeafoilData):
 
     def load_message_from_file(self):
         data = np.load(self.topic_full_dir, allow_pickle=True)
-        self.time = data['time']
+        self.starting_time = datetime.datetime.fromtimestamp(data['time'][0])
+        self.ending_time = datetime.datetime.fromtimestamp(data['time'][-1])
+        self.time = data['time'] - data['time'][0]
         self.roll = data['roll']
         self.pitch = data['pitch']
         self.yaw = data['yaw']
         self.acceleration_x = data['acceleration_x']
         self.acceleration_y = data['acceleration_y']
         self.acceleration_z = data['acceleration_z']
+        
     

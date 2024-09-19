@@ -37,6 +37,8 @@ class Worker(QObject):
         win.showMaximized()
 
         self.data_loaded.emit("Loading data")
+        QApplication.processEvents()
+
         self.sfb = SeafoilBag(filepath, offset_date)
 
         tab = QtWidgets.QTabWidget()

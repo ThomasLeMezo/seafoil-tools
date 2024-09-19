@@ -1,10 +1,9 @@
-import sys
 import os
 import datetime
 
-from PyQt5 import QtWidgets, uic
-from PyQt5.QtCore import QDate
-from PyQt5.QtWidgets import QApplication, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QDialog, QLabel, \
+from qgis.PyQt import QtGui, QtWidgets, uic
+from qgis.PyQt.QtCore import QDate, pyqtSignal
+from qgis.PyQt.QtWidgets import QApplication, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QDialog, QLabel, \
     QLineEdit, QHBoxLayout, QPushButton
 
 from device.seafoil_configuration import SeafoilConfiguration
@@ -740,11 +739,14 @@ class SeafoilUiBaseDeVitesse(QtWidgets.QDialog):
         self.ui.pushButton_download_gpx.setEnabled(True)
 
 class SeafoilUi(QtWidgets.QMainWindow):
-    def __init__(self, seafoil_directory):
-        super().__init__()
+
+    closingPlugin = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
         # Get directory of the current file
-        self.seafoil_directory = seafoil_directory
+        self.seafoil_directory = os.path.realpath(os.path.dirname(os.path.abspath(__file__)) + "/..")
         self.ui = uic.loadUi(self.seafoil_directory + '/ui/main_window.ui', self)
         self.sg = SeafoilGit()
 
@@ -793,4 +795,7 @@ class SeafoilUi(QtWidgets.QMainWindow):
         elif index == 3:
             self.seafoil_ui_configuration.update_ui_from_configuration()
 
+    def closeEvent(self, event):
+        self.closingPlugin.emit()
+        event.accept()
 

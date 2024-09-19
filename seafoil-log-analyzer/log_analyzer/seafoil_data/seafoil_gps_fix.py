@@ -96,7 +96,7 @@ class SeafoilGpsFix(SeafoilData):
             # Save data (compressed)
         if not os.path.exists(self.topic_full_dir):
             np.savez_compressed(self.topic_full_dir,
-                                time=self.time,
+                                time=self.time + self.starting_time.timestamp(),
                                 mode=self.mode,
                                 status=self.status,
                                 latitude=self.latitude,
@@ -120,7 +120,9 @@ class SeafoilGpsFix(SeafoilData):
 
     def load_message_from_file(self):
         data = np.load(self.topic_full_dir, allow_pickle=True)
-        self.time = data['time']
+        self.starting_time = datetime.datetime.fromtimestamp(data['time'][0])
+        self.ending_time = datetime.datetime.fromtimestamp(data['time'][-1])
+        self.time = data['time'] - data['time'][0]
         self.mode = data['mode']
         self.status = data['status']
         self.latitude = data['latitude']
@@ -141,4 +143,5 @@ class SeafoilGpsFix(SeafoilData):
         self.err_speed = data['err_speed']
         self.err_time = data['err_time']
         self.satellites_visible = data['satellites_visible']
+        
     

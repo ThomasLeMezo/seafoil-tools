@@ -48,7 +48,7 @@ class SeafoilHeightDebug(SeafoilData):
             # Save data (compressed)
         if not os.path.exists(self.topic_full_dir):
             np.savez_compressed(self.topic_full_dir,
-                                time=self.time,
+                                time=self.time + self.starting_time.timestamp(),
                                 profile=self.profile,
                                 interval_center=self.interval_center,
                                 interval_diam=self.interval_diam,
@@ -56,9 +56,12 @@ class SeafoilHeightDebug(SeafoilData):
 
     def load_message_from_file(self):
         data = np.load(self.topic_full_dir, allow_pickle=True)
-        self.time = data['time']
+        self.starting_time = datetime.datetime.fromtimestamp(data['time'][0])
+        self.ending_time = datetime.datetime.fromtimestamp(data['time'][-1])
+        self.time = data['time'] - data['time'][0]
         self.profile = data['profile']
         self.interval_center = data['interval_center']
         self.interval_diam = data['interval_diam']
         self.height_unfiltered = data['height_unfiltered']
+        
     

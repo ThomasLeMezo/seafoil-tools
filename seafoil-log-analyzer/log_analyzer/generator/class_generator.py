@@ -60,13 +60,17 @@ class Seafoil{{ class_name }}(SeafoilData):
             # Save data (compressed)
         if not os.path.exists(self.topic_full_dir):
             np.savez_compressed(self.topic_full_dir,
-                                time=self.time,{% for variable in table %}
+                                time=self.time + self.starting_time.timestamp(),{% for variable in table %}
                                 {{ variable["python_name"] }}=self.{{ variable["python_name"] }},{% endfor %})
 
     def load_message_from_file(self):
         data = np.load(self.topic_full_dir, allow_pickle=True)
-        self.time = data['time']{% for variable in table %}
-        self.{{ variable["python_name"] }} = data['{{ variable["python_name"] }}']{% endfor %}
+        self.starting_time = datetime.datetime.fromtimestamp(data['time'][0])
+        self.ending_time = datetime.datetime.fromtimestamp(data['time'][-1])
+        self.time = data['time'] - data['time'][0]
+        {% for variable in table -%}
+        self.{{ variable["python_name"] }} = data['{{ variable["python_name"] }}']
+        {% endfor %}
     """
 
     interface = utilities.get_interface(package_name + "/msg/" + msg_name)

@@ -1,4 +1,7 @@
+import copy
+import datetime
 
+import gpxpy
 import numpy as np
 import os
 
@@ -37,6 +40,7 @@ class SeafoilStatistics:
                 self.pitch_2s = data['pitch_2s']
             data.close()
         except:
+            print("No statistics file found, creating a new one")
             self.speed_v500 = self.compute_speed_for_distance(self.sfb.distance, 500)
             self.speed_v1852 = self.compute_speed_for_distance(self.sfb.distance, 1852)
             self.time = self.sfb.distance.time
@@ -78,6 +82,9 @@ class SeafoilStatistics:
                                  height_2s=self.height_2s,
                                  roll_2s=self.roll_2s,
                                  pitch_2s=self.pitch_2s)
+        # Only if the file is not a gpx file
+        if not self.sfb.is_gpx:
+            self.save_gpx()
 
     def compute_speed_for_distance(self, data_distance, distance):
         speed_distance = None
@@ -110,3 +117,57 @@ class SeafoilStatistics:
             if d1 - d0 >= distance:
                 return d0_idx
         return starting_idx
+
+    def save_gpx(self):
+        filepath = self.sfb.data_folder + self.sfb.file_name + ".gpx"
+        print("Save gpx file: ", filepath)
+
+        if self.sfb.is_gpx or os.path.exists(filepath):
+            return
+
+        data_gnss = self.sfb.gps_fix
+
+        gpx = gpxpy.gpx.GPX()
+        gpx.creator = "SeaFoil"
+        is_fix_mode = False
+
+        gpx_track = gpxpy.gpx.GPXTrack()
+        gpx_track.name = "Windfoil session"
+        gpx_segments = []
+
+        # Apply an opening to data_gnss.mode[i] by enlarging of 25 sample when mode is less than 3
+        kernel_size_after = 25 * 10  # 10s after
+        kernel_size_before = 25 * 2  # 2s before
+        mode = data_gnss.mode
+        mode_filtered = mode.copy()
+
+        for i, mode_val in enumerate(mode):
+            if mode_val < 3:
+                start_index = max(0, i - kernel_size_before)
+                end_index = min(len(mode), i + kernel_size_after + 1)
+                mode_filtered[start_index:end_index] = 0
+
+        for i in range(len(data_gnss.latitude)):
+            if mode_filtered[i] >= 3:  # Fix mode
+                if not is_fix_mode:
+                    gpx_segments.append(gpxpy.gpx.GPXTrackSegment())
+                    is_fix_mode = True
+
+                pt = gpxpy.gpx.GPXTrackPoint(latitude=data_gnss.latitude[i],
+                                             longitude=data_gnss.longitude[i],
+                                             time=datetime.datetime.fromtimestamp(
+                                                 data_gnss.time_gnss[i], datetime.timezone.utc),
+                                             speed=data_gnss.speed[i],
+                                             )
+                pt.course = data_gnss.track[i]
+                gpx_segments[-1].points.append(pt)
+            else:
+                is_fix_mode = False
+
+        for seg in gpx_segments:
+            gpx_track.segments.append(seg)
+        gpx.tracks.append(gpx_track)
+
+        file = open(filepath, "w")
+        file.write(gpx.to_xml(version='1.1'))
+        file.close()

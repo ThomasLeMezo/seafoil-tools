@@ -35,7 +35,11 @@ class SeafoilBag():
 			os.system(f"ros2 bag reindex {bag_path} -s 'mcap'")
 
 		self.file_path = bag_path
-		self.file_name = os.path.basename(bag_path)
+		if self.is_gpx:
+			self.file_name = os.path.basename(bag_path)
+		else:
+			# name of the last directory
+			self.file_name = os.path.basename(os.path.normpath(bag_path))
 		self.offset_date = offset_date
 
 		self.data_folder = os.path.dirname(bag_path) + "/data/"
@@ -123,4 +127,17 @@ class SeafoilBag():
                 "starting_time": self.gps_fix.starting_time.timestamp(),
 				"ending_time": self.gps_fix.ending_time.timestamp(),
                 "is_processed": True,}
+		print(stat)
 		return stat
+
+	def get_starting_time(self):
+		return self.gps_fix.starting_time
+
+	def get_ending_time(self):
+		return self.gps_fix.ending_time
+
+	def get_starting_time_timestamp(self):
+		return self.gps_fix.starting_time.timestamp()
+
+	def get_ending_time_timestamp(self):
+		return self.gps_fix.ending_time.timestamp()

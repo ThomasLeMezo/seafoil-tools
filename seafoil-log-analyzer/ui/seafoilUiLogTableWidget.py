@@ -131,6 +131,16 @@ class SeafoilUiLogTableWidget():
         if len(item) == 1:
             edit_rider_name_action = menu.addAction("Edit rider name")
 
+        # Open in folder action
+        open_in_folder_action = None
+        if len(item) == 1:
+            open_in_folder_action = menu.addAction(f"Open in folder")
+
+        # If the log is not a gpx file, add the export to gpx action
+        export_to_gpx_action = None
+        if len(item) == 1:
+            export_to_gpx_action = menu.addAction(f"Export to gpx")
+
         # Remove action
         remove_action = menu.addAction(f"Remove log")
 
@@ -149,6 +159,10 @@ class SeafoilUiLogTableWidget():
                     msg.setText("Log protected : delete session first")
                     msg.setWindowTitle("Error")
                     msg.exec_()
+        elif action == open_in_folder_action:
+            self.sl.open_log_folder(int(item[0].text()))
+        elif action == export_to_gpx_action:
+            self.sl.open_log_folder(int(item[0].text()), True)
         elif action == process_action:
             for i in range(len(item)):
                 self.sl.process_log(int(item[i].text()))

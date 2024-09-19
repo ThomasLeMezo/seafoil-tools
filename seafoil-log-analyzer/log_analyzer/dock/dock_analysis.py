@@ -327,112 +327,12 @@ class DockAnalysis(SeafoilDock):
                                          "Max speed for 1852m: " + str(round(max_speed_v1852 * 1.94384, 2)) + " kt")
             self.add_label_with_text(dock_height_velocity, "Max speed: " + str(round(speed_max, 2)) + " kt")
 
-            from pyqtgraph.Qt import QtGui, QtCore
-            saveBtn = QtGui.QPushButton('Export GPX (for BaseDeVitesse)')
-            saveBtn.clicked.connect(self.save_gpx)
-            dock_height_velocity.addWidget(saveBtn, row=dock_height_velocity.currentRow + 1, col=0)
+            # from pyqtgraph.Qt import QtGui, QtCore
+            # saveBtn = QtGui.QPushButton('Export GPX (for BaseDeVitesse)')
+            # saveBtn.clicked.connect(self.save_gpx)
+            # dock_height_velocity.addWidget(saveBtn, row=dock_height_velocity.currentRow + 1, col=0)
 
-    def save_gpx(self):
 
-        data_gnss = self.sfb.gps_fix
-        data_height = self.sfb.height
-        data_imu = copy.copy(self.sfb.rpy)
-        data_wind = copy.copy(self.sfb.wind)
-
-        gpx = gpxpy.gpx.GPX()
-        gpx.creator = "SeaFoil"
-        is_fix_mode = False
-
-        gpx_track = gpxpy.gpx.GPXTrack()
-        gpx_track.name = "Windfoil session"
-        gpx_segments = []
-
-        # interpolate data_height to data_gnss.time_gnss
-        f_height = interpolate.interp1d(data_height.time, data_height.height, bounds_error=False, kind="zero")
-        height = f_height(data_gnss.time)
-        # print(height)
-
-        f_imu_roll = interpolate.interp1d(data_imu.time, data_imu.roll, bounds_error=False, kind="zero")
-        roll = f_imu_roll(data_gnss.time)
-
-        f_imu_pitch = interpolate.interp1d(data_imu.time, data_imu.pitch, bounds_error=False, kind="zero")
-        pitch = f_imu_pitch(data_gnss.time)
-
-        # remplace nan by 0
-        height[np.isnan(height)] = 0
-
-        # Set roll and pitch to 0 when they are too high, too low or nan
-        roll[np.isnan(roll)] = 0
-        roll[roll > 70.] = 70.
-        roll[roll < -70.] = -70.
-
-        pitch[np.isnan(pitch)] = 0
-        pitch[pitch > 70.] = 70.
-        pitch[pitch < -70.] = -70.
-
-        # smooth data
-        window_size = 100
-        height = np.convolve(height, np.ones(window_size) / window_size, mode='same')
-        roll = np.convolve(roll, np.ones(window_size) / window_size, mode='same')
-
-        window_size = 100
-        height = np.convolve(height, np.ones(window_size) / window_size, mode='same')
-
-        # interpolate data_wind to data_gnss.time_gnss
-        # f_wind_velocity = interpolate.interp1d(data_wind.time, data_wind.velocity, bounds_error=False, kind="zero")
-        # wind_velocity = f_wind_velocity(data_gnss.time)
-
-        # from sfb.file_name, get the name of the last folder
-        folder = os.path.basename(os.path.dirname(self.sfb.file_path))
-
-        filepath = QFileDialog.getSaveFileName(self.win, "Save file",
-                                               f"{self.sfb.file_path}/{folder}.gpx",
-                                               "GPX (*.gpx)")
-        if filepath[0] == '':
-            return
-
-        # Apply an opening to data_gnss.mode[i] by enlarging of 25 sample when mode is less than 3
-        kernel_size_after = 25 * 10  # 10s after
-        kernel_size_before = 25 * 2  # 2s before
-        mode = data_gnss.mode
-        mode_filtered = mode.copy()
-
-        for i, mode_val in enumerate(mode):
-            if mode_val < 3:
-                start_index = max(0, i - kernel_size_before)
-                end_index = min(len(mode), i + kernel_size_after + 1)
-                mode_filtered[start_index:end_index] = 0
-
-        for i in range(len(data_gnss.latitude)):
-            if mode_filtered[i] >= 3:  # Fix mode
-                if not is_fix_mode:
-                    gpx_segments.append(gpxpy.gpx.GPXTrackSegment())
-                    is_fix_mode = True
-
-                pt = gpxpy.gpx.GPXTrackPoint(latitude=data_gnss.latitude[i],
-                                             longitude=data_gnss.longitude[i],
-                                             # elevation=height[i],
-                                             #elevation=wind_velocity[i],
-                                             time=datetime.datetime.fromtimestamp(
-                                                 data_gnss.time_gnss[i], datetime.timezone.utc),
-                                             # horizontal_dilution=roll[i],
-                                             # vertical_dilution=pitch[i],
-                                             speed=data_gnss.speed[i],
-                                             # comment=str(data_gnss.mode[i])
-                                             )
-                pt.course = data_gnss.track[i]
-                gpx_segments[-1].points.append(pt)
-            else:
-                is_fix_mode = False
-
-        for seg in gpx_segments:
-            gpx_track.segments.append(seg)
-        gpx.tracks.append(gpx_track)
-
-        file = open(filepath[0], "w")
-        file.write(gpx.to_xml(version='1.1'))
-        file.close()
-        print("start date", data_gnss.time_gnss[0])
 
     def add_polar_heading(self):
         dock_polar_heading = Dock("Polar heading")

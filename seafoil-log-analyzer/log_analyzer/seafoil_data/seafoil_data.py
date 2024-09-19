@@ -77,7 +77,7 @@ class SeafoilData(object):
         st = rosbag2_py.Info().read_metadata(self.storage_options.uri, self.storage_options.storage_id).starting_time
         # test if st is a datetime
 
-        dt = datetime.datetime.utcfromtimestamp(st.nanoseconds*1e-9)
+        dt = datetime.datetime.fromtimestamp(st.nanoseconds*1e-9)
         return dt
 
     def process_message(self, msg):
@@ -101,10 +101,8 @@ class SeafoilData(object):
             print("Load (saved)", self.topic_name)
             self.load_message_from_file()
             self.k = len(self.time)
-            self.starting_time = datetime.datetime.utcfromtimestamp(self.time[0])
-            self.ending_time = datetime.datetime.utcfromtimestamp(self.time[-1])
         else:
-            print("Load ", self.topic_name)
+            print("Load ", self.topic_name, flush=True)
             ## Open the file
             reader = rosbag2_py.SequentialReader()
             reader.open(self.storage_options, self.converter_options)
@@ -138,3 +136,5 @@ class SeafoilData(object):
                 except Exception as e:
                     print("Oops!  read_next error ", e)
                     pass
+
+            self.ending_time = self.starting_time + datetime.timedelta(seconds=self.time[-1])

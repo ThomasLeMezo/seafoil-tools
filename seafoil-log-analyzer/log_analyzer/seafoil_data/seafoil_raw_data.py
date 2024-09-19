@@ -66,7 +66,7 @@ class SeafoilRawData(SeafoilData):
             # Save data (compressed)
         if not os.path.exists(self.topic_full_dir):
             np.savez_compressed(self.topic_full_dir,
-                                time=self.time,
+                                time=self.time + self.starting_time.timestamp(),
                                 accel_x=self.accel_x,
                                 accel_y=self.accel_y,
                                 accel_z=self.accel_z,
@@ -80,7 +80,9 @@ class SeafoilRawData(SeafoilData):
 
     def load_message_from_file(self):
         data = np.load(self.topic_full_dir, allow_pickle=True)
-        self.time = data['time']
+        self.starting_time = datetime.datetime.fromtimestamp(data['time'][0])
+        self.ending_time = datetime.datetime.fromtimestamp(data['time'][-1])
+        self.time = data['time'] - data['time'][0]
         self.accel_x = data['accel_x']
         self.accel_y = data['accel_y']
         self.accel_z = data['accel_z']
@@ -91,4 +93,5 @@ class SeafoilRawData(SeafoilData):
         self.mag_y = data['mag_y']
         self.mag_z = data['mag_z']
         self.temp = data['temp']
+        
     

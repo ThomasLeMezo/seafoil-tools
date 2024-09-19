@@ -488,6 +488,14 @@ class SeafoilDB:
         self.sqliteCursor.execute('''SELECT * FROM log WHERE id = ?''', (id,))
         return self.sqliteCursor.fetchone()
 
+    def get_log_type(self, id):
+        self.sqliteCursor.execute('''SELECT type FROM log WHERE id = ?''', (id,))
+        return self.convert_log_type_from_int(self.sqliteCursor.fetchone()['type'])
+
+    def is_log_gpx(self, id):
+        self.sqliteCursor.execute('''SELECT type FROM log WHERE id = ?''', (id,))
+        return self.sqliteCursor.fetchone()['type'] == 1
+
     # Test if a log has a session linked (in session_log)
     def is_log_link_to_session(self, id):
         self.sqliteCursor.execute('''SELECT * FROM session_log_link WHERE log = ?''', (id,))
@@ -713,6 +721,7 @@ class SeafoilDB:
             return session_setup['id']
 
     def add_log_statistics(self, log_id, statistics):
+        print(f"Add statistics to log {log_id}")
         # Test if the log already has statistics
         self.sqliteCursor.execute('''SELECT * FROM log WHERE id = ? AND statistics_id IS NOT NULL''', (log_id,))
         if self.sqliteCursor.fetchone():

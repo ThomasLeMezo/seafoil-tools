@@ -60,7 +60,7 @@ class SeafoilWind(SeafoilData):
             # Save data (compressed)
         if not os.path.exists(self.topic_full_dir):
             np.savez_compressed(self.topic_full_dir,
-                                time=self.time,
+                                time=self.time + self.starting_time.timestamp(),
                                 velocity=self.velocity,
                                 direction=self.direction,
                                 battery=self.battery,
@@ -72,7 +72,9 @@ class SeafoilWind(SeafoilData):
 
     def load_message_from_file(self):
         data = np.load(self.topic_full_dir, allow_pickle=True)
-        self.time = data['time']
+        self.starting_time = datetime.datetime.fromtimestamp(data['time'][0])
+        self.ending_time = datetime.datetime.fromtimestamp(data['time'][-1])
+        self.time = data['time'] - data['time'][0]
         self.velocity = data['velocity']
         self.direction = data['direction']
         self.battery = data['battery']
@@ -81,4 +83,5 @@ class SeafoilWind(SeafoilData):
         self.pitch = data['pitch']
         self.heading = data['heading']
         self.direction_north = data['direction_north']
+        
     
