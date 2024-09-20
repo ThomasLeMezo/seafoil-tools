@@ -2,9 +2,10 @@ import datetime
 
 from PyQt5 import QtWidgets
 from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QDialog
+from PyQt5.QtWidgets import QDialog, QApplication
 
 from device.seafoil_log import SeafoilLog
+from ui.seafoilUiProcess import SeafoilUiProcess
 from ui.ui_utils import TwoFieldInputDialog
 
 
@@ -164,8 +165,12 @@ class SeafoilUiLogTableWidget():
         elif action == export_to_gpx_action:
             self.sl.open_log_folder(int(item[0].text()), True)
         elif action == process_action:
+            sp = SeafoilUiProcess()
+            sp.show()
             for i in range(len(item)):
-                self.sl.process_log(int(item[i].text()))
+                sp.update_title(i, len(item))
+                self.sl.process_log(int(item[i].text()), sp.update_ui)
+            sp.close()
         elif action == edit_rider_name_action:
             # Open a dialog to edit the rider name
             log = self.sl.db.get_log(int(item[0].text()))
@@ -201,7 +206,7 @@ class SeafoilUiLogTableWidget():
                 dialog = TwoFieldInputDialog("New Rider", "First Name", "Last Name")
                 if dialog.exec_() == QDialog.Accepted:
                     first_name, last_name = dialog.get_inputs()
-                    rider_id = self.sl.db.add_rider(first_name, last_name)
+                    rider_id = self.sl.db.add_rider(first_name, last_name, manual_add=True)
                     print(rider_id)
                     for i in range(len(item)):
                         self.sl.db.update_log_rider(int(item[i].text()), rider_id)

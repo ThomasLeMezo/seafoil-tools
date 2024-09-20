@@ -8,11 +8,14 @@ from qgis.PyQt.QtWidgets import QApplication, QTreeWidget, QTreeWidgetItem, QVBo
 
 from device.seafoil_configuration import SeafoilConfiguration
 from device.seafoil_equipement import SeafoilEquipement
+from device.seafoil_rider import SeafoilRider
 from device.seafoil_session import SeafoilSession
 from device.seafoil_log import SeafoilLog
 from device.seafoil_git import SeafoilGit
 from device.base_de_vitesse import SeafoilBaseDeVitesse
 from ui.seafoilUiLogTableWidget import SeafoilUiLogTableWidget
+from ui.seafoilUiProcess import SeafoilUiProcess
+
 
 def upload_gpx(object, sl):
     # Open file dialog to select one or more gpx files
@@ -68,7 +71,11 @@ def upload_seafoil_log(sl):
 
         if len(directories_ok) > 0:
             # Upload the mcap files
-            return sl.add_seafoil_log(directories_ok)
+            sp = SeafoilUiProcess()
+            sp.show()
+            ret = sl.add_seafoil_log(directories_ok,  sp.update_ui)
+            sp.close()
+            return ret
     else:
         print("No directory selected")
         return None
@@ -641,6 +648,68 @@ class SeafoilUiLog(QtWidgets.QDialog):
         upload_gpx(self, self.sl)
         self.seafoil_log_table_widget.update_ui_from_logs()
 
+class SeafoilUiRider(QtWidgets.QDialog):
+    def __init__(self, seafoil_ui):
+        super().__init__()
+        self.seafoil_ui = seafoil_ui
+        self.ui = seafoil_ui.ui
+        self.rider = SeafoilRider()
+
+        self.update_ui_from_rider()
+
+        # Add menu to select default rider
+        self.ui.tableWidget_rider.setContextMenuPolicy(3)
+        self.ui.tableWidget_rider.customContextMenuRequested.connect(self.show_context_menu)
+
+    def update_ui_from_rider(self):
+        self.ui.tableWidget_rider.clear()
+
+        # Set the number of columns and header
+        self.ui.tableWidget_rider.setColumnCount(len(self.rider.rider_header))
+        self.ui.tableWidget_rider.setHorizontalHeaderLabels(self.rider.rider_header_display)
+        # Set header visible
+        self.ui.tableWidget_rider.horizontalHeader().setVisible(True)
+
+        self.ui.tableWidget_rider.setRowCount(len(self.rider.rider_list))
+
+        for i, rider in enumerate(self.rider.rider_list):
+            for j, key in enumerate(self.rider.rider_header):
+                # if key is numeric
+                if key in ['v500', 'v1850', 'vmax', 'vjibe', 'vhour']:
+                    ms_to_kt = 1.94384
+                    self.ui.tableWidget_rider.setItem(i, j, QtWidgets.QTableWidgetItem(f"{rider[key]*ms_to_kt:.2f}" if rider[key] is not None else ''))
+                elif key in ['is_default', 'manual_add']:
+                    self.ui.tableWidget_rider.setItem(i, j, QtWidgets.QTableWidgetItem('X' if rider[key] else ''))
+                else:
+                    self.ui.tableWidget_rider.setItem(i, j, QtWidgets.QTableWidgetItem(str(rider[key])))
+
+    def show_context_menu(self, position):
+        # Create the context menu
+        menu = QtWidgets.QMenu(self.ui.tableWidget_rider)
+
+        # Get the selected items
+        selected_items = self.ui.tableWidget_rider.selectedItems()
+        if len(selected_items) == 0:
+            return
+        # Remove items where column is not 0
+        item = [i for i in selected_items if i.column() == 0]
+
+        # Only one item can be selected
+        if len(item) != 1:
+            return
+        item_selected = item[0]
+
+        set_default_action = menu.addAction(f"Set default rider")
+
+        # Execute the menu and get the selected action
+        action = menu.exec_(self.ui.tableWidget_rider.mapToGlobal(position))
+
+        if action == set_default_action:
+            for i in range(len(item)):
+                self.rider.set_default_rider(int(item_selected.row()))
+
+        # Update the ui
+        self.update_ui_from_rider()
 
 class SeafoilUiBaseDeVitesse(QtWidgets.QDialog):
     def __init__(self, seafoil_ui):
@@ -755,6 +824,7 @@ class SeafoilUi(QtWidgets.QMainWindow):
         self.seafoil_ui_session = SeafoilUiSession(self)
         self.seafoil_ui_log = SeafoilUiLog(self)
         self.seafoil_ui_base_de_vitesse = SeafoilUiBaseDeVitesse(self)
+        self.seafoil_ui_rider = SeafoilUiRider(self)
 
         # connect the tabWidget change index
         self.ui.tabWidget.currentChanged.connect(self.on_tabWidget_changed)

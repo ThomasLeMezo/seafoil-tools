@@ -44,6 +44,9 @@ class SeafoilBaseDeVitesse():
             print("No data found")
             return None
 
+        # Update db
+        self.sl.db.update_base_name(id_base, self.base_name)
+
         # Extract the table
         table = soup.find('table', id="table")
 

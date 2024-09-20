@@ -317,7 +317,7 @@ class SeafoilConnexion(QObject):
         for log_id in log_list:
             ret, db_id = self.seafoil_download_log(log_id)
             if db_id is not None:
-                log_added.append(self.stored_log_list[log_id]['id'])
+                log_added.append(db_id)
             success &= ret
             self.remaining_log_to_download -= 1
 
@@ -342,6 +342,8 @@ class SeafoilConnexion(QObject):
 
         # Create new rosbag in db
         db_id, is_downloaded, is_new = self.db.insert_log(log_name, log_date, type='rosbag')
+
+        self.db.set_log_default_rider(db_id)
 
         # If the rosbag already exists, verify if the log folder already exists
         if not is_new and is_downloaded:
@@ -392,6 +394,8 @@ class SeafoilConnexion(QObject):
 
         # Create new rosbag in db
         db_id, is_downloaded, is_new = self.db.insert_log(name, timestamp_ros, type='rosbag')
+
+        self.db.set_log_default_rider(db_id)
 
         # If the rosbag already exists, verify if the log folder already exists
         if not is_new and is_downloaded:
@@ -499,6 +503,8 @@ class SeafoilConnexion(QObject):
             folder = self.log_folder + str(db_id) + '/'
             os.makedirs(folder, exist_ok=True)
 
+            self.db.set_log_default_rider(db_id)
+
             db_file_path = folder + file_name
 
             if not is_new and is_download:
@@ -530,7 +536,7 @@ class SeafoilConnexion(QObject):
 
         print(f"The log '{log_name}' was removed.")
 
-    def process_log(self):
+    def process_connexion(self):
         if self.connexion_state == StateConnexion.Disconnected:
             if self.connect():
                 self.connexion_state = StateConnexion.SeafoilServiceStop

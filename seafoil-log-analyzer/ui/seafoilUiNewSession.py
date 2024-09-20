@@ -253,7 +253,7 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
             dialog = TwoFieldInputDialog("New Rider", "First Name", "Last Name")
             if dialog.exec_() == QDialog.Accepted:
                 first_name, last_name = dialog.get_inputs()
-                self.sns.add_rider(first_name, last_name)
+                self.sns.add_rider(first_name, last_name, True)
             else:
                 # Reset the index to the previous one
                 self.sns.rider_current_index = 0

@@ -9,9 +9,8 @@ sys.path.append('..')
 
 
 class SeafoilBattery(SeafoilData):
-    def __init__(self, bag_path=None, topic_name=None, start_date=datetime.datetime(2019, 1, 1), data_folder=None):
-        SeafoilData.__init__(self, bag_path, topic_name, start_date, data_folder)
-        self.start_date = start_date
+    def __init__(self, topic_name=None, seafoil_bag=None):
+        SeafoilData.__init__(self, seafoil_bag.file_path, topic_name, seafoil_bag.offset_date, seafoil_bag.data_folder)
         
         self.temperature = np.empty([self.nb_elements], dtype='float')
         self.voltage = np.empty([self.nb_elements], dtype='float')
@@ -28,6 +27,7 @@ class SeafoilBattery(SeafoilData):
         self.internal_temperature = np.empty([self.nb_elements], dtype='float')
         self.state_of_health = np.empty([self.nb_elements], dtype='uint16')
 
+        seafoil_bag.emit_signal_process_topic(self.topic_name)
         self.load_message()
         self.resize_data_array()
         super().resize_data_array()

@@ -35,7 +35,10 @@ class SeafoilDB:
         (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             first_name TEXT,
-            last_name TEXT
+            last_name TEXT,
+            manual_add BOOLEAN DEFAULT TRUE,
+            display_order INTEGER,
+            is_default BOOLEAN DEFAULT 0
         )''')
 
         # Create table for seafoil box configuration
@@ -216,6 +219,14 @@ class SeafoilDB:
             FOREIGN KEY (foil_mast) REFERENCES windfoil_foil_mast(id),
             FOREIGN KEY (fuselage) REFERENCES windfoil_fuselage(id),
             FOREIGN KEY (session) REFERENCES session(id)
+        )''')
+
+        # Create table for "base de vitesse" identification
+        self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS base_de_vitesse_identification
+        (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            web_id INTEGER,
+            name TEXT
         )''')
 
     # Set configuration for a seafoil box
@@ -650,14 +661,35 @@ class SeafoilDB:
         self.sqliteCursor.execute('''UPDATE seafoil_box_identification SET name = ? WHERE id = (SELECT id FROM seafoil_box_identification LIMIT 1)''', (name,))
         self.sqliteConnection.commit()
 
-    # Get all riders
+    # Get all riders order by display order and then by first name
     def get_rider_all(self):
-        self.sqliteCursor.execute('''SELECT * FROM rider''')
+        self.sqliteCursor.execute('''SELECT * FROM rider ORDER BY display_order, first_name''')
+        return self.sqliteCursor.fetchall()
+
+    # Get all riders order by display order and then by first name but with default rider first
+    # Join with the max statistics for each rider
+    def get_rider_all_with_statistics(self):
+        self.sqliteCursor.execute('''SELECT rider.*,
+                                            MAX(statistics.v500) as v500,
+                                            MAX(statistics.v1850) as v1850,
+                                            MAX(statistics.vmax) as vmax,
+                                            MAX(statistics.vjibe) as vjibe,
+                                            MAX(statistics.vhour) as vhour
+                                            FROM rider
+                                            LEFT JOIN log ON rider.id = log.rider_id
+                                            LEFT JOIN statistics ON log.statistics_id = statistics.id
+                                            GROUP BY rider.id
+                                            ORDER BY rider.is_default DESC, rider.display_order, rider.first_name''')
         return self.sqliteCursor.fetchall()
 
     # Add new rider
-    def add_rider(self, first_name, last_name):
-        self.sqliteCursor.execute('''INSERT INTO rider (first_name, last_name) VALUES (?, ?)''', (first_name, last_name))
+    def add_rider(self, first_name, last_name, manual_add=False, display_order=None):
+        # if display_order is not set, get the last display order and add 1
+        if display_order is None:
+            self.sqliteCursor.execute('''SELECT MAX(display_order) as display_order FROM rider''')
+            row = self.sqliteCursor.fetchone()
+            display_order = row['display_order'] + 1 if row['display_order'] is not None else 0
+        self.sqliteCursor.execute('''INSERT INTO rider (first_name, last_name, manual_add, display_order) VALUES (?, ?, ?, ?)''', (first_name, last_name, manual_add, display_order))
         self.sqliteConnection.commit()
         return self.sqliteCursor.lastrowid
 
@@ -811,6 +843,33 @@ class SeafoilDB:
                                       (row['v500'], row['v1850'], row['vmax'], row['vjibe'], row['vhour'], session_id))
             self.sqliteConnection.commit()
         return row
+
+    # Add identification of a base de vitesse
+    def update_base_name(self, web_id, name):
+        # if it already exist, update the name
+        self.sqliteCursor.execute('''SELECT * FROM base_de_vitesse_identification WHERE web_id = ?''', (web_id,))
+        row = self.sqliteCursor.fetchone()
+        if row:
+            self.sqliteCursor.execute('''UPDATE base_de_vitesse_identification SET name = ? WHERE web_id = ?''', (name, web_id))
+            self.sqliteConnection.commit()
+            return row['id']
+        # Add a new entry
+        else:
+            self.sqliteCursor.execute('''INSERT INTO base_de_vitesse_identification (web_id, name) VALUES (?, ?)''', (web_id, name))
+            self.sqliteConnection.commit()
+            return self.sqliteCursor.lastrowid
+
+    # Set Default rider
+    def set_default_rider(self, rider_id):
+        self.sqliteCursor.execute('''UPDATE rider SET is_default = 0''')
+        self.sqliteCursor.execute('''UPDATE rider SET is_default = 1 WHERE id = ?''', (rider_id,))
+        self.sqliteConnection.commit()
+
+    # Set a log to default rider if it exists
+    def set_log_default_rider(self, log_id):
+        self.sqliteCursor.execute('''UPDATE log SET rider_id = (SELECT id FROM rider WHERE is_default = 1) WHERE id = ?''', (log_id,))
+        self.sqliteConnection.commit()
+
 
 
 # Test the class

@@ -3,13 +3,15 @@ from PyQt5 import QtWidgets, uic
 import os
 
 from PyQt5.QtWidgets import QListWidgetItem, QMessageBox, QApplication
+from PyQt5.QtCore import QAbstractListModel, Qt, QThread, QTimer, pyqtSignal
+from PyQt5 import QtCore
 
 from device.seafoil_connexion import SeafoilConnexion
 from device.seafoil_connexion import StateConnexion
 from device.seafoil_log import SeafoilLog
 from device.seafoil_new_session import SeafoilNewSession
-from PyQt5.QtCore import QAbstractListModel, Qt, QThread, QTimer, pyqtSignal
-from PyQt5 import QtCore
+
+from ui.seafoilUiProcess import SeafoilUiProcess
 
 class WorkerThread(QThread):
     # Define a signal to communicate with the main thread
@@ -49,7 +51,7 @@ class SeafoilUiDownload(QtWidgets.QDialog):
         self.sns = SeafoilNewSession()
         self.directory = os.path.dirname(os.path.abspath(__file__))
         self.ui = uic.loadUi(self.directory + '/download.ui', self)
-        self.sl.sc = SeafoilConnexion()
+        self.sl = SeafoilLog()
 
         self.loading_symbol_state = 0
 
@@ -109,7 +111,7 @@ class SeafoilUiDownload(QtWidgets.QDialog):
     def process_timer(self):
         QApplication.processEvents()
         # Call SeafoilConnexion process_log
-        self.sl.sc.process_log()
+        self.sl.sc.process_connexion()
 
         if self.sl.sc.connexion_state == StateConnexion.DownloadLog:
             self.update_log_list()
@@ -187,11 +189,17 @@ class SeafoilUiDownload(QtWidgets.QDialog):
         msg = None
         success, log_added = self.sl.sc.seafoil_download_logs(checked_logs)
         if success:
-            msg = QMessageBox.information(self, 'Download Logs', f'{len(checked_logs)} logs have been downloaded, now processing', QMessageBox.Ok)
+            msg = QMessageBox.information(self, 'Download Logs', f'{len(checked_logs)} logs have been downloaded (connexion can be disable), now processing', QMessageBox.Ok)
+
+            sp = SeafoilUiProcess()
+            sp.show()
+            for i, log in enumerate(log_added):
+                sp.update_title(i, len(log_added))
+                self.sl.process_log(log, sp.update_ui)
+            sp.close()
+
         else:
             msg = QMessageBox.warning(self, 'Download Logs', f'An error occured while downloading the logs', QMessageBox.Ok)
-        # Non blocking message
-        msg.show()
 
         # Update the log list
         self.update_log_list()

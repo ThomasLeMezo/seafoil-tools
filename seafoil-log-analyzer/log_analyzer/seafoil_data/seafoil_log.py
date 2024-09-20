@@ -9,9 +9,8 @@ sys.path.append('..')
 
 
 class SeafoilLog(SeafoilData):
-    def __init__(self, bag_path=None, topic_name=None, start_date=datetime.datetime(2019, 1, 1), data_folder=None):
-        SeafoilData.__init__(self, bag_path, topic_name, start_date, data_folder)
-        self.start_date = start_date
+    def __init__(self, topic_name=None, seafoil_bag=None):
+        SeafoilData.__init__(self, seafoil_bag.file_path, topic_name, seafoil_bag.offset_date, seafoil_bag.data_folder)
         
         self.stamp = np.empty([self.nb_elements], dtype='object')
         self.level = np.empty([self.nb_elements], dtype='uint8')
@@ -21,6 +20,7 @@ class SeafoilLog(SeafoilData):
         self.function = np.empty([self.nb_elements], dtype='object')
         self.line = np.empty([self.nb_elements], dtype='uint32')
 
+        seafoil_bag.emit_signal_process_topic(self.topic_name)
         self.load_message()
         self.resize_data_array()
         super().resize_data_array()

@@ -102,6 +102,6 @@ class SeafoilNewSession():
     def remove_log(self, index, is_associated=False):
         return self.sl.remove_log_from_list(index, is_associated)
 
-    def add_rider(self, first_name, last_name):
-        self.db.add_rider(first_name, last_name)
+    def add_rider(self, first_name, last_name, manual_add=True):
+        self.db.add_rider(first_name, last_name, manual_add)
         self.update_lists()

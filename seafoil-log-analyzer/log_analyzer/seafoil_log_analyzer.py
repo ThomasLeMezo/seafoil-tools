@@ -40,6 +40,7 @@ class Worker(QObject):
         QApplication.processEvents()
 
         self.sfb = SeafoilBag(filepath, offset_date)
+        self.sfb.load_data()
 
         tab = QtWidgets.QTabWidget()
 

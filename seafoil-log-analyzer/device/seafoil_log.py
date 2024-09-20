@@ -1,6 +1,8 @@
 import subprocess, os
 import threading
 
+from PyQt5.QtCore import pyqtSignal
+
 from db.seafoil_db import SeafoilDB
 from device.seafoil_connexion import SeafoilConnexion
 from log_analyzer import SeafoilBag
@@ -94,7 +96,7 @@ class SeafoilLog:
         self.logs = self.db.get_all_logs()
         return list_added
 
-    def add_seafoil_log(self, dirs_path):
+    def add_seafoil_log(self, dirs_path, process_ui=None):
         list_added = []
         for dir_path in dirs_path:
             is_added, db_id = self.sc.import_seafoil_log(dir_path)
@@ -102,7 +104,7 @@ class SeafoilLog:
                 list_added.append(db_id)
 
         for db_id in list_added:
-            self.process_log(db_id)
+            self.process_log(db_id, process_ui)
 
         self.logs = self.db.get_all_logs()
         return list_added
@@ -161,7 +163,7 @@ class SeafoilLog:
             return True
         return False
 
-    def process_log(self, db_id):
+    def process_log(self, db_id, process_ui_function=None):
         log = self.db.get_log(db_id)
         if log is None:
             return False
@@ -169,7 +171,11 @@ class SeafoilLog:
         try:
             # Process the log
             print("Processing log: " + file_path)
+            # Signal
             sfb = SeafoilBag(file_path)
+            if process_ui_function is not None:
+                sfb.signal_load_data.connect(process_ui_function)
+            sfb.load_data()
 
             # Update db with statistics from the log
             self.db.add_log_statistics(log['id'], sfb.get_statistics())

@@ -1,6 +1,8 @@
 #!/bin/python3
 import os
 
+from PyQt5.QtCore import pyqtSignal, QObject
+
 from .seafoil_data.seafoil_gps_fix import SeafoilGpsFix
 from .seafoil_data.seafoil_profile import SeafoilProfile
 from .seafoil_data.seafoil_log import SeafoilLog
@@ -18,13 +20,38 @@ from .seafoil_data.seafoil_wind_debug import SeafoilWindDebug
 from .seafoil_data.seafoil_gpx import SeafoilGpx
 from .tools.seafoil_statistics import SeafoilStatistics
 
+# import rosbag2_py
+
 import datetime
 import numpy as np
 
 import yaml
 
-class SeafoilBag():
-	def __init__(self, bag_path=None, offset_date=datetime.datetime(2019, 1, 1, 0, 0)):
+class SeafoilBag(QObject):
+	signal_load_data = pyqtSignal(int, str)
+
+	def __init__(self, bag_path=None,
+				 	   offset_date=datetime.datetime(2019, 1, 1, 0, 0)):
+		super().__init__()
+
+		self.gps_fix = None
+		self.profile = None
+		self.raw_data = None
+		self.calibrated_data = None
+		self.rpy = None
+		self.debug_fusion = None
+		self.battery = None
+		self.wind = None
+		self.wind_debug = None
+		self.height = None
+		self.height_debug = None
+		self.distance = None
+		self.manoeuvre = None
+		self.distance_gate = None
+		self.rosout = None
+		self.seafoil_id = None
+		self.statistics = None
+
 		if bag_path is None:
 			return
 		self.is_gpx = False
@@ -35,11 +62,15 @@ class SeafoilBag():
 			os.system(f"ros2 bag reindex {bag_path} -s 'mcap'")
 
 		self.file_path = bag_path
+		self.nb_topics_processed = 0
+
 		if self.is_gpx:
 			self.file_name = os.path.basename(bag_path)
+			self.nb_topics = 1
 		else:
 			# name of the last directory
 			self.file_name = os.path.basename(os.path.normpath(bag_path))
+			self.nb_topics = 15
 		self.offset_date = offset_date
 
 		self.data_folder = os.path.dirname(bag_path) + "/data/"
@@ -50,34 +81,38 @@ class SeafoilBag():
 		if not os.path.exists(self.data_folder):
 			os.makedirs(self.data_folder, exist_ok=True)
 
+	def load_data(self):
+		############## Load data ##############
+		self.nb_topics_processed = 0
+
 		# Driver
 		if self.is_gpx:
-			self.gps_fix = SeafoilGpx(bag_path, self.data_folder)
+			self.gps_fix = SeafoilGpx(self.file_path, self.data_folder)
 		else:
-			self.gps_fix = SeafoilGpsFix(bag_path, "/driver/fix", offset_date, self.data_folder)
-		self.profile = SeafoilProfile(bag_path, "/driver/profile", offset_date, self.data_folder)
-		self.raw_data = SeafoilRawData(bag_path, "/driver/raw_data", offset_date, self.data_folder)
-		self.calibrated_data = SeafoilRawData(bag_path, "/driver/calibrated_data", offset_date, self.data_folder)
-		self.rpy = SeafoilRPY(bag_path, "/driver/rpy", offset_date, self.data_folder)
+			self.gps_fix = SeafoilGpsFix("/driver/fix", self)
+		self.profile = SeafoilProfile("/driver/profile", self)
+		self.raw_data = SeafoilRawData("/driver/raw_data", self)
+		self.calibrated_data = SeafoilRawData("/driver/calibrated_data", self)
+		self.rpy = SeafoilRPY("/driver/rpy", self)
 		self.rpy.yaw = (self.rpy.yaw + 180) % 360
-		self.debug_fusion = SeafoilDebugFusion(bag_path, "/driver/debug_fusion", offset_date, self.data_folder)
-		self.battery = SeafoilBattery(bag_path, "/driver/battery", offset_date, self.data_folder)
-		self.wind = SeafoilWind(bag_path, "/driver/wind", offset_date, self.data_folder)
-		self.wind_debug = SeafoilWindDebug(bag_path, "/driver/wind_debug", offset_date, self.data_folder)
+		self.debug_fusion = SeafoilDebugFusion("/driver/debug_fusion", self)
+		self.battery = SeafoilBattery("/driver/battery", self)
+		self.wind = SeafoilWind("/driver/wind", self)
+		self.wind_debug = SeafoilWindDebug("/driver/wind_debug", self)
 
 		# Observer
-		self.height = SeafoilHeight(bag_path, "/observer/height", offset_date, self.data_folder)
-		self.height_debug = SeafoilHeightDebug(bag_path, "/observer/height_debug", offset_date, self.data_folder)
+		self.height = SeafoilHeight("/observer/height", self)
+		self.height_debug = SeafoilHeightDebug("/observer/height_debug", self)
 		if self.is_gpx:
 			self.distance = self.gps_fix
 		else:
-			self.distance = SeafoilDistance(bag_path, "/observer/distance", offset_date, self.data_folder)
-		self.manoeuvre = SeafoilManoeuvre(bag_path, "/observer/manoeuvre", offset_date, self.data_folder)
-		self.distance_gate = SeafoilDistanceGate(bag_path, "/observer/distance_gate", offset_date, self.data_folder)
+			self.distance = SeafoilDistance("/observer/distance", self)
+		self.manoeuvre = SeafoilManoeuvre("/observer/manoeuvre", self)
+		self.distance_gate = SeafoilDistanceGate("/observer/distance_gate", self)
 
 		# Info
-		# self.log = SeafoilLog(bag_path, "/rosout", offset_date, self.data_folder)
-		self.rosout = SeafoilLog(bag_path, "/rosout", offset_date, self.data_folder)
+		# self.log = SeafoilLog("/rosout", self)
+		self.rosout = SeafoilLog("/rosout", self)
 
 		# Get seafoil name
 		self.seafoil_id = ""
@@ -141,3 +176,27 @@ class SeafoilBag():
 
 	def get_ending_time_timestamp(self):
 		return self.gps_fix.ending_time.timestamp()
+
+	def emit_signal_process_topic(self, topic_name):
+		self.nb_topics_processed += 1
+		pourcentage = int(100 * self.nb_topics_processed / self.nb_topics)
+		self.signal_load_data.emit(pourcentage, "Loading " + topic_name)
+
+	# def get_number_of_topics_in_bag(self):
+	# 	# Initialize rosbag2 Reader
+	# 	serialization_format = 'cdr'
+	# 	storage_options = rosbag2_py.StorageOptions(uri=self.file_path)  # , storage_id='sqlite3'
+	# 	converter_options = rosbag2_py.ConverterOptions(
+	# 		input_serialization_format=serialization_format,
+	# 		output_serialization_format=serialization_format)
+	#
+	# 	reader = rosbag2_py.SequentialReader()
+	# 	reader.open(storage_options, converter_options)
+	#
+	# 	# Get the list of topics and types in the bag
+	# 	topics_info = reader.get_all_topics_and_types()
+	#
+	# 	# Get the number of unique topics
+	# 	number_of_topics = len(topics_info)
+	#
+	# 	return number_of_topics
