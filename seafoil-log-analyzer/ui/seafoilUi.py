@@ -662,6 +662,7 @@ class SeafoilUiRider(QtWidgets.QDialog):
         self.ui.tableWidget_rider.customContextMenuRequested.connect(self.show_context_menu)
 
     def update_ui_from_rider(self):
+        self.rider.update_lists()
         self.ui.tableWidget_rider.clear()
 
         # Set the number of columns and header
@@ -864,6 +865,8 @@ class SeafoilUi(QtWidgets.QMainWindow):
             self.seafoil_ui_equipment.update_ui_from_equipment()
         elif index == 3:
             self.seafoil_ui_configuration.update_ui_from_configuration()
+        elif index == 4:
+            self.seafoil_ui_rider.update_ui_from_rider()
 
     def closeEvent(self, event):
         self.closingPlugin.emit()

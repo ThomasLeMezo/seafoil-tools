@@ -661,9 +661,9 @@ class SeafoilDB:
         self.sqliteCursor.execute('''UPDATE seafoil_box_identification SET name = ? WHERE id = (SELECT id FROM seafoil_box_identification LIMIT 1)''', (name,))
         self.sqliteConnection.commit()
 
-    # Get all riders order by display order and then by first name
+    # Get all riders order by display order and then by first name, default rider first
     def get_rider_all(self):
-        self.sqliteCursor.execute('''SELECT * FROM rider ORDER BY display_order, first_name''')
+        self.sqliteCursor.execute('''SELECT * FROM rider ORDER BY is_default DESC, display_order, first_name''')
         return self.sqliteCursor.fetchall()
 
     # Get all riders order by display order and then by first name but with default rider first
