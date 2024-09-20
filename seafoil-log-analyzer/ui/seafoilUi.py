@@ -684,6 +684,9 @@ class SeafoilUiRider(QtWidgets.QDialog):
                 else:
                     self.ui.tableWidget_rider.setItem(i, j, QtWidgets.QTableWidgetItem(str(rider[key])))
 
+        # Auto resize columns
+        self.ui.tableWidget_rider.resizeColumnsToContents()
+
     def show_context_menu(self, position):
         # Create the context menu
         menu = QtWidgets.QMenu(self.ui.tableWidget_rider)
