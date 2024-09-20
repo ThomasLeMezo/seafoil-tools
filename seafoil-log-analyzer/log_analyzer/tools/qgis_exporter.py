@@ -50,7 +50,7 @@ class QgisExporter():
         features = []
         ms_to_knots = 1.94384
 
-        for i in range(len(seafoil_bag.gps_fix.longitude[:-1])):
+        for i in range(len(seafoil_bag.gps_fix.longitude[:-2])):
             feat = QgsFeature()
 
             # Test if latitude and longitude are the same as the next point

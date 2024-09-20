@@ -1,6 +1,8 @@
 import os
 import datetime
 
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont
 from qgis.PyQt import QtGui, QtWidgets, uic
 from qgis.PyQt.QtCore import QDate, pyqtSignal
 from qgis.PyQt.QtWidgets import QApplication, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QDialog, QLabel, \
@@ -728,6 +730,11 @@ class SeafoilUiBaseDeVitesse(QtWidgets.QDialog):
         # Set the dateEdit_bdv to the current date
         self.ui.dateEdit_bdv.setDate(QDate.currentDate())
 
+        # Connect comboBox_bdv_base_id to function on_base_id_changed
+        self.ui.comboBox_bdv_base_id.currentIndexChanged.connect(self.on_base_id_changed)
+
+        self.update_ui_from_base_de_vitesse()
+
     def on_refresh_clicked(self):
         # Disable the button
         self.ui.pushButton_bdv_refresh.setEnabled(False)
@@ -735,11 +742,11 @@ class SeafoilUiBaseDeVitesse(QtWidgets.QDialog):
 
         # Get the date of the dateEdit_bdv
         date = self.ui.dateEdit_bdv.date().toPyDate()
-        # Get base id
-        base_id = self.ui.spinBox_bdv_base_id.value()
+        # Get comboBox_bdv_base_id index
+        self.bdv.base_current_id = self.ui.comboBox_bdv_base_id.currentIndex()
 
         # Dowlnoad the session
-        ret = self.bdv.download_day_session(date, base_id)
+        ret = self.bdv.download_day_session(date)
         if ret is None:
             # Dialog box to inform no log was found
             msg = QtWidgets.QMessageBox()
@@ -753,7 +760,50 @@ class SeafoilUiBaseDeVitesse(QtWidgets.QDialog):
         # Enable the button
         self.ui.pushButton_bdv_refresh.setEnabled(True)
 
+    def on_base_id_changed(self):
+        # Get the index of the selected item
+        index = self.ui.comboBox_bdv_base_id.currentIndex()
+        if index == len(self.bdv.base_list):
+            msg = QtWidgets.QMessageBox()
+            # Update the list
+            if self.bdv.download_list_base():
+                msg.setIcon(QtWidgets.QMessageBox.Information)
+                msg.setText("The list was updated.")
+                msg.setWindowTitle("Information")
+            else:
+                msg.setIcon(QtWidgets.QMessageBox.Warning)
+                msg.setText("The list was not updated.")
+                msg.setWindowTitle("Warning")
+            msg.exec_()
+
+            self.update_ui_from_base_de_vitesse()
+        else:
+            self.bdv.base_current_id = index
+
     def update_ui_from_base_de_vitesse(self):
+        self.bdv.update()
+
+        # Update the base list
+        self.ui.comboBox_bdv_base_id.currentIndexChanged.disconnect(self.on_base_id_changed)
+        self.ui.comboBox_bdv_base_id.clear()
+        if len(self.bdv.base_list) > 0:
+            # disconnect the comboBox_bdv_base_id
+            for i, base in enumerate(self.bdv.base_list):
+                self.ui.comboBox_bdv_base_id.addItem(base['name'])
+
+            if self.bdv.base_current_id is not None:
+                self.ui.comboBox_bdv_base_id.setCurrentIndex(self.bdv.base_current_id)
+            else :
+                self.ui.comboBox_bdv_base_id.setCurrentIndex(0)
+                self.bdv.base_current_id = 0
+        # Add item "Update list" at the end of the list in italics to the comboBox_bdv_base_id
+        self.ui.comboBox_bdv_base_id.addItem("Update list")
+        font = QFont()
+        font.setItalic(True)
+        self.ui.comboBox_bdv_base_id.setItemData(len(self.bdv.base_list), font, Qt.FontRole)
+
+        self.ui.comboBox_bdv_base_id.currentIndexChanged.connect(self.on_base_id_changed)
+
         # Add items to the tableWidget_bdv
         self.ui.tableWidget_bdv.clear()
 
@@ -771,9 +821,6 @@ class SeafoilUiBaseDeVitesse(QtWidgets.QDialog):
 
         # Auto resize columns
         self.ui.tableWidget_bdv.resizeColumnsToContents()
-
-        # Update label_13_bdv_name with the name of the base
-        self.ui.label_13_bdv_name.setText(self.bdv.base_name)
 
     def on_download_gpx_clicked(self):
         # Set the button as disabled

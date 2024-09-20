@@ -126,6 +126,16 @@ class SeafoilDB:
             FOREIGN KEY (log) REFERENCES log(id)
         )''')
 
+        # Create table for session to log link
+        self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS session_log_link
+        (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session INTEGER,
+            log INTEGER,
+            FOREIGN KEY (session) REFERENCES session(id),
+            FOREIGN KEY (log) REFERENCES log(id)
+        )''')
+
         # Create table for session to log association
         self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS session_log_association
         (
@@ -520,6 +530,11 @@ class SeafoilDB:
         self.sqliteCursor.execute('''DELETE FROM session_log_association WHERE log = ?''', (id,))
         # Delete log
         self.sqliteCursor.execute('''DELETE FROM log WHERE id = ?''', (id,))
+        # Delete the log statistics (find the statistics id from the log) if it exists
+        self.sqliteCursor.execute('''SELECT statistics_id FROM log WHERE id = ?''', (id,))
+        statistics_id = self.sqliteCursor.fetchone()
+        if statistics_id:
+            self.sqliteCursor.execute('''DELETE FROM statistics WHERE id = ?''', (statistics_id['statistics_id'],))
         self.sqliteConnection.commit()
 
     # Get all logs downloaded add sport type (as water_sport) and rider and statistics and the id of the first session in session_log_link if it exists
@@ -870,7 +885,10 @@ class SeafoilDB:
         self.sqliteCursor.execute('''UPDATE log SET rider_id = (SELECT id FROM rider WHERE is_default = 1) WHERE id = ?''', (log_id,))
         self.sqliteConnection.commit()
 
-
+    # Get all base de vitesse
+    def get_base_all(self):
+        self.sqliteCursor.execute('''SELECT * FROM base_de_vitesse_identification''')
+        return self.sqliteCursor.fetchall()
 
 # Test the class
 if __name__ == '__main__':

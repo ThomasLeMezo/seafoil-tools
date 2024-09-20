@@ -69,7 +69,29 @@ class SeafoilStatistics:
         # Compute the max speed
         self.max_v500 = np.max(self.speed_v500)
         self.max_v1852 = np.max(self.speed_v1852)
-        self.max_speed = max(self.sfb.gps_fix.speed)
+
+        # Filter speed with at a minimum of one point every seconds
+        data = self.sfb.gps_fix
+        time_interp = np.arange(data.time[0], data.time[-1], 1)
+        # interpolate with mean
+        f_speed = interpolate.interp1d(data.time, data.speed, bounds_error=False, kind="linear")
+        speed = f_speed(time_interp)
+
+        ms_to_knot = 1.94384
+        # Filter the speed by max acceleration allowed
+        acceleration = np.diff(speed) / np.diff(time_interp)
+        acceleration = np.append(acceleration, 0)
+        # Create a mask where absolute acceleration is less than 3 knots/s^2
+        mask = np.abs(acceleration) > (3.0 / ms_to_knot)
+        # Apply a convolution to all True values
+        mask = np.convolve(mask, np.ones(5), mode='same')
+        # opposite mask
+        mask = np.logical_not(mask)
+
+        # interpolate mask on the original time
+        f_mask = interpolate.interp1d(time_interp, mask, bounds_error=False, kind="zero")
+        mask_interp = f_mask(data.time)
+        self.max_speed = max(data.speed*mask_interp)
 
     def save_statistics(self):
         # If folder does not exist, create it

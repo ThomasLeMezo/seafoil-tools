@@ -10,20 +10,33 @@ from device.seafoil_log import SeafoilLog
 
 class SeafoilBaseDeVitesse():
     def __init__(self):
-        self.url_day_session = 'https://basedevitesse.com/sessionsjour/'
-        self.url_user_session = 'https://basedevitesse.com/pageSession/'
+        self.url_default = "https://basedevitesse.com/"
+        self.url_day_session = self.url_default + 'sessionsjour/'
+        self.url_user_session = self.url_default + 'pageSession/'
+
 
         self.soup = None
         self.session_day = []
         self.session_day_header = []
-        self.base_name = None
+        self.base_current_id = None
+        self.base_list = []
 
         self.sc = SeafoilConnexion()
         self.sl = SeafoilLog()
 
-    def download_day_session(self, session_date, id_base=1):
+        self.update()
+
+    def update(self):
+        self.base_list = self.sl.db.get_base_all()
+
+    def download_day_session(self, session_date):
         # convert datime to string "2024-03-23" format
         date_str = session_date.strftime("%Y-%m-%d")
+
+        if self.base_current_id is None:
+            return None
+
+        id_base = self.base_list[self.base_current_id]['web_id']
 
         params = {
             'date': date_str,
@@ -131,6 +144,36 @@ class SeafoilBaseDeVitesse():
 
                 sucess_list.append(db_id)
         return sucess_list
+
+    def download_list_base(self):
+        try:
+            response = requests.get(self.url_default)
+            html = response.text
+
+            # Parse the HTML
+            soup = BeautifulSoup(html, 'html.parser')
+
+            # Find all links that contains "base="
+            links = soup.find_all('a', href=re.compile(r'\?base='))
+
+            # For all links extract the number after "base=" and the text
+            for link in links:
+                base_id = int(link.get('href').split('=')[1])
+                if base_id == 0:
+                    continue
+                base_name = link.get_text()
+                # remove the parenthesis and its content
+                base_name = re.sub(r'\(.*\)', '', base_name).strip()
+                self.sl.db.update_base_name(base_id, base_name)
+            self.update()
+            return True
+
+        except Exception as e:
+            print("Error: ", e)
+            return False
+
+
+
 
 # Test the class
 if __name__ == '__main__':

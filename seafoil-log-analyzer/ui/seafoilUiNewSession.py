@@ -38,7 +38,7 @@ class DictListModel(QAbstractListModel):
                 type_str = 'gpx'
 
             # return a string representation of the key
-            return str(val['name']) + ' - ' + type_str
+            return f"{val['rider_first_name']} {val['rider_last_name']} - {val['name']} - {type_str}"
 
     def roleNames(self):
         # Optional: Define custom roles if needed
