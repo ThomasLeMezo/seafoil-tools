@@ -108,7 +108,12 @@ class SeafoilUiLogTableWidget():
         menu.addSection(f"Selection of ({len(item)}) logs")
 
         # Display in qgis
-        qgis_action = menu.addAction(f"Show on map")
+        display_action = menu.addAction(f"Show on map")
+
+        # Compare logs
+        compare_action = None
+        if len(item) > 1:
+            compare_action = menu.addAction(f"Compare logs")
 
         # Process action
         process_action = menu.addAction(f"Reprocess log")
@@ -193,10 +198,14 @@ class SeafoilUiLogTableWidget():
                 first_name, last_name = dialog.get_inputs()
                 self.sl.db.update_rider(log['rider_id'], first_name, last_name)
                 self.update_ui_from_logs()
-        elif action == qgis_action:
+        elif action == display_action:
             for i in range(len(item)):
                 seafoil_bag, log = self.sl.get_seafoil_bag(int(item[i].text()))
                 self.seafoil_ui.qgis_log_list.append(QgisUiLog(seafoil_bag, log))
+        elif action == compare_action:
+            # Compare logs
+            logs = [int(i.text()) for i in item]
+            self.sl.open_seafoil_comp_bag(logs)
         else:
             # Find the sport type id
             sport_id = None

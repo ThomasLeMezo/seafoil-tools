@@ -99,6 +99,9 @@ class SeafoilNewSession():
     def add_log_to_list(self, db_id, is_associated=False):
         return self.sl.add_log_to_list(db_id, is_associated)
 
+    def get_log_index(self, index, is_associated=False):
+        return self.sl.get_log_index(index, is_associated)
+
     def remove_log(self, index, is_associated=False):
         return self.sl.remove_log_from_list(index, is_associated)
 

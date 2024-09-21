@@ -422,6 +422,8 @@ class DockAnalysis(SeafoilDock):
         # Example : x = data_gnss.speed, y = data_height.height, name_x = "speed", name_y = "height"
 
         # Interpolate data_y over data_x
+        data_y_time, idx = np.unique(data_y_time, return_index=True)
+        data_y = data_y[idx]
         f_y = interpolate.interp1d(data_y_time, data_y, bounds_error=False, kind="zero")
         y = f_y(data_x_time)
 
@@ -482,7 +484,7 @@ class DockAnalysis(SeafoilDock):
         edgecolors   = None
         antialiasing = False
         colormap = pg.ColorMap(pos=[0., 1.0],
-                                color=[(0, 0, 255, 100), (255, 255, 0, 100)],
+                                color=[(0, 0, 255, 0), (255, 255, 0, 100)],
                                 mapping=pg.ColorMap.CLIP)
         pcmi = pg.PColorMeshItem(edgecolors=edgecolors, antialiasing=antialiasing, colorMap=colormap)
         x_pcmi = np.outer((x_vect - x_resolution/2.) * x_unit_conversion, np.ones(int((y_max-y_min) / y_resolution)))
@@ -609,7 +611,7 @@ class DockAnalysis(SeafoilDock):
             pg_pitch_velocity.setXLink(pg_height_velocity)
 
     def add_heading_parameter(self):
-        dock_heading = Dock("Heading2")
+        dock_heading = Dock("Speed/Heading")
         self.addDock(dock_heading, position='below')
 
         data_gnss = copy.copy(self.sfb.gps_fix)

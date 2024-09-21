@@ -27,7 +27,7 @@ tags=python
 
 homepage=http://homepage
 category=Plugins
-icon=icon.png
+icon=qgis_seafoil_analyzer/icon.png
 # experimental flag
 experimental=True
 

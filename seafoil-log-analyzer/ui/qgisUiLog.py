@@ -26,6 +26,7 @@ from qgis.core import (
     QgsArrowSymbolLayer,
 )
 
+import numpy as np
 
 
 class QgisUiLog():
@@ -127,12 +128,13 @@ class QgisUiLog():
         # Create features and add them to the layer
         features = []
         ms_to_knots = 1.94384
-        for i in range(len(self.sb.gps_fix.longitude[:-3])):
+        for i in range(len(self.sb.statistics.speed_v500[:-1])):
             feat = QgsFeature()
 
             # Test if latitude and longitude are the same as the next point
             if (self.sb.gps_fix.longitude[i] == self.sb.gps_fix.longitude[i+1]
-                    and self.sb.gps_fix.latitude[i] == self.sb.gps_fix.latitude[i+1]):
+                    and self.sb.gps_fix.latitude[i] == self.sb.gps_fix.latitude[i+1])\
+                or np.isnan(self.sb.gps_fix.longitude[i]) or np.isnan(self.sb.gps_fix.latitude[i]):
                 continue
 
             # Create a line geometry from the list of coordinates

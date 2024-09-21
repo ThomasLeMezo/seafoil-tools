@@ -4,6 +4,11 @@ log_analyzer_path=$HOME/seafoil/seafoil-tools/seafoil-log-analyzer/
 
 cd $log_analyzer_path
 
-for entry in $@; do
-	python3 seafoil_log_launch.py $DIRECTORY/$entry
+PATH_TO_FILES=()
+# Construct the full paths and store them in an array
+for entry in "$@"; do
+ echo "$DIRECTORY/$entry"
+ PATH_TO_FILES+=("$DIRECTORY/$entry")  # Append each path to the array
 done
+
+python3 seafoil_log_launch.py "${PATH_TO_FILES[@]}"

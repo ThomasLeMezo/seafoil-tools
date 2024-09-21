@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/plugins/seafoil_analyzer" >
-        <file>icon.png</file>
+    <qresource prefix="/plugins/seafoil_analyzer/" >
+        <file>qgis_seafoil_analyzer/icon.png</file>
     </qresource>
 </RCC>

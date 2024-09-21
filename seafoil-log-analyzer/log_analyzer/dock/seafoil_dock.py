@@ -2,6 +2,7 @@
 
 import sys
 import pyqtgraph as pg
+from PyQt5.QtWidgets import QLabel
 from pyqtgraph.Qt import QtWidgets
 import pyqtgraph.console
 from pyqtgraph.dockarea import *
@@ -34,7 +35,7 @@ class SeafoilDock(DockArea):
         p.addItem(arrow)
 
     def add_label_with_text(self, dock, text):
-        label = QtGui.QLabel()
+        label = QLabel()
         label.setText(text)
         # label align center
         label.setAlignment(QtCore.Qt.AlignCenter)
@@ -46,7 +47,7 @@ class SeafoilDock(DockArea):
         dock.addWidget(label, row=dock.currentRow+1, col=0)
 
     def add_label_time(self, pg_list, starting_time, dock):
-        label_time = QtGui.QLabel()
+        label_time = QLabel()
         label_time.setText("Time")
         # label align center
         label_time.setAlignment(QtCore.Qt.AlignCenter)

@@ -127,6 +127,22 @@ class SeafoilLog:
         # Create new SeafoilLogAnalyser object
         return SeafoilBag(file_path), log
 
+    def get_seafoil_bag_from_index(self, index, is_associated=False):
+        if is_associated:
+            if 0 <= index < len(self.logs_associated):
+                return self.get_seafoil_bag(self.logs_associated[index]['id'])
+        else:
+            if 0 <= index < len(self.logs):
+                return self.get_seafoil_bag(self.logs[index]['id'])
+        return
+
+    def open_seafoil_comp_bag(self, db_ids):
+        file_paths = []
+        for db_id in db_ids:
+            log = self.db.get_log(db_id)
+            file_paths.append(self.sc.get_file_directory(log['id'], log['name']))
+        self.opended_log.append(SeafoilLogAnalyser(file_paths))
+
     def open_log_from_index(self, index, is_associated=False):
         if is_associated:
             if 0 <= index < len(self.logs_associated):
@@ -160,7 +176,7 @@ class SeafoilLog:
         return False
 
     def add_log_to_list(self, db_id, is_associated=False):
-        new_log = self.db.get_log(db_id)
+        new_log = self.db.get_log_by_id(db_id)
         if new_log:
             for log in (self.logs if is_associated else self.logs_associated):
                 if log['id'] == new_log['id']:
@@ -171,6 +187,15 @@ class SeafoilLog:
                 self.logs.append(new_log)
             return True
         return False
+
+    def get_log_index(self, index, is_associated=False):
+        if is_associated:
+            if 0 <= index < len(self.logs_associated):
+                return self.logs_associated[index]
+        else:
+            if 0 <= index < len(self.logs):
+                return self.logs[index]
+        return None
 
     def process_log(self, db_id, process_ui_function=None):
         log = self.db.get_log(db_id)

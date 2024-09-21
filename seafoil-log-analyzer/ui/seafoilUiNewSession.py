@@ -6,6 +6,7 @@ import os
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout
 from PyQt5.QtCore import QAbstractListModel, Qt, QDateTime
 
+from .qgisUiLog import QgisUiLog
 from ..device.seafoil_new_session import SeafoilNewSession
 from .seafoilUi import upload_gpx
 from .ui_utils import TwoFieldInputDialog
@@ -36,8 +37,11 @@ class DictListModel(QAbstractListModel):
             elif val['type'] == 1:
                 type_str = 'gpx'
 
+            rider = f"{val['rider_first_name']} {val['rider_last_name']}"
+            name = val['name']
+
             # return a string representation of the key
-            return f"{val['rider_first_name']} {val['rider_last_name']} - {val['name']} - {type_str}"
+            return f"{rider} - {name} - {type_str}"
 
     def roleNames(self):
         # Optional: Define custom roles if needed
@@ -261,6 +265,7 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
     def show_context_menu(self, position, is_associated=False):
         # Create the context menu
         menu = QtWidgets.QMenu(self)
+        display_action = menu.addAction("Display on map")
         remove_action = menu.addAction("Remove Item")
 
         # Execute the menu and get the selected action
@@ -268,6 +273,8 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
 
         if action == remove_action:
             self.remove_selected_item(is_associated)
+        elif action == display_action:
+            self.display_selected_item(is_associated)
 
     def remove_selected_item(self, is_associated=False):
         # Get the currently selected index
@@ -280,6 +287,16 @@ class SeafoilUiNewSession(QtWidgets.QDialog):
 
         # Update the model with the modified dictionary
         self.update_ui_from_configuration()
+
+    def display_selected_item(self, is_associated=False):
+        # Get the currently selected index
+        index = self.listView_log.currentIndex() if not is_associated else self.listView_log_associated.currentIndex()
+
+        if not index.isValid():
+            return
+        else:
+            seafoil_bag, log = self.sns.sl.get_seafoil_bag_from_index(index.row(), is_associated)
+            QgisUiLog(seafoil_bag, log) # Create a new QgisUiLog object
 
     def update_log_list(self):
         # Clear the list view

@@ -55,6 +55,8 @@ class SeafoilBag(QObject):
 		if bag_path is None:
 			print("No bag path")
 			return
+		else:
+			print("Opening bag path: ", bag_path)
 		self.is_gpx = False
 
 		if bag_path.endswith('.gpx'):

@@ -19,6 +19,7 @@ from .dock.dock_gnss import DockGnss
 from .dock.dock_observer import DockDataObserver
 from .dock.dock_analysis import DockAnalysis
 from .dock.dock_fusion_analysis import DockFusionAnalysis
+from .dock.dock_comparison import DockComparison
 
 
 class Worker(QObject):
@@ -27,6 +28,7 @@ class Worker(QObject):
     def __init__(self):
         super().__init__()
         self.sfb = None
+        self.list_sfb_comp = []
 
     def __del__(self):
         # Delete the SeafoilBag object
@@ -39,8 +41,21 @@ class Worker(QObject):
         self.data_loaded.emit("Loading data")
         QApplication.processEvents()
 
-        self.sfb = SeafoilBag(filepath, offset_date)
+        # Test if filepath is a list
+        if not isinstance(filepath, typing.List):
+            filepath = [filepath]
+            print("Filepath is not a list")
+
+        self.sfb = SeafoilBag(filepath[0], offset_date)
         self.sfb.load_data()
+        self.list_sfb_comp.append(self.sfb)
+
+        if len(filepath) > 1:
+            for path in filepath[1:]:
+                QApplication.processEvents()
+                sfb = SeafoilBag(path, offset_date)
+                sfb.load_data()
+                self.list_sfb_comp.append(sfb)
 
         tab = QtWidgets.QTabWidget()
 
@@ -56,16 +71,23 @@ class Worker(QObject):
         dock_log = DockLog(self.sfb, tab)
         self.data_loaded.emit("Dock Log loaded")
 
-        data_gnss = DockGnss(self.sfb, tab, win)
+        dock_gnss = DockGnss(self.sfb, tab, win)
         self.data_loaded.emit("Dock GNSS loaded")
 
-        data_analysis = DockAnalysis(self.sfb, tab, win)
+        dock_analysis = DockAnalysis(self.sfb, tab, win)
         self.data_loaded.emit("Dock Analysis loaded")
 
-        data_fusion_analysis = DockFusionAnalysis(self.sfb, tab, data_analysis)
+        dock_fusion_analysis = DockFusionAnalysis(self.sfb, tab, dock_analysis)
         self.data_loaded.emit("Dock Fusion Analysis loaded")
 
-        tab.setCurrentWidget(data_analysis)
+        dock_comparison = None
+        if len(self.list_sfb_comp) > 0:
+            dock_comparison = DockComparison(self.sfb, tab, win, self.list_sfb_comp)
+
+        if len(self.list_sfb_comp) > 0:
+            tab.setCurrentWidget(dock_comparison)
+        else:
+            tab.setCurrentWidget(dock_fusion_analysis)
 
         win.setWindowTitle("log - " + self.sfb.file_path)
         win.setCentralWidget(tab)

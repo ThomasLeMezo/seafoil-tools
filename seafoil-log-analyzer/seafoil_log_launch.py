@@ -7,14 +7,18 @@ from log_analyzer.seafoil_log_analyzer import SeafoilLogAnalyser
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     if len(sys.argv)>1:
-        filename = sys.argv[1]
-        offset_date = None
+        filename = []
+        for i in range(1, len(sys.argv)):
+            # Add to filename list
+            filename.append(sys.argv[i])
+        print("filenames = ", filename)
 
-        if len(sys.argv)>2:
-            import datetime
-            offset_date = datetime.datetime.strptime(sys.argv[2], "%Y-%m-%dT%H:%M:%S")
+        # offset_date = None
+        # if len(sys.argv)>2:
+        #     import datetime
+        #     offset_date = datetime.datetime.strptime(sys.argv[2], "%Y-%m-%dT%H:%M:%S")
 
-        sla = SeafoilLogAnalyser(filename, offset_date)
+        sla = SeafoilLogAnalyser(filename, None)
         sys.exit(app.exec_())
     else:
         print("Usage: seafoil_log <folderpath/filename> [offset_date]")
