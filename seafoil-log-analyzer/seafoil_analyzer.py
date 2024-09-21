@@ -167,12 +167,15 @@ class Seafoil:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
-        icon_path = ':/plugins/seafoil_analyzer/qgis_seafoil_analyzer/icon.png'
+        icon_path = ':/plugins/seafoil-log-analyzer/qgis_seafoil_analyzer/icon.png'
         self.add_action(
             icon_path,
             text=self.tr(u''),
             callback=self.run,
             parent=self.iface.mainWindow())
+
+        # Autoload the plugin at startup
+        # self.run()
 
     #--------------------------------------------------------------------------
 
@@ -221,12 +224,11 @@ class Seafoil:
             #    removed on close (see self.onClosePlugin method)
             if self.dockwidget == None:
                 # Create the dockwidget (after translation) and keep reference
-                self.dockwidget = SeafoilUi()
+                self.dockwidget = SeafoilUi(self.iface)
 
             # connect to provide cleanup on closing of dockwidget
             self.dockwidget.closingPlugin.connect(self.onClosePlugin)
 
             # show the dockwidget
-            # TODO: fix to allow choice of dock location
             self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dockwidget)
             self.dockwidget.show()

@@ -626,7 +626,7 @@ class SeafoilUiLog(QtWidgets.QDialog):
         # Connect pushButton_upload_gpx to function on_upload_gpx_clicked
         self.ui.pushButton_upload_gpx.clicked.connect(self.on_upload_gpx_clicked)
 
-        self.seafoil_log_table_widget = SeafoilUiLogTableWidget(self.ui.tableWidget_logs, self.sl, True, True)
+        self.seafoil_log_table_widget = SeafoilUiLogTableWidget(self.seafoil_ui, self.ui.tableWidget_logs, self.sl, True, True)
 
         # Connect pushButton_upload_log to function on_upload_log_clicked
         self.ui.pushButton_upload_log.clicked.connect(self.on_upload_log_clicked)
@@ -861,8 +861,11 @@ class SeafoilUi(QtWidgets.QDockWidget):
 
     closingPlugin = pyqtSignal()
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, iface=None):
+        super().__init__()
+
+        self.iface = iface
+        self.qgis_log_list = []
 
         # Get directory of the current file
         self.seafoil_directory = os.path.realpath(os.path.dirname(os.path.abspath(__file__)) + "/..")

@@ -1,12 +1,17 @@
 # load a gpx file
-
+import re
 import sys
 import numpy as np
 import datetime
 from .seafoil_data import SeafoilData
 import gpxpy
 import gpxpy.gpx
-from ...device.seafoil_connexion import correction_of_malformed_gpx
+
+def correction_of_malformed_gpx(gpx_file_content):
+    # remplace balise of the form *:* by *_* in the gpx file (only with letters around)
+    gpx_file_content = re.sub(r'([a-zA-Z]):([a-zA-Z])', r'\1_\2', gpx_file_content)
+
+    return gpx_file_content
 
 class SeafoilGpx(SeafoilData):
     def __init__(self, gpx_file_name="", data_folder=None):

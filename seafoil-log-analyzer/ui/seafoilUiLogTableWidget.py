@@ -7,10 +7,12 @@ from PyQt5.QtWidgets import QDialog, QApplication
 from ..device.seafoil_log import SeafoilLog
 from .seafoilUiProcess import SeafoilUiProcess
 from .ui_utils import TwoFieldInputDialog
+from .qgisUiLog import QgisUiLog
 
 
 class SeafoilUiLogTableWidget():
-    def __init__(self, tablewidget, seafoil_log, enable_open=True, enable_remove=True):
+    def __init__(self, seafoil_ui, tablewidget, seafoil_log, enable_open=True, enable_remove=True):
+        self.seafoil_ui = seafoil_ui
         self.tablewidget = tablewidget
         self.sl = seafoil_log
 
@@ -105,6 +107,9 @@ class SeafoilUiLogTableWidget():
         # Add a Section to the menu
         menu.addSection(f"Selection of ({len(item)}) logs")
 
+        # Display in qgis
+        qgis_action = menu.addAction(f"Show on map")
+
         # Process action
         process_action = menu.addAction(f"Reprocess log")
 
@@ -188,6 +193,10 @@ class SeafoilUiLogTableWidget():
                 first_name, last_name = dialog.get_inputs()
                 self.sl.db.update_rider(log['rider_id'], first_name, last_name)
                 self.update_ui_from_logs()
+        elif action == qgis_action:
+            for i in range(len(item)):
+                seafoil_bag, log = self.sl.get_seafoil_bag(int(item[i].text()))
+                self.seafoil_ui.qgis_log_list.append(QgisUiLog(seafoil_bag, log))
         else:
             # Find the sport type id
             sport_id = None

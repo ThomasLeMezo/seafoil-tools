@@ -22,12 +22,13 @@ class SeafoilStatistics:
         self.pitch_2s = None
         self.height_2s = None
 
-        self.file_save = self.sfb.data_folder + "/statistics.npz"
+        self.file_save = self.sfb.data_folder + "statistics.npz"
 
         self.open_statistics()
 
     def open_statistics(self):
         try:
+            print("Open statistics file: ", self.file_save)
             data = np.load(self.file_save)
             self.speed_v500 = data['speed_v500']
             self.speed_v1852 = data['speed_v1852']
@@ -39,6 +40,7 @@ class SeafoilStatistics:
             if 'pitch_2s' in data.files:
                 self.pitch_2s = data['pitch_2s']
             data.close()
+            print("Statistics file loaded")
         except:
             print("No statistics file found, creating a new one")
             self.speed_v500 = self.compute_speed_for_distance(self.sfb.distance, 500)
@@ -98,12 +100,19 @@ class SeafoilStatistics:
         if not os.path.exists(os.path.dirname(self.file_save)):
             os.makedirs(os.path.dirname(self.file_save))
 
-        np.savez(self.file_save, speed_v500=self.speed_v500,
+        if self.height_2s is not None and self.roll_2s is not None and self.pitch_2s is not None:
+            np.savez(self.file_save, speed_v500=self.speed_v500,
                                  speed_v1852=self.speed_v1852,
                                  time=self.time,
                                  height_2s=self.height_2s,
                                  roll_2s=self.roll_2s,
-                                 pitch_2s=self.pitch_2s)
+                                 pitch_2s=self.pitch_2s
+                    )
+        else:
+            np.savez(self.file_save, speed_v500=self.speed_v500,
+                                 speed_v1852=self.speed_v1852,
+                                 time=self.time
+                    )
         # Only if the file is not a gpx file
         if not self.sfb.is_gpx:
             self.save_gpx()

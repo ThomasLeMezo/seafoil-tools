@@ -32,14 +32,5 @@ def classFactory(iface):  # pylint: disable=invalid-name
     :type iface: QgsInterface
     """
 
-    # Add to the plugin directory the path to ros package
-    import os
-    import sys
-    sys.path.append(os.path.dirname(__file__))
-
-
     from .seafoil_analyzer import Seafoil
     return Seafoil(iface)
-
-    #from .ui.seafoilUi import SeafoilUi
-    #return SeafoilUi(iface)

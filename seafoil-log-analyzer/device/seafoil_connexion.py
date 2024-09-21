@@ -10,11 +10,7 @@ from ..db.seafoil_db import SeafoilDB
 from enum import IntEnum
 import re
 
-def correction_of_malformed_gpx(gpx_file_content):
-    # remplace balise of the form *:* by *_* in the gpx file (only with letters around)
-    gpx_file_content = re.sub(r'([a-zA-Z]):([a-zA-Z])', r'\1_\2', gpx_file_content)
-
-    return gpx_file_content
+from ..log_analyzer import correction_of_malformed_gpx
 
 class StateConnexion(IntEnum):
     Disconnected = 0
@@ -49,7 +45,7 @@ class SeafoilConnexion(QObject):
 
         # project folder is one level above the current file (and simplify the path)
         self.projet_folder = self.db.projet_folder
-        self.log_folder = self.projet_folder + '/data/log/'
+        self.log_folder = self.projet_folder + '/log/'
 
         self.stored_log_list = []
 

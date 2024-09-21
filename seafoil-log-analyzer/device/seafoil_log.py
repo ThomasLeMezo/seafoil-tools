@@ -118,6 +118,15 @@ class SeafoilLog:
         # Create new SeafoilLogAnalyser object
         self.opended_log.append(SeafoilLogAnalyser(file_path))
 
+    def get_seafoil_bag(self, db_id):
+        log = self.db.get_log_by_id(db_id)
+
+        file_path = self.sc.get_file_directory(log['id'], log['name'])
+        print(file_path)
+
+        # Create new SeafoilLogAnalyser object
+        return SeafoilBag(file_path), log
+
     def open_log_from_index(self, index, is_associated=False):
         if is_associated:
             if 0 <= index < len(self.logs_associated):

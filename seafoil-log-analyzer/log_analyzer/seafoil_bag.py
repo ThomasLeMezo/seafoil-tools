@@ -53,6 +53,7 @@ class SeafoilBag(QObject):
 		self.statistics = None
 
 		if bag_path is None:
+			print("No bag path")
 			return
 		self.is_gpx = False
 
@@ -116,11 +117,6 @@ class SeafoilBag(QObject):
 
 		# Get seafoil name
 		self.seafoil_id = ""
-		# idx = np.where(self.log_parameter.param_name == "/hostname")
-		# if len(idx) > 0:
-		# 	if len(self.log_parameter.value[idx[0]]) > 0:
-		# 		self.seafoil_id = str(self.log_parameter.value[idx[0]][0].string_value)
-		# print("Seafoil id: " + self.seafoil_id)
 
 		if not self.load_configurations():
 			# Save a default configuration file
@@ -133,6 +129,8 @@ class SeafoilBag(QObject):
 
 		# Statistics
 		self.statistics = SeafoilStatistics(self)
+
+		print("Data loaded")
 
 	def __del__(self):
 		self.save_configuration()
@@ -149,6 +147,11 @@ class SeafoilBag(QObject):
 		if os.path.exists(self.configuration_file_name):
 			with open(self.configuration_file_name, 'r') as file:
 				self.configuration = yaml.load(file, Loader=yaml.FullLoader)
+
+				# Test if key "analysis" exists
+				if "analysis" not in self.configuration:
+					# Create the key "analysis"
+					self.configuration["analysis"] = {"wind_heading": 0}
 			return True
 		else:
 			return False

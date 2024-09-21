@@ -544,6 +544,20 @@ class SeafoilDB:
             self.sqliteCursor.execute('''DELETE FROM statistics WHERE id = ?''', (statistics_id['statistics_id'],))
         self.sqliteConnection.commit()
 
+    # Get log with statistics and rider and sport type
+    def get_log_by_id(self, id):
+        self.sqliteCursor.execute('''SELECT log.*,
+                                            statistics.*,
+                                            water_sport_type.name as water_sport,
+                                            rider.first_name as rider_first_name,
+                                            rider.last_name as rider_last_name
+                                            FROM log
+                                            LEFT JOIN water_sport_type ON log.water_sport_type = water_sport_type.id
+                                            LEFT JOIN rider ON log.rider_id = rider.id
+                                            LEFT JOIN statistics ON log.statistics_id = statistics.id
+                                            WHERE log.id = ?''', (id,))
+        return self.sqliteCursor.fetchone()
+
     # Get all logs downloaded add sport type (as water_sport) and rider and statistics and the id of the first session in session_log_link if it exists
     def get_all_logs(self):
         self.sqliteCursor.execute('''SELECT log.*,
