@@ -8,16 +8,15 @@ from qgis.PyQt.QtCore import QDate, pyqtSignal
 from qgis.PyQt.QtWidgets import QApplication, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QDialog, QLabel, \
     QLineEdit, QHBoxLayout, QPushButton
 
-from device.seafoil_configuration import SeafoilConfiguration
-from device.seafoil_equipement import SeafoilEquipement
-from device.seafoil_rider import SeafoilRider
-from device.seafoil_session import SeafoilSession
-from device.seafoil_log import SeafoilLog
-from device.seafoil_git import SeafoilGit
-from device.base_de_vitesse import SeafoilBaseDeVitesse
-from ui.seafoilUiLogTableWidget import SeafoilUiLogTableWidget
-from ui.seafoilUiProcess import SeafoilUiProcess
-
+from ..device.seafoil_configuration import SeafoilConfiguration
+from ..device.seafoil_equipement import SeafoilEquipement
+from ..device.seafoil_rider import SeafoilRider
+from ..device.seafoil_session import SeafoilSession
+from ..device.seafoil_log import SeafoilLog
+from ..device.seafoil_git import SeafoilGit
+from ..device.base_de_vitesse import SeafoilBaseDeVitesse
+from .seafoilUiLogTableWidget import SeafoilUiLogTableWidget
+from .seafoilUiProcess import SeafoilUiProcess
 
 def upload_gpx(object, sl):
     # Open file dialog to select one or more gpx files
@@ -231,8 +230,8 @@ def new_equipment_dialog_box(ui, se, category, item_index, is_new):
     else:
         return False
 
-from ui.seafoilUiNewSession import SeafoilUiNewSession
-from ui.seafoilUiDownload import SeafoilUiDownload
+from .seafoilUiNewSession import SeafoilUiNewSession
+from .seafoilUiDownload import SeafoilUiDownload
 
 class SeafoilUiConfiguration:
 
@@ -858,7 +857,7 @@ class SeafoilUiBaseDeVitesse(QtWidgets.QDialog):
         # Enable the button
         self.ui.pushButton_download_gpx.setEnabled(True)
 
-class SeafoilUi(QtWidgets.QMainWindow):
+class SeafoilUi(QtWidgets.QDockWidget):
 
     closingPlugin = pyqtSignal()
 
@@ -867,7 +866,7 @@ class SeafoilUi(QtWidgets.QMainWindow):
 
         # Get directory of the current file
         self.seafoil_directory = os.path.realpath(os.path.dirname(os.path.abspath(__file__)) + "/..")
-        self.ui = uic.loadUi(self.seafoil_directory + '/ui/main_window.ui', self)
+        self.ui = uic.loadUi(self.seafoil_directory + '/ui/main_dockwidget.ui', self)
         self.sg = SeafoilGit()
 
         self.seafoil_ui_configuration = SeafoilUiConfiguration(self, self.ui)
@@ -881,7 +880,7 @@ class SeafoilUi(QtWidgets.QMainWindow):
         self.ui.tabWidget.currentChanged.connect(self.on_tabWidget_changed)
 
         # connect menu action actionMise_jour to function on_actionMise_jour_triggered
-        self.ui.actionMise_jour.triggered.connect(self.update_git)
+        #self.ui.actionMise_jour.triggered.connect(self.update_git)
 
     def update_git(self):
         # Get the current tag

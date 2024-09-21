@@ -1,7 +1,5 @@
 import subprocess, os
-from db.seafoil_db import SeafoilDB
-import yaml
-from device.seafoil_connexion import SeafoilConnexion
+from ..db.seafoil_db import SeafoilDB
 
 # class to manage the yaml configuration file of the seafoil box
 class SeafoilEquipement():

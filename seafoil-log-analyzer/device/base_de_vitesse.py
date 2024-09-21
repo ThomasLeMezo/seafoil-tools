@@ -4,8 +4,8 @@ import re
 import json
 import datetime
 
-from device.seafoil_connexion import SeafoilConnexion
-from device.seafoil_log import SeafoilLog
+from .seafoil_connexion import SeafoilConnexion
+from .seafoil_log import SeafoilLog
 
 
 class SeafoilBaseDeVitesse():

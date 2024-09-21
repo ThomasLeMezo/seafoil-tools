@@ -4,9 +4,9 @@ from PyQt5 import QtWidgets
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QDialog, QApplication
 
-from device.seafoil_log import SeafoilLog
-from ui.seafoilUiProcess import SeafoilUiProcess
-from ui.ui_utils import TwoFieldInputDialog
+from ..device.seafoil_log import SeafoilLog
+from .seafoilUiProcess import SeafoilUiProcess
+from .ui_utils import TwoFieldInputDialog
 
 
 class SeafoilUiLogTableWidget():

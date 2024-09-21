@@ -6,7 +6,7 @@ import os
 from PyQt5.QtCore import pyqtSignal, QObject
 from scp import SCPClient
 import yaml
-from db.seafoil_db import SeafoilDB
+from ..db.seafoil_db import SeafoilDB
 from enum import IntEnum
 import re
 
@@ -15,8 +15,6 @@ def correction_of_malformed_gpx(gpx_file_content):
     gpx_file_content = re.sub(r'([a-zA-Z]):([a-zA-Z])', r'\1_\2', gpx_file_content)
 
     return gpx_file_content
-
-
 
 class StateConnexion(IntEnum):
     Disconnected = 0
@@ -50,7 +48,7 @@ class SeafoilConnexion(QObject):
         self.is_connected = False
 
         # project folder is one level above the current file (and simplify the path)
-        self.projet_folder = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '/../')
+        self.projet_folder = self.db.projet_folder
         self.log_folder = self.projet_folder + '/data/log/'
 
         self.stored_log_list = []

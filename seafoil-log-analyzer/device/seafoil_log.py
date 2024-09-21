@@ -3,10 +3,10 @@ import threading
 
 from PyQt5.QtCore import pyqtSignal
 
-from db.seafoil_db import SeafoilDB
-from device.seafoil_connexion import SeafoilConnexion
-from log_analyzer import SeafoilBag
-from log_analyzer import SeafoilLogAnalyser
+from ..db.seafoil_db import SeafoilDB
+from .seafoil_connexion import SeafoilConnexion
+from ..log_analyzer import SeafoilBag
+from ..log_analyzer import SeafoilLogAnalyser
 
 # class to manage the sessions
 class SeafoilLog:

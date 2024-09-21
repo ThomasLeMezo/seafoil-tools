@@ -4,11 +4,17 @@ import time
 from datetime import datetime, timedelta
 
 class SeafoilDB:
-    db_name = 'data/seafoil.db'
-    sqliteConnection = None
-    sqliteCursor = None
 
     def __init__(self):
+        # Get home folder
+        home_folder = os.path.expanduser("~")
+        self.projet_folder = home_folder + "/seafoil_data"
+        self.db_name = self.projet_folder + '/seafoil.db'
+
+        # Create folder if it does not exist
+        if not os.path.exists(self.projet_folder):
+            os.makedirs(self.projet_folder, exist_ok=True)
+
         # Test if the databse file exist
         exists = os.path.exists(self.db_name)
 
@@ -18,7 +24,8 @@ class SeafoilDB:
 
         if not exists:
             print("Create new DB")
-        self.create_db()
+            self.create_db()
+
 
     # Create the db
     def create_db(self):

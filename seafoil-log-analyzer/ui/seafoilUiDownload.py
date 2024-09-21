@@ -6,12 +6,12 @@ from PyQt5.QtWidgets import QListWidgetItem, QMessageBox, QApplication
 from PyQt5.QtCore import QAbstractListModel, Qt, QThread, QTimer, pyqtSignal
 from PyQt5 import QtCore
 
-from device.seafoil_connexion import SeafoilConnexion
-from device.seafoil_connexion import StateConnexion
-from device.seafoil_log import SeafoilLog
-from device.seafoil_new_session import SeafoilNewSession
+from ..device.seafoil_connexion import SeafoilConnexion
+from ..device.seafoil_connexion import StateConnexion
+from ..device.seafoil_log import SeafoilLog
+from ..device.seafoil_new_session import SeafoilNewSession
 
-from ui.seafoilUiProcess import SeafoilUiProcess
+from .seafoilUiProcess import SeafoilUiProcess
 
 class WorkerThread(QThread):
     # Define a signal to communicate with the main thread

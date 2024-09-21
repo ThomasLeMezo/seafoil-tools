@@ -4,14 +4,13 @@ from PyQt5 import QtWidgets, uic
 import os
 
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout
-
-from device.seafoil_new_session import SeafoilNewSession
 from PyQt5.QtCore import QAbstractListModel, Qt, QDateTime
 
-from ui.seafoilUi import upload_gpx
-from ui.ui_utils import TwoFieldInputDialog
-from ui.seafoilUiDownload import SeafoilUiDownload
-from ui.seafoilUiSearchLog import SeafoilUiSearchLog
+from ..device.seafoil_new_session import SeafoilNewSession
+from .seafoilUi import upload_gpx
+from .ui_utils import TwoFieldInputDialog
+from .seafoilUiDownload import SeafoilUiDownload
+from .seafoilUiSearchLog import SeafoilUiSearchLog
 
 
 # Custom Model Class Based on a Dictionary

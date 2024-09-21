@@ -6,7 +6,7 @@ import datetime
 from .seafoil_data import SeafoilData
 import gpxpy
 import gpxpy.gpx
-from device.seafoil_connexion import correction_of_malformed_gpx
+from ...device.seafoil_connexion import correction_of_malformed_gpx
 
 class SeafoilGpx(SeafoilData):
     def __init__(self, gpx_file_name="", data_folder=None):

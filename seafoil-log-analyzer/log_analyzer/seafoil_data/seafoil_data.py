@@ -1,13 +1,12 @@
 #!/bin/python3
 
 import sqlite3
-
-from rosidl_runtime_py.utilities import get_message
 from rclpy.serialization import deserialize_message
 import rosbag2_py
 import numpy as np
 import datetime
 import os
+from rosidl_runtime_py.utilities import get_message
 
 
 class SeafoilData(object):

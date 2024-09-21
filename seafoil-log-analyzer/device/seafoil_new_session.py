@@ -1,9 +1,9 @@
 import datetime
 import subprocess, os
-from db.seafoil_db import SeafoilDB
-from device.seafoil_connexion import SeafoilConnexion
-from device.seafoil_equipement import SeafoilEquipement
-from device.seafoil_log import SeafoilLog
+from ..db.seafoil_db import SeafoilDB
+from .seafoil_connexion import SeafoilConnexion
+from .seafoil_equipement import SeafoilEquipement
+from .seafoil_log import SeafoilLog
 
 # class to manage the sessions
 class SeafoilNewSession():

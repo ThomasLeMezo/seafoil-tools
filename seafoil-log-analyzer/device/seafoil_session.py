@@ -1,5 +1,5 @@
 import subprocess, os
-from db.seafoil_db import SeafoilDB
+from ..db.seafoil_db import SeafoilDB
 
 # class to manage the sessions
 class SeafoilSession():

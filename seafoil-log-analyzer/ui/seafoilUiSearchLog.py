@@ -4,8 +4,8 @@ import os
 
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout
 
-from device.seafoil_log import SeafoilLog
-from ui.seafoilUiLogTableWidget import SeafoilUiLogTableWidget
+from ..device.seafoil_log import SeafoilLog
+from .seafoilUiLogTableWidget import SeafoilUiLogTableWidget
 
 
 class SeafoilUiSearchLog(QtWidgets.QDialog):

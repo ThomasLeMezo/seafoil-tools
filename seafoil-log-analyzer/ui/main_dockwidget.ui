@@ -1,0 +1,618 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+    <class>QDockWidget</class>
+    <widget class="QDockWidget" name="DockWidget">
+        <property name="geometry">
+            <rect>
+                <x>0</x>
+                <y>0</y>
+                <width>960</width>
+                <height>734</height>
+            </rect>
+        </property>
+        <property name="windowTitle">
+            <string>Seafoil</string>
+        </property>
+        <widget class="QWidget" name="centralwidget">
+            <layout class="QHBoxLayout" name="horizontalLayout">
+                <item>
+                    <widget class="QTabWidget" name="tabWidget">
+                        <property name="currentIndex">
+                            <number>0</number>
+                        </property>
+                        <widget class="QWidget" name="tab_session">
+                            <property name="maximumSize">
+                                <size>
+                                    <width>16777215</width>
+                                    <height>16777215</height>
+                                </size>
+                            </property>
+                            <attribute name="title">
+                                <string>Session</string>
+                            </attribute>
+                            <layout class="QVBoxLayout" name="verticalLayout_3">
+                                <item>
+                                    <widget class="QPushButton" name="pushButton_new_session">
+                                        <property name="text">
+                                            <string>Nouvelle Session</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item>
+                                    <widget class="QTableWidget" name="tableWidget_sessions">
+                                        <property name="enabled">
+                                            <bool>true</bool>
+                                        </property>
+                                        <property name="sizePolicy">
+                                            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                                                <horstretch>0</horstretch>
+                                                <verstretch>0</verstretch>
+                                            </sizepolicy>
+                                        </property>
+                                        <property name="minimumSize">
+                                            <size>
+                                                <width>100</width>
+                                                <height>100</height>
+                                            </size>
+                                        </property>
+                                        <property name="maximumSize">
+                                            <size>
+                                                <width>16777215</width>
+                                                <height>16777215</height>
+                                            </size>
+                                        </property>
+                                        <property name="editTriggers">
+                                            <set>QAbstractItemView::NoEditTriggers</set>
+                                        </property>
+                                        <property name="selectionBehavior">
+                                            <enum>QAbstractItemView::SelectRows</enum>
+                                        </property>
+                                        <property name="showGrid">
+                                            <bool>false</bool>
+                                        </property>
+                                        <property name="gridStyle">
+                                            <enum>Qt::SolidLine</enum>
+                                        </property>
+                                        <property name="sortingEnabled">
+                                            <bool>true</bool>
+                                        </property>
+                                        <property name="rowCount">
+                                            <number>3</number>
+                                        </property>
+                                        <property name="columnCount">
+                                            <number>2</number>
+                                        </property>
+                                        <attribute name="horizontalHeaderVisible">
+                                            <bool>true</bool>
+                                        </attribute>
+                                        <attribute name="horizontalHeaderHighlightSections">
+                                            <bool>true</bool>
+                                        </attribute>
+                                        <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+                                            <bool>true</bool>
+                                        </attribute>
+                                        <attribute name="verticalHeaderVisible">
+                                            <bool>false</bool>
+                                        </attribute>
+                                        <attribute name="verticalHeaderHighlightSections">
+                                            <bool>true</bool>
+                                        </attribute>
+                                        <attribute name="verticalHeaderShowSortIndicator" stdset="0">
+                                            <bool>false</bool>
+                                        </attribute>
+                                        <row/>
+                                        <row/>
+                                        <row/>
+                                        <column/>
+                                        <column/>
+                                    </widget>
+                                </item>
+                            </layout>
+                        </widget>
+                        <widget class="QWidget" name="tab_log">
+                            <attribute name="title">
+                                <string>Log</string>
+                            </attribute>
+                            <layout class="QVBoxLayout" name="verticalLayout">
+                                <item>
+                                    <widget class="QPushButton" name="pushButton_upload_gpx">
+                                        <property name="text">
+                                            <string>Ajouter gpx</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item>
+                                    <widget class="QPushButton" name="pushButton_upload_log">
+                                        <property name="text">
+                                            <string>Télécharger log boitier</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item>
+                                    <widget class="QPushButton" name="pushButton_import_log">
+                                        <property name="enabled">
+                                            <bool>true</bool>
+                                        </property>
+                                        <property name="text">
+                                            <string>Importer un log boitier</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item>
+                                    <widget class="QTableWidget" name="tableWidget_logs">
+                                        <property name="enabled">
+                                            <bool>true</bool>
+                                        </property>
+                                        <property name="sizePolicy">
+                                            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                                                <horstretch>0</horstretch>
+                                                <verstretch>0</verstretch>
+                                            </sizepolicy>
+                                        </property>
+                                        <property name="minimumSize">
+                                            <size>
+                                                <width>100</width>
+                                                <height>100</height>
+                                            </size>
+                                        </property>
+                                        <property name="maximumSize">
+                                            <size>
+                                                <width>16777215</width>
+                                                <height>16777215</height>
+                                            </size>
+                                        </property>
+                                        <property name="editTriggers">
+                                            <set>QAbstractItemView::NoEditTriggers</set>
+                                        </property>
+                                        <property name="dragDropOverwriteMode">
+                                            <bool>false</bool>
+                                        </property>
+                                        <property name="selectionBehavior">
+                                            <enum>QAbstractItemView::SelectRows</enum>
+                                        </property>
+                                        <property name="showGrid">
+                                            <bool>false</bool>
+                                        </property>
+                                        <property name="sortingEnabled">
+                                            <bool>true</bool>
+                                        </property>
+                                        <attribute name="verticalHeaderVisible">
+                                            <bool>false</bool>
+                                        </attribute>
+                                    </widget>
+                                </item>
+                            </layout>
+                        </widget>
+                        <widget class="QWidget" name="tab_equipement">
+                            <attribute name="title">
+                                <string>Equipement</string>
+                            </attribute>
+                            <layout class="QHBoxLayout" name="horizontalLayout_3">
+                                <item>
+                                    <widget class="QTreeWidget" name="treeWidget_equipment">
+                                        <property name="maximumSize">
+                                            <size>
+                                                <width>16777215</width>
+                                                <height>16777215</height>
+                                            </size>
+                                        </property>
+                                        <attribute name="headerVisible">
+                                            <bool>false</bool>
+                                        </attribute>
+                                        <column>
+                                            <property name="text">
+                                                <string notr="true">1</string>
+                                            </property>
+                                        </column>
+                                    </widget>
+                                </item>
+                            </layout>
+                        </widget>
+                        <widget class="QWidget" name="tab_seafoil">
+                            <attribute name="title">
+                                <string>Configuration botier</string>
+                            </attribute>
+                            <layout class="QFormLayout" name="formLayout">
+                                <item row="0" column="0">
+                                    <widget class="QLabel" name="label">
+                                        <property name="text">
+                                            <string>Configuration</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="0" column="1">
+                                    <widget class="QComboBox" name="comboBox_configuration_list"/>
+                                </item>
+                                <item row="2" column="1">
+                                    <widget class="QPushButton" name="pushButton_read_config">
+                                        <property name="enabled">
+                                            <bool>false</bool>
+                                        </property>
+                                        <property name="text">
+                                            <string>Lire configuration du boitier</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="3" column="0" colspan="2">
+                                    <widget class="Line" name="line">
+                                        <property name="sizePolicy">
+                                            <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+                                                <horstretch>0</horstretch>
+                                                <verstretch>0</verstretch>
+                                            </sizepolicy>
+                                        </property>
+                                        <property name="minimumSize">
+                                            <size>
+                                                <width>100</width>
+                                                <height>0</height>
+                                            </size>
+                                        </property>
+                                        <property name="orientation">
+                                            <enum>Qt::Horizontal</enum>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="4" column="0" colspan="2">
+                                    <widget class="QLabel" name="label_7">
+                                        <property name="font">
+                                            <font>
+                                                <weight>75</weight>
+                                                <bold>true</bold>
+                                            </font>
+                                        </property>
+                                        <property name="text">
+                                            <string>Vitesse</string>
+                                        </property>
+                                        <property name="textFormat">
+                                            <enum>Qt::AutoText</enum>
+                                        </property>
+                                        <property name="alignment">
+                                            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="5" column="0">
+                                    <widget class="QLabel" name="label_2">
+                                        <property name="text">
+                                            <string>V500</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="5" column="1">
+                                    <widget class="QDoubleSpinBox" name="doubleSpinBox_v500">
+                                        <property name="suffix">
+                                            <string> kt</string>
+                                        </property>
+                                        <property name="decimals">
+                                            <number>1</number>
+                                        </property>
+                                        <property name="singleStep">
+                                            <double>0.500000000000000</double>
+                                        </property>
+                                        <property name="value">
+                                            <double>20.000000000000000</double>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="6" column="0">
+                                    <widget class="QLabel" name="label_3">
+                                        <property name="text">
+                                            <string>V1850</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="6" column="1">
+                                    <widget class="QDoubleSpinBox" name="doubleSpinBox_v1850">
+                                        <property name="suffix">
+                                            <string> kt</string>
+                                        </property>
+                                        <property name="decimals">
+                                            <number>1</number>
+                                        </property>
+                                        <property name="singleStep">
+                                            <double>0.500000000000000</double>
+                                        </property>
+                                        <property name="value">
+                                            <double>20.000000000000000</double>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="7" column="0">
+                                    <widget class="QLabel" name="label_8">
+                                        <property name="text">
+                                            <string>Intervalle voix</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="7" column="1">
+                                    <widget class="QSpinBox" name="spinBox_voice_interval">
+                                        <property name="suffix">
+                                            <string> ms</string>
+                                        </property>
+                                        <property name="minimum">
+                                            <number>2000</number>
+                                        </property>
+                                        <property name="maximum">
+                                            <number>6000</number>
+                                        </property>
+                                        <property name="singleStep">
+                                            <number>100</number>
+                                        </property>
+                                        <property name="value">
+                                            <number>4000</number>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="8" column="0">
+                                    <widget class="QLabel" name="label_9">
+                                        <property name="text">
+                                            <string>Activer cap</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="8" column="1">
+                                    <widget class="QCheckBox" name="checkBox_enable_heading">
+                                        <property name="text">
+                                            <string/>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="10" column="0" colspan="2">
+                                    <widget class="QLabel" name="label_6">
+                                        <property name="font">
+                                            <font>
+                                                <weight>75</weight>
+                                                <bold>true</bold>
+                                            </font>
+                                        </property>
+                                        <property name="text">
+                                            <string>Hauteur de vol</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="11" column="0">
+                                    <widget class="QLabel" name="label_4">
+                                        <property name="text">
+                                            <string>Limite haute</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="11" column="1">
+                                    <widget class="QDoubleSpinBox" name="doubleSpinBox_height_too_high">
+                                        <property name="suffix">
+                                            <string> m</string>
+                                        </property>
+                                        <property name="maximum">
+                                            <double>1.100000000000000</double>
+                                        </property>
+                                        <property name="singleStep">
+                                            <double>0.010000000000000</double>
+                                        </property>
+                                        <property name="value">
+                                            <double>0.700000000000000</double>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="12" column="0">
+                                    <widget class="QLabel" name="label_5">
+                                        <property name="text">
+                                            <string>Limite basse</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="12" column="1">
+                                    <widget class="QDoubleSpinBox" name="doubleSpinBox_height_high">
+                                        <property name="suffix">
+                                            <string> m</string>
+                                        </property>
+                                        <property name="maximum">
+                                            <double>1.100000000000000</double>
+                                        </property>
+                                        <property name="singleStep">
+                                            <double>0.010000000000000</double>
+                                        </property>
+                                        <property name="value">
+                                            <double>0.400000000000000</double>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="14" column="1">
+                                    <widget class="QPushButton" name="pushButton_send_config">
+                                        <property name="text">
+                                            <string>Envoyer vers le boitier</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="1" column="1">
+                                    <widget class="QPushButton" name="pushButton_remove_config">
+                                        <property name="text">
+                                            <string>Supprimer la configuration</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="15" column="1">
+                                    <widget class="QPushButton" name="pushButton_start_software">
+                                        <property name="text">
+                                            <string>Démarrer le boitier</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="16" column="1">
+                                    <widget class="QPushButton" name="pushButton_identification">
+                                        <property name="text">
+                                            <string>Nom boitier (connexion)</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="9" column="0">
+                                    <widget class="QLabel" name="label_10">
+                                        <property name="text">
+                                            <string>Cap vent</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="9" column="1">
+                                    <widget class="QSpinBox" name="spinBox_heading">
+                                        <property name="suffix">
+                                            <string> deg</string>
+                                        </property>
+                                        <property name="maximum">
+                                            <number>359</number>
+                                        </property>
+                                    </widget>
+                                </item>
+                            </layout>
+                        </widget>
+                        <widget class="QWidget" name="tab">
+                            <attribute name="title">
+                                <string>Base De Vitesse</string>
+                            </attribute>
+                            <layout class="QFormLayout" name="formLayout_2">
+                                <item row="0" column="0">
+                                    <widget class="QLabel" name="label_11">
+                                        <property name="text">
+                                            <string>Base ID</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="0" column="1">
+                                    <widget class="QComboBox" name="comboBox_bdv_base_id">
+                                        <property name="currentText">
+                                            <string/>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="1" column="0">
+                                    <widget class="QLabel" name="label_12">
+                                        <property name="text">
+                                            <string>Session date</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="1" column="1">
+                                    <widget class="QDateEdit" name="dateEdit_bdv">
+                                        <property name="minimumDateTime">
+                                            <datetime>
+                                                <hour>0</hour>
+                                                <minute>0</minute>
+                                                <second>0</second>
+                                                <year>2020</year>
+                                                <month>1</month>
+                                                <day>1</day>
+                                            </datetime>
+                                        </property>
+                                        <property name="displayFormat">
+                                            <string>d/M/yyyy</string>
+                                        </property>
+                                        <property name="calendarPopup">
+                                            <bool>true</bool>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="2" column="1">
+                                    <widget class="QPushButton" name="pushButton_bdv_refresh">
+                                        <property name="text">
+                                            <string>Discover Sessions</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="3" column="1">
+                                    <widget class="QPushButton" name="pushButton_download_gpx">
+                                        <property name="text">
+                                            <string>Download GPX</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item row="4" column="0" colspan="2">
+                                    <widget class="QTableWidget" name="tableWidget_bdv">
+                                        <property name="editTriggers">
+                                            <set>QAbstractItemView::NoEditTriggers</set>
+                                        </property>
+                                        <property name="selectionBehavior">
+                                            <enum>QAbstractItemView::SelectRows</enum>
+                                        </property>
+                                        <property name="showGrid">
+                                            <bool>false</bool>
+                                        </property>
+                                        <property name="rowCount">
+                                            <number>1</number>
+                                        </property>
+                                        <property name="columnCount">
+                                            <number>5</number>
+                                        </property>
+                                        <attribute name="horizontalHeaderVisible">
+                                            <bool>false</bool>
+                                        </attribute>
+                                        <attribute name="verticalHeaderVisible">
+                                            <bool>false</bool>
+                                        </attribute>
+                                        <row/>
+                                        <column/>
+                                        <column/>
+                                        <column/>
+                                        <column/>
+                                        <column/>
+                                    </widget>
+                                </item>
+                            </layout>
+                        </widget>
+                        <widget class="QWidget" name="tab_2">
+                            <attribute name="title">
+                                <string>Rider</string>
+                            </attribute>
+                            <layout class="QGridLayout" name="gridLayout">
+                                <item row="0" column="0" rowspan="2">
+                                    <widget class="QTableWidget" name="tableWidget_rider">
+                                        <property name="editTriggers">
+                                            <set>QAbstractItemView::NoEditTriggers</set>
+                                        </property>
+                                        <property name="selectionBehavior">
+                                            <enum>QAbstractItemView::SelectRows</enum>
+                                        </property>
+                                        <property name="showGrid">
+                                            <bool>false</bool>
+                                        </property>
+                                        <property name="rowCount">
+                                            <number>5</number>
+                                        </property>
+                                        <property name="columnCount">
+                                            <number>5</number>
+                                        </property>
+                                        <attribute name="horizontalHeaderVisible">
+                                            <bool>false</bool>
+                                        </attribute>
+                                        <attribute name="verticalHeaderVisible">
+                                            <bool>false</bool>
+                                        </attribute>
+                                        <row/>
+                                        <row/>
+                                        <row/>
+                                        <row/>
+                                        <row/>
+                                        <column/>
+                                        <column/>
+                                        <column/>
+                                        <column/>
+                                        <column/>
+                                    </widget>
+                                </item>
+                            </layout>
+                        </widget>
+                    </widget>
+                </item>
+            </layout>
+        </widget>
+        <action name="action_new_session">
+            <property name="text">
+                <string>Nouvelle Session</string>
+            </property>
+        </action>
+        <action name="actionMise_jour">
+            <property name="text">
+                <string>Mise à jour</string>
+            </property>
+        </action>
+    </widget>
+    <resources/>
+    <connections/>
+</ui>
