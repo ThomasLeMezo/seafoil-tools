@@ -792,9 +792,10 @@ class SeafoilDB:
         print(f"Add statistics to log {log_id}")
         # Test if the log already has statistics
         self.sqliteCursor.execute('''SELECT * FROM log WHERE id = ? AND statistics_id IS NOT NULL''', (log_id,))
-        if self.sqliteCursor.fetchone():
+        stat_id = self.sqliteCursor.fetchone()
+        if stat_id:
             # Update the statistics
-            self.sqliteCursor.execute('''UPDATE statistics SET v500 = ?, v1850 = ?, vmax = ?, vjibe = ?, vhour = ? WHERE id = ?''', (statistics['v500'], statistics['v1850'], statistics['vmax'], statistics['vjibe'], statistics['vhour'], log_id))
+            self.sqliteCursor.execute('''UPDATE statistics SET v500 = ?, v1850 = ?, vmax = ?, vjibe = ?, vhour = ? WHERE id = ?''', (statistics['v500'], statistics['v1850'], statistics['vmax'], statistics['vjibe'], statistics['vhour'], stat_id['statistics_id']))
             self.sqliteConnection.commit()
         else:
             # Create a new entry in the statistics table

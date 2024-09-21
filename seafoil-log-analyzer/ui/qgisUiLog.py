@@ -2,14 +2,13 @@ import datetime
 import os
 import time
 
+from PyQt5 import Qt
 from PyQt5.QtCore import QDateTime, QTimeZone, QMetaType
-from PyQt5.QtGui import QColor
-from prompt_toolkit.filters import renderer_height_is_known
-from qgis.PyQt.QtCore import QVariant
-from qgis._core import QgsRendererRange, QgsMarkerSymbol, QgsSingleSymbolRenderer, QgsRendererRangeLabelFormat, \
-    QgsStyle, QgsClassificationFixedInterval, QgsClassificationCustom, QgsSymbol, Qgis
 
 from datetime import datetime
+
+from PyQt5.QtGui import QColor
+from qgis._core import QgsLineSymbol
 from tzlocal import get_localzone
 
 from qgis.core import (
@@ -19,12 +18,12 @@ from qgis.core import (
     QgsField,
     QgsFeature,
     QgsGeometry,
-    QgsPointXY,
-    QgsVectorFileWriter,
-    QgsLineSymbol,
     QgsGraduatedSymbolRenderer,
-    QgsColorRamp,
-    QgsClassificationEqualInterval
+    QgsRendererRangeLabelFormat,
+    QgsStyle,
+    QgsClassificationCustom,
+    Qgis,
+    QgsArrowSymbolLayer,
 )
 
 
@@ -91,7 +90,13 @@ class QgisUiLog():
         color_ramp = default_style.colorRamp('Turbo')
 
         renderer = QgsGraduatedSymbolRenderer()
-        renderer.setSourceSymbol(QgsLineSymbol.createSimple(properties={'color': 'black', 'width': '0.5'}))
+        arrow = QgsArrowSymbolLayer().create()
+
+        # Set stroke color to transparent
+        # qls = QgsLineSymbol([arrow])
+        qls = QgsLineSymbol.createSimple({'color': 'transparent', 'width': '0.5'})
+
+        renderer.setSourceSymbol(qls)
         renderer.setClassAttribute("speed_kt")
         renderer.setClassificationMethod(QgsClassificationCustom())
         renderer.setLabelFormat(format)

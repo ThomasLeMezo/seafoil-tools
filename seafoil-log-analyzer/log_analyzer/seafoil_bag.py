@@ -164,7 +164,8 @@ class SeafoilBag(QObject):
 				"vhour": None,
                 "starting_time": self.gps_fix.starting_time.timestamp(),
 				"ending_time": self.gps_fix.ending_time.timestamp(),
-                "is_processed": True,}
+                "is_processed": True,
+				"duration": self.gps_fix.ending_time - self.gps_fix.starting_time,}
 		print(stat)
 		return stat
 

@@ -37,56 +37,68 @@ class SeafoilGpx(SeafoilData):
         self.satellites_visible = np.empty([self.nb_elements], dtype='int32')
 
         if self.is_loaded_from_file:
+            print("Load (saved)", self.topic_name)
             self.load_message_from_file()
         else:
+            print("Load", self.topic_name)
             self.load_message()
 
 
     def resize_data_array(self):
-        self.time = np.resize(self.time,self.k)
-        self.latitude = np.resize(self.latitude, self.k)
-        self.longitude = np.resize(self.longitude, self.k)
-        self.speed = np.resize(self.speed, self.k)
-        self.track = np.resize(self.track, self.k)
-        self.distance = np.resize(self.distance, self.k)
-        self.mode = np.resize(self.mode, self.k)
-        self.status = np.resize(self.status, self.k)
-        self.time_gnss = np.resize(self.time_gnss, self.k)
-        self.satellites_visible = np.resize(self.satellites_visible, self.k)
+        self.time = np.resize(self.time,self.nb_elements)
+        self.latitude = np.resize(self.latitude, self.nb_elements)
+        self.longitude = np.resize(self.longitude, self.nb_elements)
+        self.speed = np.resize(self.speed, self.nb_elements)
+        self.track = np.resize(self.track, self.nb_elements)
+        self.distance = np.resize(self.distance, self.nb_elements)
+        self.mode = np.resize(self.mode, self.nb_elements)
+        self.status = np.resize(self.status, self.nb_elements)
+        self.time_gnss = np.resize(self.time_gnss, self.nb_elements)
+        self.satellites_visible = np.resize(self.satellites_visible, self.nb_elements)
 
     def load_message(self):
 
         # open gpx file
         gpx_file = open(self.bag_path, 'r')
-        # parse gpx file
         gpx = gpxpy.parse(correction_of_malformed_gpx(gpx_file.read()))
 
-        self.nb_elements = len(gpx.tracks[0].segments[0].points)
+        # make the sum of the number of points in each segment
+        self.nb_elements = 0
+        for track in gpx.tracks:
+            for segment in track.segments:
+                self.nb_elements += len(segment.points)
         #self.start_date = gpx.tracks[0].segments[0].points[0].time
         self.starting_time = gpx.tracks[0].segments[0].points[0].time
-        self.ending_time = gpx.tracks[0].segments[0].points[-1].time
-        self.k = len(gpx.tracks[0].segments[0].points)
+        self.ending_time = gpx.tracks[-1].segments[-1].points[-1].time
+
         self.resize_data_array()
 
-        for i, point in enumerate(gpx.tracks[0].segments[0].points):
-            self.time[i] = (point.time - self.starting_time).total_seconds()
-            self.time_gnss[i] = point.time.timestamp()
-            self.latitude[i] = point.latitude
-            self.longitude[i] = point.longitude
-            self.mode[i] = 3
-            self.status[i] = 0
-            self.satellites_visible[i] = 0
+        # Loop over all points
+        self.k = 0
+        previous_point = None
+        for i, track in enumerate(gpx.tracks):
+            for j, segment in enumerate(track.segments):
+                for k, point in enumerate(segment.points):
+                    self.time[self.k] = (point.time - self.starting_time).total_seconds()
+                    self.time_gnss[self.k] = point.time.timestamp()
+                    self.latitude[self.k] = point.latitude
+                    self.longitude[self.k] = point.longitude
+                    self.mode[self.k] = 3
+                    self.status[self.k] = 0
+                    self.satellites_visible[self.k] = 0
 
-            if i == 0:
-                self.speed[i] = 0
-                self.track[i] = 0
-                self.distance[i] = 0
-            else:
-                # compute speed/track with previous point
-                self.speed[i] = point.speed_between(gpx.tracks[0].segments[0].points[i-1])
-                self.track[i] = gpx.tracks[0].segments[0].points[i-1].course_between(point)
-                # compute distance from previous point
-                self.distance[i] = self.distance[i-1] + gpx.tracks[0].segments[0].points[i-1].distance_2d(point)
+                    if previous_point is None:
+                        self.speed[self.k] = 0
+                        self.track[self.k] = 0
+                        self.distance[self.k] = 0
+                    else:
+                        # compute speed/track with previous point
+                        self.speed[self.k] = point.speed_between(gpx.tracks[i].segments[j].points[k-1])
+                        self.track[self.k] = gpx.tracks[i].segments[j].points[k-1].course_between(point)
+                        # compute distance from previous point
+                        self.distance[self.k] = self.distance[self.k-1] + previous_point.distance_2d(point)
+                    self.k += 1
+                    previous_point = point
 
     def save_data(self):
         import os
@@ -121,5 +133,6 @@ class SeafoilGpx(SeafoilData):
         self.time_gnss = data["time_gnss"]
         self.satellites_visible = data["satellites_visible"]
         self.k = len(self.time)
+        self.nb_elements = self.k
 
 

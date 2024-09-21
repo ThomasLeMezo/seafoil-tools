@@ -190,8 +190,7 @@ class SeafoilLog:
             self.db.add_log_statistics(log['id'], sfb.get_statistics())
 
             # if log is not a gpx file, update end time
-            if not self.db.is_log_gpx(log['id']):
-                self.db.update_log_time(log['id'], sfb.get_starting_time_timestamp(), sfb.get_ending_time_timestamp())
+            self.db.update_log_time(log['id'], sfb.get_starting_time_timestamp(), sfb.get_ending_time_timestamp())
 
         except Exception as e:
             print("Error processing log: " + file_path + " " + str(e))
