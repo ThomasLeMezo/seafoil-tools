@@ -552,7 +552,7 @@ class DockData(SeafoilDock):
 
             pg_wind_info_heading = pg.PlotWidget()
             self.set_plot_options(pg_wind_info_heading)
-            pg_wind_info_heading.plot(data.time, data.wind_heading, pen=(0, 255, 0), name="heading")
+            pg_wind_info_heading.plot(data.time, data.heading, pen=(0, 255, 0), name="heading")
             pg_wind_info_heading.setLabel('left', "heading")
             dock_wind_info.addWidget(pg_wind_info_heading)
             pg_wind_info_heading.setXLink(pg_wind_info_battery)

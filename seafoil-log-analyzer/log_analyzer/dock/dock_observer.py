@@ -270,12 +270,12 @@ class DockDataObserver(SeafoilDock):
             dock_profile_one.addWidget(pg_profile)
 
             # interp data_profile.profile to data_filtered.time
-            f_profile = interpolate.interp2d(np.arange(128), data_profile.time,data_profile.profile, bounds_error=False, kind="linear", fill_value=0)
-            profile_interp = f_profile(np.arange(128), data_filtered.time)
+            #f_profile = interpolate.interp2d(np.arange(128), data_profile.time,data_profile.profile, bounds_error=False, kind="linear", fill_value=0)
+            # profile_interp = f_profile(np.arange(128), data_filtered.time)
 
             def update_profile_one(inf1, data_filtered, data_profile, plot_filtered, plot_profile):
                 plot_filtered.setData(np.arange(128), data_filtered.profile[int(inf1.value()),:-1]*256.0)
-                plot_profile.setData(np.arange(128), profile_interp[int(inf1.value()),:-1])
+                # plot_profile.setData(np.arange(128), profile_interp[int(inf1.value()),:-1])
 
             inf1.sigPositionChanged.connect(lambda: update_profile_one(inf1, data_filtered, data_profile, plot_filtered, plot_profile))
 
@@ -336,7 +336,7 @@ class DockDataObserver(SeafoilDock):
             track = f_gnss_track(data_wind.time)
 
             # Convert Heading from [0, 380] to [-180, 180]
-            wind_heading = (data_wind.wind_heading.astype(np.int32) - 180) % 360 - 180
+            wind_heading = (data_wind.heading.astype(np.int32) - 180) % 360 - 180
             # Convert wind direction from [0, 380] to [-180, 180]
             wind_direction = (data_wind.direction.astype(np.int32) - 180) % 360 - 180
 

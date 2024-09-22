@@ -49,9 +49,10 @@ class DockComparison(SeafoilDock):
         self.set_plot_options(pg_plot)
         for i, sfb in enumerate(self.list_sfb_comp):
             data_gnss = copy.copy(sfb.gps_fix)
+            data_statistics = copy.copy(sfb.statistics)
             if not data_gnss.is_empty():
 
-                spinBox = self.add_plot_relationship(data_gnss.track, data_gnss.speed, data_gnss.time, data_gnss.time,
+                spinBox = self.add_plot_relationship(data_gnss.track, data_statistics.speed, data_gnss.time, data_gnss.time,
                                                                             name_x="heading", name_y="velocity",
                                                                             unit_x="°", unit_y="kt",
                                                                             x_min=0.0, x_max=360.0, x_resolution=1.0, x_unit_conversion=1.0,

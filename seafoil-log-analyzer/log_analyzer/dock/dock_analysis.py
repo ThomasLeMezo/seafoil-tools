@@ -113,7 +113,7 @@ class DockAnalysis(SeafoilDock):
         self.add_speed_for_distance()
         self.add_polar_heading()
         self.add_velocity()
-        self.add_heading_parameter()
+        self.add_speed_heading()
 
         # self.add_heading_velocity()
 
@@ -264,14 +264,14 @@ class DockAnalysis(SeafoilDock):
         if not data_gnss.is_empty() and not data_distance.is_empty():
             self.addDock(dock_height_velocity, position='below')
 
-            speed_max = np.max(data_gnss.speed * (data_gnss.mode >= 3) * 1.94384)
-            speed_max_idx = np.argmax(data_gnss.speed * (data_gnss.mode >= 3) * 1.94384)
+
+            speed_max, time_speed_max = self.sfb.statistics.get_max_speed_kt() #np.max(data_gnss.speed * (data_gnss.mode >= 3) * 1.94384)
 
             # Plot speed
             pg_speed = pg.PlotWidget()
             self.set_plot_options(pg_speed)
             pg_speed.plot(data_gnss.time, data_gnss.speed[:-1] * 1.94384, pen=(255, 0, 0), name="speed", stepMode=True)
-            pg_speed.plot([data_gnss.time[speed_max_idx]], [speed_max], pen=None, symbol='o', symbolBrush=(0, 0, 255),
+            pg_speed.plot([time_speed_max], [speed_max], pen=None, symbol='o', symbolBrush=(0, 0, 255),
                           symbolPen='w', symbolSize=10, name="max speed")
             pg_speed.setLabel('left', "speed (kt)")
             dock_height_velocity.addWidget(pg_speed)
@@ -610,17 +610,17 @@ class DockAnalysis(SeafoilDock):
             dock_velocity.addWidget(pg_pitch_velocity)
             pg_pitch_velocity.setXLink(pg_height_velocity)
 
-    def add_heading_parameter(self):
+    def add_speed_heading(self):
         dock_heading = Dock("Speed/Heading")
         self.addDock(dock_heading, position='below')
 
         data_gnss = copy.copy(self.sfb.gps_fix)
-        data_imu = copy.copy(self.sfb.rpy)
+        data_statistics = copy.copy(self.sfb.statistics)
 
         if not data_gnss.is_empty():
 
 
-            [pg_heading_velocity, spinBox] = self.add_plot_relationship(data_gnss.track, data_gnss.speed, data_gnss.time, data_gnss.time,
+            [pg_heading_velocity, spinBox] = self.add_plot_relationship(data_gnss.track, data_statistics.speed, data_gnss.time, data_gnss.time,
                                                              name_x="heading", name_y="velocity",
                                                              unit_x="°", unit_y="kt",
                                                              x_min=0.0, x_max=360.0, x_resolution=1.0, x_unit_conversion=1.0,

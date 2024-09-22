@@ -114,9 +114,10 @@ class DockGnss(SeafoilDock):
         dock_gnss_filter = Dock("gnss filter")
         self.addDock(dock_gnss_filter, position='below')
         data = self.sfb.gps_fix
+        data_stat = self.sfb.statistics
 
         if (not data.is_empty()):
-            time_interp = np.arange(data.time[0], data.time[-1], 1)
+            time_interp = np.arange(data.time[0], data.time[-1], data_stat.timestep_filter)
             # interpolate with mean
             f_speed = interpolate.interp1d(data.time, data.speed, bounds_error=False, kind="linear")
             speed = f_speed(time_interp)
@@ -126,7 +127,7 @@ class DockGnss(SeafoilDock):
             acceleration = np.diff(speed) / np.diff(time_interp)
             acceleration = np.append(acceleration, 0)
             # Create a mask where absolute acceleration is less than 3 knots/s^2
-            mask = np.abs(acceleration) > (3.0 / ms_to_knot)
+            mask = acceleration > (data_stat.max_acc_kt / ms_to_knot)
             # Apply a convolution to all True values
             mask = np.convolve(mask, np.ones(5), mode='same')
             # opposite mask
@@ -135,7 +136,6 @@ class DockGnss(SeafoilDock):
             # interpolate mask on the original time
             f_mask = interpolate.interp1d(time_interp, mask, bounds_error=False, kind="zero")
             mask_interp = f_mask(data.time)
-            max_speed = max(data.speed*mask_interp)
 
             pg_speed = pg.PlotWidget()
             self.set_plot_options(pg_speed)

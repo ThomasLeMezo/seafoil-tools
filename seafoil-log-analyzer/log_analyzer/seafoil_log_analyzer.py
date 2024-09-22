@@ -81,13 +81,13 @@ class Worker(QObject):
         self.data_loaded.emit("Dock Fusion Analysis loaded")
 
         dock_comparison = None
-        if len(self.list_sfb_comp) > 0:
+        if len(self.list_sfb_comp) > 1:
             dock_comparison = DockComparison(self.sfb, tab, win, self.list_sfb_comp)
 
-        if len(self.list_sfb_comp) > 0:
+        if len(self.list_sfb_comp) > 1:
             tab.setCurrentWidget(dock_comparison)
         else:
-            tab.setCurrentWidget(dock_fusion_analysis)
+            tab.setCurrentWidget(dock_analysis)
 
         win.setWindowTitle("log - " + self.sfb.file_path)
         win.setCentralWidget(tab)
