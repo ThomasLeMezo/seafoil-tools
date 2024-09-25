@@ -22,13 +22,13 @@ class SeafoilDB:
         self.sqliteConnection.row_factory = sqlite3.Row
         self.sqliteCursor = self.sqliteConnection.cursor()
 
-        if not exists:
-            print("Create new DB")
-            self.create_db()
+        # if not exists:
+        #     print("Create new DB")
+        self.init_db()
 
 
     # Create the db
-    def create_db(self):
+    def init_db(self):
 
         # Ceate table for seafoil box
         self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS seafoil_box_identification
@@ -120,8 +120,6 @@ class SeafoilDB:
             FOREIGN KEY (water_sport_type) REFERENCES water_sport_type(id),
             FOREIGN KEY (statistics_id) REFERENCES statistics(id)
         )''')
-
-
 
         # Create table for session to log link
         self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS session_log

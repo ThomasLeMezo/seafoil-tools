@@ -1,7 +1,13 @@
 import subprocess, os
+from operator import truediv
+
+from tqdm import tqdm
+
 from ..db.seafoil_db import SeafoilDB
 import yaml
 from .seafoil_connexion import SeafoilConnexion
+import requests
+import tarfile
 
 # class to manage the yaml configuration file of the seafoil box
 class SeafoilConfiguration():
@@ -28,6 +34,56 @@ class SeafoilConfiguration():
         self.load_ros2_seafoil_config_yaml('observer.yaml')
 
         self.db_get_configuration_list()
+
+        self.ros_file_name = 'seafoil_install.tar.gz'
+        self.url_seafoil_ros = "https://www.ensta-bretagne.fr/lemezo/" + self.ros_file_name
+        self.download_directory = "/tmp/seafoil_update/"
+        self.downloaded = False
+
+    def download_seafoil_ros(self, ui_update=None):
+        os.makedirs(self.download_directory, exist_ok=True)
+
+        # Test if file doesn't exist
+        if not os.path.exists(self.download_directory + self.ros_file_name):
+            # Make a request to get the file size for progress calculation
+            response = requests.head(self.url_seafoil_ros)
+            file_size = int(response.headers.get('content-length', 0))
+            current_size = 0
+
+            with requests.get(self.url_seafoil_ros, stream=True) as r, open(self.download_directory + self.ros_file_name, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    if chunk:  # Filter out keep-alive new chunks
+                        f.write(chunk)
+                        current_size += len(chunk)
+                        ui_update(int(100*current_size/file_size), f'Download the software update: {current_size/1048576:.2f}/{file_size/1048576:.2f} Mbytes')
+
+        if tarfile.is_tarfile(self.download_directory + self.ros_file_name):
+            with tarfile.open(self.download_directory + self.ros_file_name, 'r:gz') as tar:
+                tar.extractall(path=self.download_directory)
+                print(f"Extracted {self.ros_file_name} into '{self.download_directory}' successfully.")
+                self.downloaded = True
+                return True
+        else:
+            print(f"{self.ros_file_name} is not a valid tar file.")
+            # Remove file
+            os.system(f"rm {self.download_directory + self.ros_file_name}")
+            return False
+
+    def install_seafoil_ros(self, update_ui):
+        # Send the file to the seafoil box
+        if self.downloaded:
+            # Send the file
+            ret = self.sc.seafoil_send_software(self.download_directory, update_ui)
+            if ret:
+                # Remove the temporary folder
+                os.system(f"rm -r {self.download_directory}")
+                os.system(f"rm {self.download_directory + self.ros_file_name}")
+                return True
+            else:
+                return False
+        else:
+            print("The file is not downloaded")
+            return False
 
     # Get the path of the configuration file in ros2 environment
     def load_ros2_seafoil_config_yaml(self, file_name):

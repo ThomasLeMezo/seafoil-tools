@@ -437,13 +437,6 @@
           </property>
          </widget>
         </item>
-        <item row="16" column="1">
-         <widget class="QPushButton" name="pushButton_identification">
-          <property name="text">
-           <string>Nom boitier (connexion)</string>
-          </property>
-         </widget>
-        </item>
         <item row="9" column="0">
          <widget class="QLabel" name="label_10">
           <property name="text">
@@ -458,6 +451,66 @@
           </property>
           <property name="maximum">
            <number>359</number>
+          </property>
+         </widget>
+        </item>
+        <item row="20" column="1">
+         <widget class="QPushButton" name="pushButton_update_ros">
+          <property name="text">
+           <string>Mise à jour du logiciel boitier</string>
+          </property>
+         </widget>
+        </item>
+        <item row="16" column="0" colspan="2">
+         <widget class="Line" name="line_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="18" column="1">
+         <widget class="QLabel" name="label_seafoil_name">
+          <property name="text">
+           <string>?</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="18" column="0">
+         <widget class="QLabel" name="label_13">
+          <property name="text">
+           <string>Nom du boitier</string>
+          </property>
+         </widget>
+        </item>
+        <item row="19" column="1">
+         <widget class="QPushButton" name="pushButton_identification">
+          <property name="text">
+           <string>Changer nom boitier (connexion)</string>
+          </property>
+         </widget>
+        </item>
+        <item row="17" column="0" colspan="2">
+         <widget class="QLabel" name="label_14">
+          <property name="font">
+           <font>
+            <pointsize>14</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>Fonctions avancées</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="21" column="1">
+         <widget class="QPushButton" name="pushButton_update_qgis">
+          <property name="text">
+           <string>Mise à jour de l'Analyseur</string>
           </property>
          </widget>
         </item>

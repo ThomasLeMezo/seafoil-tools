@@ -167,6 +167,40 @@ class SeafoilConnexion(QObject):
             print(f"An error occurred: {e}")
             return False
 
+    def seafoil_send_software(self, folder_path, update_ui):
+        # Test if connected
+        if not self.connect():
+            return False
+
+        try:
+            self.seafoil_service_stop()
+
+            # Get the number of files to send
+            total_files = sum([len(files) for r, d, files in os.walk(folder_path)])
+            file_idx = 0
+            filename_last = ""
+
+            def progress(filename, size, sent):
+                nonlocal file_idx, filename_last
+                # print("%s's progress: %.2f%%   \r" % (filename, float(sent)/float(size)*100) )
+                # Emit the signal
+                if filename != filename_last:
+                    file_idx += 1
+                    filename_last = filename
+                update_ui(int(file_idx/total_files * 100), f"Sending the software update to the seafoil box ({filename})")
+            # Send the folder
+            with SCPClient(self.ssh_client.get_transport(), progress=progress) as scp:
+                scp.put(folder_path+"install", f"/home/pi/seafoil-ros/", recursive=True)
+                print("Folder sent successfully.")
+
+            self.seafoil_service_start()
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return False
+
+        return True
+
     # Send a yaml configuration file to the seafoil box
     def seafoil_send_config(self, file_name, yaml_data):
         # Test if connected

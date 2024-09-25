@@ -253,26 +253,117 @@ class SeafoilUiConfiguration:
         # connect the pushButton_identification to function on_identification_clicked
         self.ui.pushButton_identification.clicked.connect(self.on_identification_clicked)
 
+        # connect the pushButton_update_ros to function on_update_ros_clicked
+        self.ui.pushButton_update_ros.clicked.connect(self.on_update_ros_clicked)
+
+        # connect the pushButton_update_qgis to function on_update_qgis_clicked
+        self.ui.pushButton_update_qgis.clicked.connect(self.on_update_qgis_clicked)
+
         # Seafoil Configuration
-        self.sc = SeafoilConfiguration()
+        self.sconf = SeafoilConfiguration()
         self.update_ui_from_configuration()
 
         self.connect_value_changed_configuration(True)
 
+    def on_update_qgis_clicked(self):
+        # Ask if the computer is connected to internet
+        msg = QtWidgets.QMessageBox()
+        msg.setIcon(QtWidgets.QMessageBox.Question)
+        msg.setText("Connectez l'ordinateur à internet puis cliquez sur OK.")
+        msg.setWindowTitle("Mise à jour Seafoil")
+        msg.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
+        ret = msg.exec_()
+        if ret == QtWidgets.QMessageBox.Cancel:
+            return
+
+        # Git pull on repo
+        sg = SeafoilGit()
+        last_tag = sg.update_to_last_tag()
+        if last_tag is not None:
+            # Dialog box to confirm the software was updated
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Information)
+            msg.setText(f"Le logiciel a été mis à jour en version {last_tag}.")
+            msg.setWindowTitle("Information")
+            msg.exec_()
+        else:
+            # Dialog box to confirm the software was not updated
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Warning)
+            msg.setText("Le logiciel n'a pas été mis à jour (connexion/git issue)")
+            msg.setWindowTitle("Warning")
+            msg.exec_()
+
+    def on_update_ros_clicked(self):
+        # Ask if the computer is connected to internet
+        msg = QtWidgets.QMessageBox()
+        msg.setIcon(QtWidgets.QMessageBox.Question)
+        msg.setText("Connectez l'ordinateur à internet puis cliquez sur OK.")
+        msg.setWindowTitle("Mise à jour Seafoil")
+        msg.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
+        ret = msg.exec_()
+        if ret == QtWidgets.QMessageBox.Cancel:
+            return
+
+        # Download the latest version of seafoil
+        sp = SeafoilUiProcess()
+        sp.show()
+        ret = self.sconf.download_seafoil_ros(sp.update_ui)
+        sp.close()
+        if ret:
+            # Dialog box to confirm the software was updated (yes no)
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Information)
+            msg.setText("Le logiciel a été téléchargé depuis le serveur, connectez maintenant le boitier puis cliquez sur ok.")
+            msg.setWindowTitle("Information")
+            msg.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
+
+            if msg.exec_() != QtWidgets.QMessageBox.Ok:
+                return
+
+        else:
+            # Dialog box to confirm the software was not updated
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Warning)
+            msg.setText("Le logiciel n'a pas été téléchargé depuis le serveur.")
+            msg.setWindowTitle("Warning")
+            msg.exec_()
+            return
+
+        # Start sending the software to the seafoil box
+        sp = SeafoilUiProcess()
+        sp.show()
+        if self.sconf.install_seafoil_ros(sp.update_ui):
+            # Dialog box to confirm the software was sent
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Information)
+            msg.setText("Le logiciel a été correctement envoyé au boitier.")
+            msg.setWindowTitle("Information")
+            msg.exec_()
+        else:
+            # Dialog box to confirm the software was not sent
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Warning)
+            msg.setText("Le logiciel n'a pas été envoyé au boitier.")
+            msg.setWindowTitle("Warning")
+            msg.exec_()
+        sp.close()
+
     def on_identification_clicked(self):
-        name = self.sc.db.get_seafoil_box_first()
+        name = self.sconf.db.get_seafoil_box_first()
         # Open a dialog box to enter the identification
         text, ok = QtWidgets.QInputDialog.getText(self.seafoil_ui, 'Identification', 'Enter the name of the seafoil box:', QtWidgets.QLineEdit.Normal, name)
 
         if ok:
             if name is None:
-                self.sc.db.insert_seafoil_box(text)
+                self.sconf.db.insert_seafoil_box(text)
             else:
-                self.sc.db.rename_seafoil_box_first(text)
+                self.sconf.db.rename_seafoil_box_first(text)
+            self.update_ui_from_configuration()
 
     def on_start_software_clicked(self):
         # open a dialog box to confirm the software was started
-        if self.sc.sc.seafoil_service_start():
+        if self.sconf.sc.seafoil_service_start():
             msg = QtWidgets.QMessageBox()
             msg.setIcon(QtWidgets.QMessageBox.Information)
             msg.setText("The software was started.")
@@ -307,57 +398,59 @@ class SeafoilUiConfiguration:
 
     def update_ui_from_configuration(self):
         self.connect_value_changed_configuration(False)
-        self.ui.doubleSpinBox_v500.setValue(self.sc.v500)
-        self.ui.doubleSpinBox_v1850.setValue(self.sc.v1850)
-        self.ui.checkBox_enable_heading.setChecked(self.sc.heading_enable)
-        self.ui.spinBox_voice_interval.setValue(self.sc.voice_interval)
-        self.ui.doubleSpinBox_height_too_high.setValue(self.sc.height_too_high)
-        self.ui.doubleSpinBox_height_high.setValue(self.sc.height_high)
-        self.ui.spinBox_heading.setValue(self.sc.wind_heading)
+        self.ui.doubleSpinBox_v500.setValue(self.sconf.v500)
+        self.ui.doubleSpinBox_v1850.setValue(self.sconf.v1850)
+        self.ui.checkBox_enable_heading.setChecked(self.sconf.heading_enable)
+        self.ui.spinBox_voice_interval.setValue(self.sconf.voice_interval)
+        self.ui.doubleSpinBox_height_too_high.setValue(self.sconf.height_too_high)
+        self.ui.doubleSpinBox_height_high.setValue(self.sconf.height_high)
+        self.ui.spinBox_heading.setValue(self.sconf.wind_heading)
+
+        self.ui.label_seafoil_name.setText(self.sconf.sc.seafoil_box[0]["name"])
 
         # Update the comboBox_configuration_list
         self.ui.comboBox_configuration_list.clear()
-        for config in self.sc.configuration_list:
+        for config in self.sconf.configuration_list:
             self.ui.comboBox_configuration_list.addItem(config['name'])
         # Add "New" at the end of the list
         self.ui.comboBox_configuration_list.addItem("** New **")
 
-        if self.sc.current_index is not None:
-            self.ui.comboBox_configuration_list.setCurrentIndex(self.sc.current_index)
+        if self.sconf.current_index is not None:
+            self.ui.comboBox_configuration_list.setCurrentIndex(self.sconf.current_index)
 
         self.connect_value_changed_configuration(True)
 
     def update_configuration_from_ui(self):
-        self.sc.v500 = self.ui.doubleSpinBox_v500.value()
-        self.sc.v1850 = self.ui.doubleSpinBox_v1850.value()
-        self.sc.heading_enable = self.ui.checkBox_enable_heading.isChecked()
-        self.sc.voice_interval = self.ui.spinBox_voice_interval.value()
-        self.sc.height_too_high = self.ui.doubleSpinBox_height_too_high.value()
-        self.sc.height_high = self.ui.doubleSpinBox_height_high.value()
-        self.sc.wind_heading = self.ui.spinBox_heading.value()
+        self.sconf.v500 = self.ui.doubleSpinBox_v500.value()
+        self.sconf.v1850 = self.ui.doubleSpinBox_v1850.value()
+        self.sconf.heading_enable = self.ui.checkBox_enable_heading.isChecked()
+        self.sconf.voice_interval = self.ui.spinBox_voice_interval.value()
+        self.sconf.height_too_high = self.ui.doubleSpinBox_height_too_high.value()
+        self.sconf.height_high = self.ui.doubleSpinBox_height_high.value()
+        self.sconf.wind_heading = self.ui.spinBox_heading.value()
 
     def on_change_configuration(self):
         # Set the minimum of doubleSpinBox_height_too_high to doubleSpinBox_height_high
         self.ui.doubleSpinBox_height_too_high.setMinimum(self.ui.doubleSpinBox_height_high.value())
         self.update_configuration_from_ui()
-        self.sc.db_save_configuration(is_new=False)
+        self.sconf.db_save_configuration(is_new=False)
 
     def on_change_index_configuration(self):
         self.update_configuration_from_ui()
 
         index = self.ui.comboBox_configuration_list.currentIndex()
-        if index >= len(self.sc.configuration_list):
+        if index >= len(self.sconf.configuration_list):
             text, ok = QtWidgets.QInputDialog.getText(self.seafoil_ui, 'Save configuration', 'Enter the name of the configuration:')
             if ok:
-                self.sc.db_save_configuration(text, is_new=True)
+                self.sconf.db_save_configuration(text, is_new=True)
 
-        if self.sc.update_index(index):
+        if self.sconf.update_index(index):
             self.connect_value_changed_configuration(False)
             self.update_ui_from_configuration()
             self.connect_value_changed_configuration(True)
 
     def on_remove_config_clicked(self):
-        self.sc.db_remove_configuration()
+        self.sconf.db_remove_configuration()
         self.update_ui_from_configuration()
 
     def on_send_config_clicked(self):
@@ -369,7 +462,7 @@ class SeafoilUiConfiguration:
 
         self.update_configuration_from_ui()
 
-        if self.sc.upload_configuration():
+        if self.sconf.upload_configuration():
             # Dialog box to confirm the configuration was sent
             msg = QtWidgets.QMessageBox()
             msg.setIcon(QtWidgets.QMessageBox.Information)
@@ -762,7 +855,7 @@ class SeafoilUiBaseDeVitesse(QtWidgets.QDialog):
     def on_base_id_changed(self):
         # Get the index of the selected item
         index = self.ui.comboBox_bdv_base_id.currentIndex()
-        if index == len(self.bdv.base_list):
+        if index == len(self.bdv.base_list) or self.bdv.base_list == []:
             msg = QtWidgets.QMessageBox()
             # Update the list
             if self.bdv.download_list_base():
@@ -795,6 +888,12 @@ class SeafoilUiBaseDeVitesse(QtWidgets.QDialog):
             else :
                 self.ui.comboBox_bdv_base_id.setCurrentIndex(0)
                 self.bdv.base_current_id = 0
+        else:
+            # Add item "No base" to the comboBox_bdv_base_id
+            self.ui.comboBox_bdv_base_id.addItem("No base selected")
+            self.ui.comboBox_bdv_base_id.setCurrentIndex(0)
+            self.bdv.base_current_id = 0
+
         # Add item "Update list" at the end of the list in italics to the comboBox_bdv_base_id
         self.ui.comboBox_bdv_base_id.addItem("Update list")
         font = QFont()
