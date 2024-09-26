@@ -1,7 +1,4 @@
 import subprocess, os
-from operator import truediv
-
-from tqdm import tqdm
 
 from ..db.seafoil_db import SeafoilDB
 import yaml
