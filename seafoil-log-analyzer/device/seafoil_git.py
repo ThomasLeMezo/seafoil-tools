@@ -1,12 +1,15 @@
-
+import os
 import subprocess
 
 class SeafoilGit():
     def __init__(self):
-        pass
+        # Get the directory of the plugin
+        self.plugin_directory = os.path.dirname(os.path.realpath(__file__)+ "/../")
 
     def run_git_command(self, command):
         """Run a Git command and return its output."""
+        # Run in the plugin directory
+        command = f"cd {self.plugin_directory} && {command}"
         result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
         if result.returncode != 0:
             raise Exception(f"Git command failed: {result.stderr.strip()}")
