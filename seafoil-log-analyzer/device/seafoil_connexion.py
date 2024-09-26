@@ -227,9 +227,12 @@ class SeafoilConnexion(QObject):
             command = f"rm /home/{self.username}/config/default/*.bkp"
             stdin, stdout, stderr = self.ssh_client.exec_command(command)
 
-
         except Exception as e:
             print(f"An error occurred: {e}")
+            return False
+
+        # Start the service
+        if not self.seafoil_service_start():
             return False
 
         # Remove the temporary file
