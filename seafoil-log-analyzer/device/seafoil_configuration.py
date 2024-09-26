@@ -24,7 +24,7 @@ class SeafoilConfiguration():
         self.height_high = 0.5
         self.height_too_high = 0.8
         self.min_speed_sound = 8.0
-        self.wind_heading = 0
+        self.wind_heading = 0.0
 
         self.yaml_observer = None
         self.yaml_observer_path = self.config_file_name

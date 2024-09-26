@@ -404,7 +404,7 @@ class SeafoilUiConfiguration:
         self.ui.spinBox_voice_interval.setValue(self.sconf.voice_interval)
         self.ui.doubleSpinBox_height_too_high.setValue(self.sconf.height_too_high)
         self.ui.doubleSpinBox_height_high.setValue(self.sconf.height_high)
-        self.ui.spinBox_heading.setValue(self.sconf.wind_heading)
+        self.ui.spinBox_heading.setValue(int(self.sconf.wind_heading))
 
         self.ui.label_seafoil_name.setText(self.sconf.sc.seafoil_box[0]["name"])
 
@@ -427,7 +427,7 @@ class SeafoilUiConfiguration:
         self.sconf.voice_interval = self.ui.spinBox_voice_interval.value()
         self.sconf.height_too_high = self.ui.doubleSpinBox_height_too_high.value()
         self.sconf.height_high = self.ui.doubleSpinBox_height_high.value()
-        self.sconf.wind_heading = self.ui.spinBox_heading.value()
+        self.sconf.wind_heading = float(self.ui.spinBox_heading.value())
 
     def on_change_configuration(self):
         # Set the minimum of doubleSpinBox_height_too_high to doubleSpinBox_height_high

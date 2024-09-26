@@ -203,15 +203,15 @@ class SeafoilConnexion(QObject):
 
     # Send a yaml configuration file to the seafoil box
     def seafoil_send_config(self, file_name, yaml_data):
-        # Test if connected
-        if not self.connect():
-            return False
-
         # Create temporary yaml file (test if directory exists)
         os.makedirs(f"{self.projet_folder}/data/", exist_ok=True)
         config_file = f"{self.projet_folder}/data/tmp.yaml"
         with open(config_file, 'w') as file:
             yaml.dump(yaml_data, file)
+
+        # Test if connected
+        if not self.connect():
+            return False
 
         # Stop the service
         if not self.seafoil_service_stop():

@@ -522,7 +522,7 @@ class DockAnalysis(SeafoilDock):
         if modulo_x:
             # Add a spin box to change the center value of the x axis
             spinbox = pg.SpinBox(value=x_min*x_unit_conversion, bounds=[x_min*x_unit_conversion, x_max*x_unit_conversion], step=x_resolution*x_unit_conversion)
-            spinbox.setValue(self.sfb.configuration["analysis"]["wind_heading"])
+            spinbox.setValue(int(self.sfb.configuration["analysis"]["wind_heading"]))
             # Set wrap to True to allow the value to wrap around the limits
             spinbox.setWrapping(True)
             def update_x_center():
@@ -562,7 +562,7 @@ class DockAnalysis(SeafoilDock):
                 except:
                     pg_plot.setTitle("Max left: (error) Max right: (error)")
 
-                self.sfb.configuration["analysis"]["wind_heading"] = spinbox.value()
+                self.sfb.configuration["analysis"]["wind_heading"] = float(spinbox.value())
                 # print("Wind heading", spinbox.value(), self.sfb.configuration["analysis"]["wind_heading"])
 
 

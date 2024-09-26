@@ -153,7 +153,7 @@ class SeafoilBag(QObject):
 				# Test if key "analysis" exists
 				if "analysis" not in self.configuration:
 					# Create the key "analysis"
-					self.configuration["analysis"] = {"wind_heading": 0}
+					self.configuration["analysis"] = {"wind_heading": 0.0}
 			return True
 		else:
 			return False
