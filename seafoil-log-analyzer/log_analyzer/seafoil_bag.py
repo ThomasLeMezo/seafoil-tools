@@ -21,6 +21,7 @@ from .seafoil_data.seafoil_gpx import SeafoilGpx
 from .tools.seafoil_statistics import SeafoilStatistics
 
 # import rosbag2_py
+import weakref
 
 import datetime
 import numpy as np
@@ -84,6 +85,9 @@ class SeafoilBag(QObject):
 		if not os.path.exists(self.data_folder):
 			os.makedirs(self.data_folder, exist_ok=True)
 
+		# Define the behavior when the object is deleted
+		weakref.finalize(self, self.save_configuration)
+
 	def load_data(self):
 		############## Load data ##############
 		self.nb_topics_processed = 0
@@ -133,9 +137,6 @@ class SeafoilBag(QObject):
 		self.statistics = SeafoilStatistics(self)
 
 		print("Data loaded")
-
-	def __del__(self):
-		self.save_configuration()
 
 	def save_configuration(self):
 		# Create data folder if it does not exist

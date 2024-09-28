@@ -19,3 +19,6 @@ from .seafoil_data.seafoil_gpx import SeafoilGpx
 from .seafoil_bag import SeafoilBag
 from .seafoil_log_analyzer import SeafoilLogAnalyser
 from .seafoil_data.seafoil_gpx import correction_of_malformed_gpx
+from .seafoil_log_analyzer import SeafoilLogAnalyser
+
+from .tools.seafoil_statistics import SeafoilStatistics

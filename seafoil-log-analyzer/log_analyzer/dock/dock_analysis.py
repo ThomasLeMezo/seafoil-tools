@@ -420,6 +420,7 @@ class DockAnalysis(SeafoilDock):
                               modulo_x = False):
 
         # Example : x = data_gnss.speed, y = data_height.height, name_x = "speed", name_y = "height"
+        # Example : x = data_gnss.track, y = data_gnss.speed, name_x = "track", name_y = "speed"
 
         # Interpolate data_y over data_x
         data_y_time, idx = np.unique(data_y_time, return_index=True)
@@ -618,7 +619,6 @@ class DockAnalysis(SeafoilDock):
         data_statistics = copy.copy(self.sfb.statistics)
 
         if not data_gnss.is_empty():
-
 
             [pg_heading_velocity, spinBox] = self.add_plot_relationship(data_gnss.track, data_statistics.speed, data_gnss.time, data_gnss.time,
                                                              name_x="heading", name_y="velocity",

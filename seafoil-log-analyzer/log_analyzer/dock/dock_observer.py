@@ -238,6 +238,7 @@ class DockDataObserver(SeafoilDock):
             # pg_profile = pg.GraphicsLayoutWidget()
             pg_profile = self.add_plot_profile(dock_profile, data, add_interval=True)
 
+
     def add_profile_one(self):
         dock_profile_one = Dock("Profile one")
 
@@ -319,6 +320,14 @@ class DockDataObserver(SeafoilDock):
                             name="height unfiltered", stepMode=True)
             pg_profile.setLabel('left', "status")
             dock_profile_filter.addWidget(pg_profile)
+
+            # Add profile with interval diameter
+            pg_profile_interval = pg.PlotWidget()
+            self.set_plot_options(pg_profile_interval)
+            pg_profile_interval.plot(data_debug.time, data_debug.interval_diam[:-1], pen=(255, 0, 0), name="interval diameter", stepMode=True)
+            pg_profile_interval.setLabel('left', "interval diameter")
+            dock_profile_filter.addWidget(pg_profile_interval)
+            pg_profile_interval.setXLink(pg_profile)
 
     def add_wind(self):
         # Plot wind data correct by heading of the boat

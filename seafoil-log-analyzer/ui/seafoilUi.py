@@ -819,6 +819,9 @@ class SeafoilUiBaseDeVitesse(QtWidgets.QDialog):
         self.ui.pushButton_bdv_refresh.clicked.connect(self.on_refresh_clicked)
         self.ui.pushButton_download_gpx.clicked.connect(self.on_download_gpx_clicked)
 
+        # Connect the double click on tableWidget_bdv to download the gpx file
+        self.ui.tableWidget_bdv.itemDoubleClicked.connect(self.on_download_gpx_clicked)
+
         # Set the dateEdit_bdv to the current date
         self.ui.dateEdit_bdv.setDate(QDate.currentDate())
 
