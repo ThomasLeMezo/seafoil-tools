@@ -244,6 +244,15 @@ class SeafoilDB:
             name TEXT
         )''')
 
+        # Create table for "base de vitesse" riders
+        self.sqliteCursor.execute('''CREATE TABLE IF NOT EXISTS base_de_vitesse_rider
+        (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            web_id INTEGER,
+            first_name TEXT,
+            last_name TEXT
+        )''')
+
     # Set configuration for a seafoil box
     def set_configuration(self, data):
         if data['id'] is not None:
@@ -906,8 +915,24 @@ class SeafoilDB:
         self.sqliteConnection.commit()
 
     # Get all base de vitesse
-    def get_base_all(self):
+    def get_basevitesse_all(self):
         self.sqliteCursor.execute('''SELECT * FROM base_de_vitesse_identification''')
+        return self.sqliteCursor.fetchall()
+
+    # Insert new rider in base de vitesse if it does not exist
+    def insert_basevitesse_rider(self, first_name, last_name, web_id):
+        self.sqliteCursor.execute('''SELECT * FROM base_de_vitesse_rider WHERE web_id = ?''', (web_id,))
+        row = self.sqliteCursor.fetchone()
+        if row:
+            return row['id']
+        else:
+            self.sqliteCursor.execute('''INSERT INTO base_de_vitesse_rider (web_id, first_name, last_name) VALUES (?, ?, ?)''', (web_id, first_name, last_name))
+            self.sqliteConnection.commit()
+            return self.sqliteCursor.lastrowid
+
+    # Get all base de vitesse riders sort by first name and last name
+    def get_basevitesse_rider_all(self):
+        self.sqliteCursor.execute('''SELECT * FROM base_de_vitesse_rider ORDER BY first_name, last_name''')
         return self.sqliteCursor.fetchall()
 
 # Test the class

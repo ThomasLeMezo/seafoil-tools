@@ -3,6 +3,7 @@ import datetime
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
+from PyQt5.QtWidgets import QCompleter
 from qgis.PyQt import QtGui, QtWidgets, uic
 from qgis.PyQt.QtCore import QDate, pyqtSignal
 from qgis.PyQt.QtWidgets import QApplication, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QDialog, QLabel, \
@@ -816,8 +817,14 @@ class SeafoilUiBaseDeVitesse(QtWidgets.QDialog):
         self.ui = seafoil_ui.ui
         self.bdv = SeafoilBaseDeVitesse()
 
-        self.ui.pushButton_bdv_refresh.clicked.connect(self.on_refresh_clicked)
+        # Connect pushButton_bdv_refresh to function on_refresh_clicked
+        self.ui.pushButton_bdv_refresh.clicked.connect(self.on_refresh_session_day)
+
+        # Connect pushButton_download_gpx to function on_download_gpx_clicked
         self.ui.pushButton_download_gpx.clicked.connect(self.on_download_gpx_clicked)
+
+        # Connect pushButton_bdv_rider to function on_download_rider_list
+        self.ui.pushButton_bdv_rider.clicked.connect(self.on_refresh_rider_session)
 
         # Connect the double click on tableWidget_bdv to download the gpx file
         self.ui.tableWidget_bdv.itemDoubleClicked.connect(self.on_download_gpx_clicked)
@@ -828,9 +835,40 @@ class SeafoilUiBaseDeVitesse(QtWidgets.QDialog):
         # Connect comboBox_bdv_base_id to function on_base_id_changed
         self.ui.comboBox_bdv_base_id.currentIndexChanged.connect(self.on_base_id_changed)
 
+        # Connect comboBox_bdv_rider to function on_rider_id_changed
+        self.ui.comboBox_bdv_rider.currentIndexChanged.connect(self.on_rider_id_changed)
+        # Connect "enter" key to comboBox_bdv_rider
+        self.ui.comboBox_bdv_rider.lineEdit().returnPressed.connect(self.on_refresh_rider_session)
+
         self.update_ui_from_base_de_vitesse()
 
-    def on_refresh_clicked(self):
+    def on_refresh_rider_session(self):
+        # Disable the button
+        self.ui.pushButton_bdv_rider.setEnabled(False)
+        QApplication.processEvents()
+
+        # Get comboBox_bdv_rider index
+        self.bdv.rider_current_idx = self.ui.comboBox_bdv_rider.currentIndex()
+
+        # Download the rider session list
+        ret = self.bdv.download_rider_session_list()
+
+        if ret is None:
+            # Dialog box to inform no log was found
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Information)
+            msg.setText("No log found.")
+            msg.setWindowTitle("Information")
+            msg.exec_()
+
+        # Set current information as rider
+        self.bdv.info_type = self.bdv.BdvInfoType.USER_SESSION
+        self.update_ui_from_base_de_vitesse()
+
+        # Enable the button
+        self.ui.pushButton_bdv_rider.setEnabled(True)
+
+    def on_refresh_session_day(self):
         # Disable the button
         self.ui.pushButton_bdv_refresh.setEnabled(False)
         QApplication.processEvents()
@@ -850,6 +888,7 @@ class SeafoilUiBaseDeVitesse(QtWidgets.QDialog):
             msg.setWindowTitle("Information")
             msg.exec_()
 
+        self.bdv.info_type = self.bdv.BdvInfoType.DAY_SESSION
         self.update_ui_from_base_de_vitesse()
 
         # Enable the button
@@ -875,6 +914,27 @@ class SeafoilUiBaseDeVitesse(QtWidgets.QDialog):
         else:
             self.bdv.base_current_id = index
 
+    def on_rider_id_changed(self):
+        # Get the index of the selected item
+        index = self.ui.comboBox_bdv_rider.currentIndex()
+        if index == len(self.bdv.rider_list) or self.bdv.rider_list == []:
+            msg = QtWidgets.QMessageBox()
+            # Update the list
+            if self.bdv.download_rider_list():
+                msg.setIcon(QtWidgets.QMessageBox.Information)
+                msg.setText("The rider list was updated.")
+                msg.setWindowTitle("Information")
+            else:
+                msg.setIcon(QtWidgets.QMessageBox.Warning)
+                msg.setText("The rider list was not updated.")
+                msg.setWindowTitle("Warning")
+            msg.exec_()
+
+            self.update_ui_from_base_de_vitesse()
+        else:
+            self.bdv.rider_current_idx = index
+            print(self.bdv.rider_current_idx)
+
     def update_ui_from_base_de_vitesse(self):
         self.bdv.update()
 
@@ -896,29 +956,64 @@ class SeafoilUiBaseDeVitesse(QtWidgets.QDialog):
             self.ui.comboBox_bdv_base_id.addItem("No base selected")
             self.ui.comboBox_bdv_base_id.setCurrentIndex(0)
             self.bdv.base_current_id = 0
-
         # Add item "Update list" at the end of the list in italics to the comboBox_bdv_base_id
         self.ui.comboBox_bdv_base_id.addItem("Update list")
         font = QFont()
         font.setItalic(True)
         self.ui.comboBox_bdv_base_id.setItemData(len(self.bdv.base_list), font, Qt.FontRole)
-
         self.ui.comboBox_bdv_base_id.currentIndexChanged.connect(self.on_base_id_changed)
+
+        # Update the rider list
+        self.ui.comboBox_bdv_rider.currentIndexChanged.disconnect(self.on_rider_id_changed)
+        self.ui.comboBox_bdv_rider.clear()
+        if len(self.bdv.rider_list) > 0:
+            for i, rider in enumerate(self.bdv.rider_list_ui):
+                self.ui.comboBox_bdv_rider.addItem(rider)
+
+            if self.bdv.rider_current_idx is not None:
+                self.ui.comboBox_bdv_rider.setCurrentIndex(self.bdv.rider_current_idx)
+            else:
+                self.ui.comboBox_bdv_rider.setCurrentIndex(0)
+                self.bdv.rider_current_idx = 0
+        else:
+            # Add item "No rider" to the comboBox_bdv_rider
+            self.ui.comboBox_bdv_rider.addItem("No rider selected")
+            self.ui.comboBox_bdv_rider.setCurrentIndex(0)
+            self.bdv.rider_current_idx = 0
+        # Add item "Update list" at the end of the list in italics to the comboBox_bdv_rider
+        self.ui.comboBox_bdv_rider.addItem("Update list")
+        font = QFont()
+        font.setItalic(True)
+        self.ui.comboBox_bdv_rider.setItemData(len(self.bdv.rider_list), font, Qt.FontRole)
+        self.ui.comboBox_bdv_rider.currentIndexChanged.connect(self.on_rider_id_changed)
 
         # Add items to the tableWidget_bdv
         self.ui.tableWidget_bdv.clear()
 
-        # Set the number of columns and header
-        self.ui.tableWidget_bdv.setColumnCount(len(self.bdv.session_day_header))
-        self.ui.tableWidget_bdv.setHorizontalHeaderLabels(self.bdv.session_day_header)
-        # Set header visible
-        self.ui.tableWidget_bdv.horizontalHeader().setVisible(True)
+        if self.bdv.info_type == self.bdv.BdvInfoType.DAY_SESSION:
+            # Set the number of columns and header
+            self.ui.tableWidget_bdv.setColumnCount(len(self.bdv.session_day_header))
+            self.ui.tableWidget_bdv.setHorizontalHeaderLabels(self.bdv.session_day_header)
+            # Set header visible
+            self.ui.tableWidget_bdv.horizontalHeader().setVisible(True)
 
-        self.ui.tableWidget_bdv.setRowCount(len(self.bdv.session_day))
+            self.ui.tableWidget_bdv.setRowCount(len(self.bdv.session_day))
 
-        for i, session in enumerate(self.bdv.session_day):
-            for j, key in enumerate(self.bdv.session_day_header):
-                self.ui.tableWidget_bdv.setItem(i, j, QtWidgets.QTableWidgetItem(session[key]))
+            for i, session in enumerate(self.bdv.session_day):
+                for j, key in enumerate(self.bdv.session_day_header):
+                    self.ui.tableWidget_bdv.setItem(i, j, QtWidgets.QTableWidgetItem(session[key]))
+        elif self.bdv.info_type == self.bdv.BdvInfoType.USER_SESSION:
+            # Set the number of columns and header
+            self.ui.tableWidget_bdv.setColumnCount(len(self.bdv.session_user_header))
+            self.ui.tableWidget_bdv.setHorizontalHeaderLabels(self.bdv.session_user_header)
+            # Set header visible
+            self.ui.tableWidget_bdv.horizontalHeader().setVisible(True)
+
+            self.ui.tableWidget_bdv.setRowCount(len(self.bdv.rider_session_list))
+
+            for i, session in enumerate(self.bdv.rider_session_list):
+                for j, key in enumerate(self.bdv.session_user_header):
+                    self.ui.tableWidget_bdv.setItem(i, j, QtWidgets.QTableWidgetItem(session[key]))
 
         # Auto resize columns
         self.ui.tableWidget_bdv.resizeColumnsToContents()
@@ -997,7 +1092,7 @@ class SeafoilUi(QtWidgets.QDockWidget):
         if current_tag != latest_tag:
             msg = QtWidgets.QMessageBox()
             msg.setIcon(QtWidgets.QMessageBox.Information)
-            msg.setText(f"Current version: {current_tag}\nLatest version: {latest_tag}")
+            msg.setText(f"Current version: {current_tag}\nLatest version: {latest_tag} \n Restart QGIS to update.")
             msg.setWindowTitle("Update")
             msg.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
             ret = msg.exec_()
@@ -1006,7 +1101,7 @@ class SeafoilUi(QtWidgets.QDockWidget):
         else:
             msg = QtWidgets.QMessageBox()
             msg.setIcon(QtWidgets.QMessageBox.Information)
-            msg.setText(f"Current version: {current_tag}\nLatest version: {latest_tag}")
+            msg.setText(f"Current version: {current_tag}\nLatest version: {latest_tag}\n No update needed.")
             msg.setWindowTitle("Update")
             msg.exec_()
 
