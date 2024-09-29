@@ -1,21 +1,14 @@
 #!/bin/python3
-import os
-import sys
 import pyqtgraph as pg
-from pyqtgraph.Qt import QtWidgets
-import pyqtgraph.console
+from mpmath.libmp import normalize
 from pyqtgraph.dockarea import *
-from .seafoil_dock import SeafoilDock
 import numpy as np
-from scipy import signal, interpolate
+from scipy import interpolate
 import copy
-
-from PyQt5.QtWidgets import QFileDialog, QInputDialog
-import datetime
-import gpxpy.gpx
 import math
 
-from ..tools.seafoil_statistics import SeafoilStatistics
+from .seafoil_dock import SeafoilDock
+from ..tools.seafoil_relationship_plot import SeafoilRelationshipPlot
 
 def compute_diff_yaw(data_yaw, data_time, window_size):
     # Create vector with the same size as data_imu.yaw
@@ -114,6 +107,7 @@ class DockAnalysis(SeafoilDock):
         self.add_polar_heading()
         self.add_velocity()
         self.add_speed_heading()
+        self.add_speed_heading_time()
 
         # self.add_heading_velocity()
 
@@ -647,72 +641,51 @@ class DockAnalysis(SeafoilDock):
             pg_heading_velocity.addItem(line_2)
             pg_heading_velocity.addItem(text_line_2)
 
-        # if not data_imu.is_empty():
-        #     pg_heading_roll = self.add_plot_relationship(data_gnss.track, abs(data_imu.roll), data_gnss.time, data_imu.time,
-        #                                                  name_x="heading", name_y="roll",
-        #                                                  unit_x="°", unit_y="°",
-        #                                                  x_min=0.0, x_max=360.0, x_resolution=1, x_unit_conversion=1,
-        #                                                  y_min=0, y_max=40, y_resolution=0.5, y_unit_conversion=1.0,
-        #                                                  min_sample=10, enable_polyfit=False, polyndegree=1 )
-        #     dock_heading.addWidget(pg_heading_roll)
+    def add_speed_heading_time(self):
+        dock_heading_time = Dock("Speed/Heading - Time")
+        self.addDock(dock_heading_time, position='below')
 
-            # pg_heading_roll.setXLink(pg_heading_velocity)
+        data_gnss = copy.copy(self.sfb.gps_fix)
+        data_statistics = copy.copy(self.sfb.statistics)
 
-    # def add_jibe_speed(self):
-    #     dock_jibe = Dock("Jibe speed")
-    #     self.addDock(dock_jibe, position='below')
-    #
-    #     # For each value of heading find the index before such that the absolute variation of heading is greater than 180
-    #     # And the difference of index is inferior to 20*25 (20s).
-    #     max_window_size = 20 * 25
-    #     jibe_angle = 150
-    #
-    #     data_gnss = copy.copy(self.sfb.gps_fix)
-    #
-    #     # Compute the heading variation
-    #     heading_variation = data_gnss.track[:-1] - data_gnss.track[1:]
-    #     # remove the value greater than 180
-    #     heading_variation = np.where(heading_variation > 180, heading_variation - 360, heading_variation)
-    #     heading_variation = np.where(heading_variation < -180, heading_variation + 360, heading_variation)
-    #
-    #     heading_accumulated = np.cumsum(heading_variation)
-    #
-    #     # For each accumulated heading find the index before such that the absolute variation of heading is greater than 180
-    #     # And the difference of index is inferior to 20*25 (20s).
-    #     jibe = np.zeros(len(heading_accumulated))
-    #
-    #     for i in range(len(heading_accumulated)):
-    #         if i > max_window_size:
-    #             for j in range(10*25, max_window_size+1):
-    #                 if abs(heading_accumulated[i]-heading_accumulated[i-j]) >= 150:
-    #                     # Compute the mean speed between i and j
-    #                     jibe[i] = np.mean(data_gnss.speed[j:i])
-    #                     break
-    #
-    #     # plot (speed, heading, jibe)
-    #     pg_speed = pg.PlotWidget()
-    #     self.set_plot_options(pg_speed)
-    #     pg_speed.plot(data_gnss.time, (data_gnss.speed*self.ms_to_kt)[:-1], pen=(255, 0, 0), name="speed", stepMode=True)
-    #     pg_speed.setLabel('left', "speed (m/s)")
-    #     dock_jibe.addWidget(pg_speed)
-    #
-    #     pg_heading = pg.PlotWidget()
-    #     self.set_plot_options(pg_heading)
-    #     pg_heading.plot(data_gnss.time, data_gnss.track[:-1], pen=(255, 0, 0), name="heading", stepMode=True)
-    #     pg_heading.setLabel('left', "heading (°)")
-    #     dock_jibe.addWidget(pg_heading)
-    #     pg_heading.setXLink(pg_speed)
-    #
-    #     pg_jibe = pg.PlotWidget()
-    #     self.set_plot_options(pg_jibe)
-    #     pg_jibe.plot(data_gnss.time, jibe*self.ms_to_kt, pen=(255, 0, 0), name="jibe speed", stepMode=True)
-    #     pg_jibe.setLabel('left', "speed (kt)")
-    #     dock_jibe.addWidget(pg_jibe)
-    #     pg_jibe.setXLink(pg_speed)
-    #
-    #     pg_heading_acc = pg.PlotWidget()
-    #     self.set_plot_options(pg_heading_acc)
-    #     pg_heading_acc.plot(data_gnss.time, heading_accumulated, pen=(255, 0, 0), name="heading variation", stepMode=True)
-    #     pg_heading_acc.setLabel('left', "heading variation (°)")
-    #     dock_jibe.addWidget(pg_heading_acc)
-    #     pg_heading_acc.setXLink(pg_speed)
+        if not data_gnss.is_empty():
+            srp = SeafoilRelationshipPlot(data_gnss.track, data_statistics.speed, data_gnss.time, data_gnss.time, self.sfb, enable_interpolation=False)
+            srp.set_x_parameters("heading", "°", 0.0, 360.0, 1.0, 1.0)
+            srp.set_y_parameters("velocity", "kt", 12, 42, 0.1, self.ms_to_kt)
+            srp.set_min_sample(0, normalize="one")
+            srp.plot_options(enable_plot_stat_curves=False, enable_plot_trajectory=True, modulo_x=True)
+
+            [pg_heading_velocity, spinBox] = srp.generate_plot_relationship()
+
+            dock_heading_time.addWidget(pg_heading_velocity)
+            dock_heading_time.addWidget(spinBox)
+
+
+            r2b_1, text_1 = add_slope([[10, 12], [10, 20]], unit="°/kt", line_color=(255, 255, 0), text_position=[0, 40])
+            r2b_2, text_2 = add_slope([[-10, 12], [-10, 20]], unit="°/kt", line_color=(0, 255, 255), text_position=[0, 38])
+
+            pg_heading_velocity.addItem(r2b_1)
+            pg_heading_velocity.addItem(text_1)
+            pg_heading_velocity.addItem(r2b_2)
+            pg_heading_velocity.addItem(text_2)
+
+            line_1, text_line_1 = add_line(180, unit="°", line_color=(255, 255, 0), text_position=[0, 36])
+            line_2, text_line_2 = add_line(-180, unit="°", line_color=(0, 255, 255), text_position=[0, 34])
+
+            pg_heading_velocity.addItem(line_1)
+            pg_heading_velocity.addItem(text_line_1)
+            pg_heading_velocity.addItem(line_2)
+            pg_heading_velocity.addItem(text_line_2)
+
+            # Add a graphics with speed
+            pg_speed = pg.PlotWidget()
+            self.set_plot_options(pg_speed)
+            pg_speed.plot(data_gnss.time, data_gnss.speed[:-1] * 1.94384, pen=(255, 0, 0), name="speed", stepMode=True)
+            pg_speed.setLabel('left', "speed (kt)")
+            dock_heading_time.addWidget(pg_speed)
+
+            # Add a Region of Interest
+            roi = pg.LinearRegionItem([data_gnss.time[0], data_gnss.time[-1]])
+            pg_speed.addItem(roi, ignoreBounds=True)
+            roi.sigRegionChanged.connect(lambda: srp.update_time(roi.getRegion()))
+            # roi.setClipItem(pg_speed)

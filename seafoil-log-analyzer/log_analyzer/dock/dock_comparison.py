@@ -59,10 +59,11 @@ class DockComparison(SeafoilDock):
                                                                             y_min=12, y_max=42, y_resolution=0.1, y_unit_conversion=self.ms_to_kt,
                                                                             min_sample=0, enable_polyfit=False, polyndegree=1, enable_plot_curves=False,
                                                                             enable_plot_trajectory=True, normalize="one", modulo_x=True,
-                                                                            color_matrix=color_matrix_list[i],
+                                                                            color_matrix=color_matrix_list[i%len(color_matrix_list)],
                                                                             pg_plot=pg_plot,
                                                                             file_bag_name=sfb.file_name,
-                                                                            file_number=i)
+                                                                            file_number=i,
+                                                                            sfb=sfb)
 
                 dock_heading.addWidget(spinBox)
 
@@ -93,7 +94,8 @@ class DockComparison(SeafoilDock):
                               color_matrix=(0, 0, 255, 1),
                               pg_plot=None,
                               file_bag_name=None,
-                              file_number=0):
+                              file_number=0,
+                              sfb=None):
 
         # Example : x = data_gnss.speed, y = data_height.height, name_x = "speed", name_y = "height"
 
@@ -208,7 +210,7 @@ class DockComparison(SeafoilDock):
         if modulo_x:
             # Add a spin box to change the center value of the x axis
             spinbox = pg.SpinBox(value=x_min*x_unit_conversion, bounds=[x_min*x_unit_conversion, x_max*x_unit_conversion], step=x_resolution*x_unit_conversion)
-            spinbox.setValue(int(self.sfb.configuration["analysis"]["wind_heading"]))
+            spinbox.setValue(int(sfb.configuration["analysis"]["wind_heading"]))
             # Set wrap to True to allow the value to wrap around the limits
             spinbox.setWrapping(True)
             def update_x_center():
@@ -248,7 +250,7 @@ class DockComparison(SeafoilDock):
                 except:
                     pg_plot.setTitle("Max left: (error) Max right: (error)")
 
-                self.sfb.configuration["analysis"]["wind_heading"] = float(spinbox.value())
+                sfb.configuration["analysis"]["wind_heading"] = float(spinbox.value())
                 # print("Wind heading", spinbox.value(), self.sfb.configuration["analysis"]["wind_heading"])
 
 
