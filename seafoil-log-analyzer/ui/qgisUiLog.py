@@ -141,7 +141,7 @@ class QgisUiLog():
             feat.setGeometry(QgsGeometry.fromPolyline([QgsPoint(self.sb.gps_fix.longitude[i], self.sb.gps_fix.latitude[i]),
                                                        QgsPoint(self.sb.gps_fix.longitude[i+1], self.sb.gps_fix.latitude[i+1])]))
             feat.setFields(self.layer.fields())
-            t = QDateTime.fromMSecsSinceEpoch(int((self.sb.gps_fix.time[i]+self.sb.gps_fix.starting_time.timestamp())*1000), QTimeZone.utc())
+            t = QDateTime.fromMSecsSinceEpoch(int((self.sb.gps_fix.time[i]+self.sb.gps_fix.starting_time.timestamp())*1000), QTimeZone.systemTimeZone())
             feat.setAttributes([t,
                                 float(self.sb.gps_fix.speed[i] * ms_to_knots),
                                 float(self.sb.gps_fix.track[i]),
