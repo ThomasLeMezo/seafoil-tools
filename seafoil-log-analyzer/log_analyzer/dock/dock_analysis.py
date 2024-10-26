@@ -1,6 +1,6 @@
 #!/bin/python3
 import pyqtgraph as pg
-from mpmath.libmp import normalize
+from PyQt5 import QtCore, QtWidgets
 from pyqtgraph.dockarea import *
 import numpy as np
 from scipy import interpolate
@@ -93,6 +93,9 @@ class DockAnalysis(SeafoilDock):
         self.list_pg_yaw = []
         self.list_pg_roll_pitch = []
 
+        self.spinbox_list = []
+        self.timer_play = QtCore.QTimer()
+
         self.yaw = None
         self.yaw_diff = None
         data_gnss = copy.copy(self.sfb.gps_fix)
@@ -108,12 +111,16 @@ class DockAnalysis(SeafoilDock):
         self.add_velocity()
         self.add_speed_heading()
         self.add_speed_heading_time()
+        self.sandbox()
 
         # self.add_heading_velocity()
 
         # self.add_jibe_speed()
 
         print("DockAnalysis initialized")
+
+    def __del__(self):
+        self.timer_play.stop()
 
     def plot_height_velocity(self):
         data_debug = copy.copy(self.sfb.height_debug)
@@ -327,7 +334,6 @@ class DockAnalysis(SeafoilDock):
             # dock_height_velocity.addWidget(saveBtn, row=dock_height_velocity.currentRow + 1, col=0)
 
 
-
     def add_polar_heading(self):
         dock_polar_heading = Dock("Polar heading")
 
@@ -403,6 +409,12 @@ class DockAnalysis(SeafoilDock):
             dock_polar_heading.addWidget(pg_polar_heading_height)
             pg_polar_heading_height.setXLink(pg_polar_heading)
 
+
+    def update_spinbox_value(self, value, spinbox_calling):
+        for spinbox in self.spinbox_list:
+            if spinbox != spinbox_calling:
+                print("update spinbox value" + str(value) + spinbox.objectName())
+                spinbox.setValue(value)
 
     def add_plot_relationship(self, data_x, data_y, data_x_time, data_y_time,
                               name_x = None, name_y = None, unit_x=None, unit_y=None,
@@ -560,6 +572,8 @@ class DockAnalysis(SeafoilDock):
                 self.sfb.configuration["analysis"]["wind_heading"] = float(spinbox.value())
                 # print("Wind heading", spinbox.value(), self.sfb.configuration["analysis"]["wind_heading"])
 
+                self.update_spinbox_value(spinbox.value(), spinbox)
+
 
             spinbox.sigValueChanged.connect(update_x_center)
             update_x_center()
@@ -623,6 +637,7 @@ class DockAnalysis(SeafoilDock):
                                                              enable_plot_trajectory=True, normalize="one", modulo_x=True)
             dock_heading.addWidget(pg_heading_velocity)
             dock_heading.addWidget(spinBox)
+            self.spinbox_list.append(spinBox)
 
 
             r2b_1, text_1 = add_slope([[10, 12], [10, 20]], unit="°/kt", line_color=(255, 255, 0), text_position=[0, 40])
@@ -655,11 +670,11 @@ class DockAnalysis(SeafoilDock):
             srp.set_min_sample(0, normalize="one")
             srp.plot_options(enable_plot_stat_curves=False, enable_plot_trajectory=True, modulo_x=True)
 
-            [pg_heading_velocity, spinBox] = srp.generate_plot_relationship()
+            [pg_heading_velocity, spinBox, pushButton] = srp.generate_plot_relationship()
 
             dock_heading_time.addWidget(pg_heading_velocity)
             dock_heading_time.addWidget(spinBox)
-
+            self.spinbox_list.append(spinBox)
 
             r2b_1, text_1 = add_slope([[10, 12], [10, 20]], unit="°/kt", line_color=(255, 255, 0), text_position=[0, 40])
             r2b_2, text_2 = add_slope([[-10, 12], [-10, 20]], unit="°/kt", line_color=(0, 255, 255), text_position=[0, 38])
@@ -689,3 +704,113 @@ class DockAnalysis(SeafoilDock):
             pg_speed.addItem(roi, ignoreBounds=True)
             roi.sigRegionChanged.connect(lambda: srp.update_time(roi.getRegion()))
             # roi.setClipItem(pg_speed)
+
+            dock_heading_time.addWidget(pushButton)
+
+            def move_region_of_interest(roi, time_step=1.0):
+                region = roi.getRegion()
+                roi.setRegion([region[0]+time_step, region[1]+time_step])
+
+            # Create a Qt Timer
+            self.timer_play.timeout.connect(lambda: move_region_of_interest(roi, self.timer_play.interval()*1e-3))
+
+            # Create a push button to move the region of interest
+            push_button_play = QtWidgets.QPushButton('Start playing')
+
+            def push_button_play_action():
+                if not self.timer_play.isActive():
+                    self.timer_play.start(500)
+                    # Set text to stop
+                    push_button_play.setText("Stop playing")
+                else:
+                    self.timer_play.stop()
+                    # Set text to start
+                    push_button_play.setText("Start playing")
+
+            # First click start, second click stop
+            push_button_play.clicked.connect(push_button_play_action)
+            dock_heading_time.addWidget(push_button_play)
+
+    def sandbox(self):
+        dock_sandbox = Dock("WindDirection")
+        self.addDock(dock_sandbox, position='below')
+
+        data_gnss = copy.copy(self.sfb.gps_fix)
+        data_statistics = copy.copy(self.sfb.statistics)
+        srp = SeafoilRelationshipPlot(data_gnss.track, data_statistics.speed, data_gnss.time, data_gnss.time, self.sfb, enable_interpolation=False)
+        srp.set_x_parameters("heading", "°", 0.0, 360.0, 1.0, 1.0)
+        y_resolution = 0.5
+        srp.set_y_parameters("velocity", "kt", 12, 42, y_resolution, self.ms_to_kt)
+        srp.set_min_sample(0, normalize="one")
+        srp.plot_options(enable_plot_stat_curves=False, enable_plot_trajectory=True, modulo_x=True)
+        srp.preprocess_data()
+        srp.compute_histogram()
+        # copy the y_hist
+        y_hist = srp.y_hist
+        # delete srp
+        del srp
+
+        heading = np.arange(0, 360, 1)
+        score_heading = np.zeros(len(heading))
+
+        def compute_fold(heading_index, use_xor = True):
+            # Cut the histogram y_hist in two parts (left and right)
+            y_hist_modulo = np.concatenate((y_hist[heading_index:], y_hist[:heading_index]), axis=0)
+            # threshold the first part with the mirrored second part
+            if use_xor:
+                # y_fold = np.logical_xor(y_hist_modulo[:180], np.flip(y_hist_modulo[180:], axis=0))
+                y_fold = np.logical_or(y_hist_modulo[:180], np.flip(y_hist_modulo[180:], axis=0))
+            else:
+                y_fold = np.maximum(y_hist_modulo[:180], np.flip(y_hist_modulo[180:], axis=0))
+            # Create a 2D matrix with a gradient from 0 to 1 in the x direction
+            x = np.arange(0, len(y_fold[0]))
+            y = np.arange(0, len(y_fold))
+            xx, yy = np.meshgrid(x, y)
+            y_fold = (2 + 1.0/(1+(yy/len(y_fold[0]))**2)) * y_fold
+            return y_fold
+
+        for i, h in enumerate(heading):
+            # Sum the result
+            score_heading[i] = np.sum(compute_fold(h))
+
+        # Get the index of the minimum score
+        heading_score_min = heading[np.argmin(score_heading)]
+        print("Minimum score at heading", heading_score_min, "with a score of", np.min(score_heading))
+
+        # Plot
+        pg_plot = pg.PlotWidget()
+        self.set_plot_options(pg_plot)
+        pg_plot.plot(heading, score_heading[:-1], pen=(255, 0, 0), name="score", stepMode=True)
+        pg_plot.setLabel('left', "score")
+        dock_sandbox.addWidget(pg_plot)
+
+        # Create a pyqtgraph line at the minimum score
+        line = pg.InfiniteLine(pos=heading_score_min, angle=90, movable=False, pen=(0, 255, 0))
+        pg_plot.addItem(line)
+
+        # Add a label with the heading of the minimum score
+        label = pg.TextItem(html=f"<div style='text-align: center'><span style='color: #FF0'>Heading: {heading_score_min}°</span></div>")
+        pg_plot.addItem(label)
+
+        # Plot the pcmi with the minimum score
+        edgecolors = None
+        antialiasing = False
+        colormap = pg.ColorMap(pos=[0., 1.0],
+                               color=[(0, 0, 255, 0), (255, 255, 0, 100)],
+                               mapping=pg.ColorMap.CLIP)
+        pcmi = pg.PColorMeshItem(edgecolors=edgecolors, antialiasing=antialiasing, colorMap=colormap)
+
+        y_fold_pcmi = compute_fold(heading_score_min, False)
+        x = np.arange(0, len(y_fold_pcmi))
+        y = np.arange(12, 42, y_resolution)
+        x_pcmi = np.outer((x - 0.5) * 1.0, np.ones(len(y)))
+        y_pcmi = np.outer(np.ones(len(x)), np.arange(12, 42, y_resolution) * 1.0)
+        pcmi.setData(x_pcmi, y_pcmi, y_fold_pcmi[:-1, :-1])
+
+        # Create a new plot and add the pcmi
+        pg_plot_pcmi = pg.PlotWidget()
+        self.set_plot_options(pg_plot_pcmi)
+        pg_plot_pcmi.addItem(pcmi)
+        dock_sandbox.addWidget(pg_plot_pcmi)
+
+

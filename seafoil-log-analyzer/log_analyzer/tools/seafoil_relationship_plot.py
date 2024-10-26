@@ -3,6 +3,7 @@ import math
 import numpy as np
 from scipy import interpolate
 import pyqtgraph as pg
+from pyqtgraph.Qt import QtWidgets, QtCore
 
 class SeafoilRelationshipPlot:
 
@@ -39,8 +40,10 @@ class SeafoilRelationshipPlot:
         self.polyndegree = 1
 
         self.enable_plot_stat_curves = True
-        self.enable_plot_trajectory = False
+        self.enable_plot_trajectory = True
         self.modulo_x = False
+
+        self.enable_windows_filter_matrix = False
 
         # Processed data
         self.x_vect = None
@@ -70,6 +73,10 @@ class SeafoilRelationshipPlot:
 
         # Tools
         self.spinbox = None
+        self.pushbutton_enable_windows_filter_matrix = None
+
+    def enable_windows_filter_matrix_callback(self):
+        self.enable_windows_filter_matrix = not self.enable_windows_filter_matrix
 
     def get_color_matrix(self):
         return self.color_matrix_list[self.color_matrix_idx]
@@ -77,7 +84,7 @@ class SeafoilRelationshipPlot:
     def set_x_parameters(self, name_x, unit_x, x_min, x_max, x_resolution=1.0, x_unit_conversion=1.0):
         self.name_x = name_x
         self.unit_x = unit_x
-        self.x_resolution = x_resolution
+        self.x_resolution = x_resolution / x_unit_conversion
         self.x_unit_conversion = x_unit_conversion
         self.x_min = x_min / x_unit_conversion
         self.x_max = x_max / x_unit_conversion
@@ -85,7 +92,7 @@ class SeafoilRelationshipPlot:
     def set_y_parameters(self, name_x, unit_x, y_min, y_max, y_resolution=1.0, y_unit_conversion=1.0):
         self.name_y = name_x
         self.unit_y = unit_x
-        self.y_resolution = y_resolution
+        self.y_resolution = y_resolution / y_unit_conversion
         self.y_unit_conversion = y_unit_conversion
         self.y_min = y_min / y_unit_conversion
         self.y_max = y_max / y_unit_conversion
@@ -122,8 +129,8 @@ class SeafoilRelationshipPlot:
         self.y_hist = np.zeros([len(self.x_vect), int((self.y_max - self.y_min) / self.y_resolution)])
 
         # Select time interval
-        data_x = self.data_x[self.time_min_idx:self.time_max_idx]
-        data_y = self.data_y[self.time_min_idx:self.time_max_idx]
+        data_x = self.data_x[self.time_min_idx:self.time_max_idx] if self.enable_windows_filter_matrix else self.data_x
+        data_y = self.data_y[self.time_min_idx:self.time_max_idx] if self.enable_windows_filter_matrix else self.data_y
 
         for i, x in enumerate(self.x_vect):
             idx = np.where((data_x >= x) & (data_x < (x + self.x_resolution))) # .data ??
@@ -177,7 +184,7 @@ class SeafoilRelationshipPlot:
         self.x_vect_modulo = np.arange(-half_range, half_range, self.x_resolution)
 
         x_pcmi = np.outer((self.x_vect_modulo + self.x_resolution) * self.x_unit_conversion, np.ones(int((self.y_max-self.y_min) / self.y_resolution)))
-        y_pcmi = np.outer(np.ones(len(self.x_vect_modulo)), np.arange(self.y_min, self.y_max, self.y_resolution)[:-1] * self.y_unit_conversion)
+        y_pcmi = np.outer(np.ones(len(self.x_vect_modulo)), np.arange(self.y_min, self.y_max, self.y_resolution) * self.y_unit_conversion)
         self.pcmi.setData(x_pcmi, y_pcmi, self.y_hist_modulo[:-1,:-1])
 
     def generate_plots(self):
@@ -192,9 +199,9 @@ class SeafoilRelationshipPlot:
         if self.enable_plot_stat_curves:
             if self.enable_polyfit:
                 if self.plot_polyfit is None:
-                    self.plot_polyfit = self.pg_plot.plot(self.x_vect_fit * self.x_unit_conversion, self.x_polyfit(self.x_vect_fit)[:-1] * self.y_unit_conversion, pen=(0, 255, 255), name="polyfit", stepMode=True)
+                    self.plot_polyfit = self.pg_plot.plot(self.x_vect_fit * self.x_unit_conversion, self.x_polyfit(self.x_vect_fit) * self.y_unit_conversion, pen=(0, 255, 255), name="polyfit", stepMode=True)
                 else:
-                    self.plot_polyfit.setData(self.x_vect_fit * self.x_unit_conversion, self.x_polyfit(self.x_vect_fit)[:-1] * self.y_unit_conversion)
+                    self.plot_polyfit.setData(self.x_vect_fit * self.x_unit_conversion, self.x_polyfit(self.x_vect_fit) * self.y_unit_conversion)
             if self.plot_mean is None:
                 self.plot_mean = self.pg_plot.plot(self.x_vect * self.x_unit_conversion, self.y_stat_mean[:-1] * self.y_unit_conversion, pen=pg.mkPen((255, 0, 0), width=5), name=self.name_y + " mean", stepMode=True)
                 self.plot_max = self.pg_plot.plot(self.x_vect * self.x_unit_conversion, self.y_stat_max[:-1] * self.y_unit_conversion, pen=(0, 255, 0), name=self.name_y + " max (10%)", stepMode=True)
@@ -284,9 +291,19 @@ class SeafoilRelationshipPlot:
             self.spinbox.setWrapping(True)
 
             self.spinbox.sigValueChanged.connect(self.update_x_center)
+
+            self.pushbutton_enable_windows_filter_matrix = QtWidgets.QPushButton('Enable windows filter matrix')
+            self.pushbutton_enable_windows_filter_matrix.clicked.connect(self.enable_windows_filter_matrix_callback)
+            # Set pushbutton as permanent
+            self.pushbutton_enable_windows_filter_matrix.setCheckable(True)
+            self.pushbutton_enable_windows_filter_matrix.setChecked(self.enable_windows_filter_matrix)
+
+            # Add a permanent push button to play the record
+
+
             self.update_x_center()
 
         if self.spinbox is not None:
-            return self.pg_plot, self.spinbox
+            return self.pg_plot, self.spinbox, self.pushbutton_enable_windows_filter_matrix
         else:
             return self.pg_plot

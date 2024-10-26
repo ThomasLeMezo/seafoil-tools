@@ -156,15 +156,19 @@ class SeafoilUiDownload(QtWidgets.QDialog):
     def update_log_list(self):
         self.listWidget_logs.clear()
         # Add items to the list widget with checkboxes
+        # We assume log are stored by date order (newest first)
+        # Logs that are older than a stored log are considered as not new
+        is_known = False
         for log in self.sl.sc.stored_log_list:
             item_text = str(log['id']) + ' - ' + log['name']
             if log['is_new']:
                 item_text += ' [NEW]'
             item = QListWidgetItem(item_text)
             item.setFlags(item.flags() | Qt.ItemIsUserCheckable)  # Set the item as checkable
-            if log['is_new']:
+            if log['is_new'] and not is_known:
                 item.setCheckState(Qt.Checked)
             else:
+                is_known = True
                 item.setCheckState(Qt.Unchecked)  # Set the initial state to unchecked
             self.listWidget_logs.addItem(item)
 
